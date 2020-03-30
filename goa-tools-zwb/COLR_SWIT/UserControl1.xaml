@@ -1,0 +1,23 @@
+﻿<Window x:Class="COLR_SWIT.Window1"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:COLR_SWIT"
+             mc:Ignorable="d" 
+             Height="100" Width="250"
+             ResizeMode="NoResize">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Label Content="需要将所有PLOT视图内的所有符号线" Grid.ColumnSpan="2" Grid.Row="0" Grid.Column="0" Width="240"/>
+        <Button x:Name="button1"  Grid.Row="1" Grid.Column="0"  Content="改成黑色" Click="button1_Click"  />
+        <Button x:Name="button2"  Grid.Row="1" Grid.Column="1"  Content="改成按类别" Click="button2_Click" />
+    </Grid>
+</Window>

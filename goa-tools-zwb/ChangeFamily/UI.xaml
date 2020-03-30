@@ -1,0 +1,27 @@
+﻿<Window x:Class="FAMI_REPL.UI"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:FAMI_REPL"
+             mc:Ignorable="d" 
+             Height="300" Width="300" WindowStartupLocation="CenterOwner">
+    
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="25"/>
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Label x:Name="label" Grid.Column="0" Grid.Row="0" Margin="0" Grid.ColumnSpan="2" Content="选择要同步的参数/类型" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+        <ListBox x:Name="listbox_ElementType" Grid.Column="0" Grid.Row="1" Margin="0"   SelectionMode="Single" DisplayMemberPath="Name" />
+        <Button x:Name="button" Grid.Column="0" Grid.Row="2" Margin="0" Grid.ColumnSpan="2" Content="确定" Click="button_Click" />
+
+    </Grid>
+</Window>

@@ -1,0 +1,41 @@
+﻿<Window x:Class="ClassLibrary1.MainWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ClassLibrary1"
+             mc:Ignorable="d" Title="Eight Ball Answer" WindowStartupLocation="CenterScreen" Grid.IsSharedSizeScope="True" MinWidth="240" MinHeight="240" Height="634" Width="481" FontWeight="Bold" >
+    <Grid x:Name="myGrid" Margin="2" >
+        <Grid.RowDefinitions>
+
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel MouseDown="SomethingClicked" >
+            <TextBlock x:Name="textBlock" Margin="3" TextWrapping="Wrap" Text="Image and text label" MouseDown="SomethingClicked">
+            </TextBlock>
+            <Image x:Name="image" MouseUp="SomethingClicked"/>
+            <TextBlock x:Name="textBlock1" TextWrapping="Wrap" Text="TextBlock" MouseDown="SomethingClicked">
+                Courtesy of the StackPanel</TextBlock>
+            <Button x:Name="button1" Content="Button" MouseUp="SomethingClicked" Click="SomethingClicked" 
+                    Background="#FF99B4D1" Foreground="Red"/>
+            <Button x:Name="button2" Content="Button" MouseUp="SomethingClicked" Click="SomethingClicked"/>
+            <Button x:Name="button3" MouseUp="SomethingClicked" Click="SomethingClicked" FontWeight="Normal" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+            </Button>
+            
+        </StackPanel>
+        <ListBox x:Name="listBox" Margin="5"  Grid.Row="1">
+            <Calendar Margin="10,10,0,0"/>
+            <DatePicker Margin="10,10,0,0"/>
+        </ListBox>
+        <CheckBox x:Name="checkBox"  HorizontalAlignment="Left" VerticalAlignment="Top" Grid.Row="2" Margin="5">
+            Handle first envent</CheckBox>
+        <Button x:Name="button" Content="cleat List" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Grid.Row="3" Click="Button_Click"/>
+
+
+    </Grid>
+
+</Window>

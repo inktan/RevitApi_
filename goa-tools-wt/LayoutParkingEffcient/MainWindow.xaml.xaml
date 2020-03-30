@@ -1,0 +1,57 @@
+﻿<Window x:Class="LayoutParkingEffcient.MainWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:LayoutParkingEffcient"
+             xmlns:System="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d" Topmost="True" WindowStartupLocation="CenterOwner" Height="474.5" Width="576.5" Title="地库强排">
+    <Grid x:Name="myGrid" >
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="120*"/>
+            <ColumnDefinition Width="200*"/>
+            <ColumnDefinition Width="20*"/>
+            <ColumnDefinition Width="20*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50*"/>
+            <RowDefinition Height="100*"/>
+            <RowDefinition Height="40*"/>
+            <RowDefinition Height="18*"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox x:Name="groupBox1" Header="尺寸设定（mm）"  FontSize="13.333" Grid.Row="1" Margin="5">
+            <Grid Margin="0,5" VerticalAlignment="Center"   >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="50*"/>
+                    <ColumnDefinition Width="30*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="1"  >
+                    <TextBox x:Name="parkingPlaceHeight" TextWrapping="Wrap" Text="5100" HorizontalContentAlignment="Right" Margin="0,3" />
+                    <TextBox x:Name="parkingPlaceWight" TextWrapping="Wrap" Text="2400"  HorizontalContentAlignment="Right" Margin="0,3" />
+                    <TextBox x:Name="Wd" TextWrapping="Wrap" Text="5500"  HorizontalContentAlignment="Right" Margin="0,3"/>
+                    <TextBox x:Name="columnWidth" TextWrapping="Wrap" Text="600"  HorizontalContentAlignment="Right" Margin="0,3"/>
+                </StackPanel>
+                <StackPanel >
+                    <Label x:Name="labe_parkingPlaceHeight" Content="停车位（长度）" HorizontalContentAlignment="Center" FontSize="12"  />
+                    <Label x:Name="label_parkingPlaceWight" Content="停车位（宽度）" HorizontalContentAlignment="Center" FontSize="12" />
+                    <Label x:Name="label_Wd" Content="通车道（宽度）" HorizontalContentAlignment="Center"  FontSize="12"/>
+                    <Label x:Name="label_columnWidth" Content="柱子（宽度）" HorizontalContentAlignment="Center"  FontSize="12"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Grid.Row="2"   >
+            <Button x:Name="button1" Content="选择车库边界闭合曲线" Click="button1_Click_1" HorizontalAlignment="Center" Margin="0,5,0,0" />
+            <Button x:Name="button" Content="计算车位布局" Click="Button_Click" HorizontalAlignment="Center" Margin="0,5,0,0" />
+        </StackPanel>
+        <GroupBox x:Name="groupBox" Header="强排结果" Grid.Row="1" Grid.Column="1" FontSize="13.333" Margin="5">
+            <ListBox x:Name="listBox"  />
+        </GroupBox>
+        <TextBlock x:Name="textBox" TextWrapping="Wrap" Text="GOA 大象设计" VerticalAlignment="Bottom" Height="17" Grid.ColumnSpan="4" Grid.Row="3" Background="WhiteSmoke"/>
+        <GroupBox x:Name="groupBox2" Header="停车方式" FontSize="13.333"  Margin="5">
+            <ComboBox x:Name="comboBox" HorizontalAlignment="Left" VerticalAlignment="Top" Width="120" Margin="0,5"/>
+        </GroupBox>
+
+    </Grid>
+
+</Window>

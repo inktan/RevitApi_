@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0" 
+                    AutodeskProduct="Revit" 
+                    Name="goa tools" 
+                    Description="goa tools" 
+                    AppVersion="1.0.0" FriendlyVersion="1.0.0"
+                    ProductType="Application"
+                    SupportedLocales="Enu" 
+                    ProductCode="{75eb74ed-b97f-473a-89e9-9e6f489fbd59}" 
+                    UpgradeCode="{96b3708b-54e3-41a7-b2ec-25b864f15bba} " 
+                    Icon="./Contents/Resources/icon.ico">
+  <CompanyDetails Name="goa大象设计" 
+                  Email="zhu.liyi@goa.com.cn" 
+                  Url="www.goa.com.cn" 
+                  Phone=" " />
+  <RuntimeRequirements OS="Win64" 
+                       Platform="Revit" 
+                       SeriesMin="R2018" 
+                       SeriesMax="R2020" />
+  <Components Description="R2018">
+    <RuntimeRequirements OS="Win64" 
+                         Platform="Revit" 
+                         SeriesMin="R2018" 
+                         SeriesMax="R2018" />
+    <ComponentEntry AppName="goa tools" 
+                    Version="1.0.0" 
+                    ModuleName="./Contents/goa_tools.addin" 
+                    AppDescription="goa tools" />
+  </Components>
+  <Components Description="R2020">
+    <RuntimeRequirements OS="Win64"
+                         Platform="Revit"
+                         SeriesMin="R2020"
+                         SeriesMax="R2020" />
+    <ComponentEntry AppName="goa tools"
+                    Version="1.0.0"
+                    ModuleName="./Contents/goa_tools.addin"
+                    AppDescription="goa tools" />
+  </Components>
+</ApplicationPackage>

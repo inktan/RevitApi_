@@ -1,0 +1,27 @@
+﻿<Window x:Class="TYPE_ON_OFF.Window1"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:TYPE_ON_OFF"
+             mc:Ignorable="d" 
+             Height="340" Width="310"
+             ResizeMode="NoResize">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="250"/>
+            <RowDefinition Height="25"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150"/>
+            <ColumnDefinition Width="150"/>
+        </Grid.ColumnDefinitions>
+        <Label Content="全部隐藏的类型" Grid.Row="0" HorizontalAlignment="Center"  VerticalAlignment="Center" HorizontalContentAlignment="Center" Height="25" Width="150" />
+        <Label Content="部分隐藏的类型" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center"  VerticalAlignment="Center" HorizontalContentAlignment="Center" Height="25" Width="150" />
+        <ListBox x:Name="listbox1"  Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center"   VerticalAlignment="Center" Height="250" Width="150" SelectionMode="Extended" />
+        <ListBox x:Name="listbox2"  Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center"   VerticalAlignment="Center" Height="250" Width="150" SelectionMode="Extended" />
+        <Button Content="显示" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25" Width="300" Click="Button_Click"/>
+
+    </Grid>
+</Window>

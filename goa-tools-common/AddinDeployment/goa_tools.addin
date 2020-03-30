@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-16" standalone="no"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Ribbon</Name>
+    <Assembly>Ribbon.dll</Assembly>
+    <ClientId>1BE07EEE-755E-42FB-9A96-51896439B950</ClientId>
+    <FullClassName>Ribbon.Ribbon</FullClassName>
+    <VendorId>goa</VendorId>
+    <VendorDescription>goa, www.goa.com.cn</VendorDescription>
+  </AddIn>
+</RevitAddIns>

@@ -448,6 +448,9 @@ namespace Dwelling_Assembly
         //
         private void Hxzuhe_auto()
         {
+            //生成模型按钮的 状态切换
+            this.button3.IsEnabled = false;
+            this.button3.Content = "确认";
             //该if判断用来设定详图户型拼接的宽度
             this.listBox1.IsEnabled = true;
             //重设listbox1的索引值
@@ -3794,7 +3797,6 @@ namespace Dwelling_Assembly
             this.Width = 1000;//2个套型
             this.button_Copy.IsEnabled = false;
             this.listBox.IsEnabled = false;
-            this.button3.IsEnabled = false;
             RestTX();
             if (this.listBox.SelectedIndex >= 0)
             {
@@ -3847,10 +3849,19 @@ namespace Dwelling_Assembly
         //在启动revit api 方法之前，需要传递模型的文件路径
         private void button3_Click(object sender, RoutedEventArgs e)
         {
+            //设置判断选项，是调取轮廓，还是调取模型
+            if (this.radioButton9.IsChecked == true)
+            {
+                CMD._Recalloptions = "outline_sola";
+            }
+            else if (this.radioButton10.IsChecked == true)
+            {
+                CMD._Recalloptions = "basic_model";
+            }
             if (this.listBox1.IsEnabled == true)
             {
                 this.listBox1.IsEnabled = false;
-                this.button3.Content = "请重新选择意向户型组合模式";
+                this.button3.Content = "请重新选择";
                 //该if，用来判断模型组合的布局规则
                 string HX_rvtFilePath = @"W:\BIM_ARCH\03.插件\户型库\ParametricStudyForDwellings\BIM_Model\UNIT\";
                 string HX_HXT_rvtFilePath = @"W:\BIM_ARCH\03.插件\户型库\ParametricStudyForDwellings\BIM_Model\CORE\";
@@ -3975,7 +3986,7 @@ namespace Dwelling_Assembly
             else if (this.listBox1.IsEnabled == false)
             {
                 this.listBox1.IsEnabled = true;
-                this.button3.Content = "生成户型基础模型";
+                this.button3.Content = "确认";
             }
 
         }
@@ -3992,6 +4003,9 @@ namespace Dwelling_Assembly
             string selHXT = GetHxtPath(TXAname, out TXAnameLength);
             CMD._TXA_rvt = HX_rvtFilePath + TXAname.Substring(0, TXAnameLength - 11) + @".rvt";// -11 源于_left_
             CMD._TXA_HXT_rvt = HX_HXT_rvtFilePath + selHXT + @".rvt";
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selHXT;
         }
         //生成模型 1T2H 模式为ab 1DY 
         //生成模型 1T2H 模式为abba 2DY 
@@ -4008,6 +4022,10 @@ namespace Dwelling_Assembly
             CMD._TXA_rvt = HX_rvtFilePath + TXAname.Substring(0, TXAnameLength - 11) + @".rvt";// -11 源于_left_
             CMD._TXA_HXT_rvt = HX_HXT_rvtFilePath + selHXT + @".rvt";
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 12) + @".rvt";// -12 源于_right_
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selHXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 12);
         }
         //生成模型 1T2H 模式为aaab 2DY 
         public void Get_1T2H_aaab_RVTpath(string HX_rvtFilePath, string HX_HXT_rvtFilePath)//使用的为 TXA_left 套型
@@ -4022,6 +4040,10 @@ namespace Dwelling_Assembly
             CMD._TXA_rvt = HX_rvtFilePath + TXAname.Substring(0, TXAnameLength - 11) + @".rvt";// -11 源于_left_
             CMD._TXA_HXT_rvt = HX_HXT_rvtFilePath + selHXT + @".rvt";
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 12) + @".rvt";// -12 源于_right_
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selHXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 12);
         }
         //生成模型 1T2H 模式为aabbaa 3DY
         //生成模型 1T2H 模式为abbbba 3DY
@@ -4039,6 +4061,12 @@ namespace Dwelling_Assembly
             CMD._TXA_HXT_rvt = HX_HXT_rvtFilePath + selTXA_HXT + @".rvt";
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 11) + @".rvt";
             CMD._TXB_HXT_rvt = HX_HXT_rvtFilePath + selTXB_HXT + @".rvt";
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 11);
+            CMD._TXB_HXT_name = selTXB_HXT;
+
         }
         //生成模型 1T2H 模式为aaaaab 3DY 
         public void Get_1T2H_aaaaab_RVTpath(string HX_rvtFilePath, string HX_HXT_rvtFilePath)//使用的为 TXA_left 套型
@@ -4053,6 +4081,10 @@ namespace Dwelling_Assembly
             CMD._TXA_rvt = HX_rvtFilePath + TXAname.Substring(0, TXAnameLength - 11) + @".rvt";// -11 源于_left_
             CMD._TXA_HXT_rvt = HX_HXT_rvtFilePath + selHXT + @".rvt";
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 12) + @".rvt";// -12 源于_right_
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selHXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 12);
         }
         //生成模型 1T2H 模式为abbc 2DY
         public void Get_1T2H_abbc_RVTpath(string HX_rvtFilePath, string HX_HXT_rvtFilePath)
@@ -4073,6 +4105,12 @@ namespace Dwelling_Assembly
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 11) + @".rvt";
             CMD._TXB_HXT_rvt = HX_HXT_rvtFilePath + selTXB_HXT + @".rvt";
             CMD._TXC_rvt = HX_rvtFilePath + TXCname.Substring(0, TXCnameLength - 12) + @".rvt";// -11 源于_right_
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 11);
+            CMD._TXB_HXT_name = selTXB_HXT;
+            CMD._TXC_name = TXCname.Substring(0, TXCnameLength - 12);
         }
         //生成模型 1T2H 模式为abccba 3DY
         public void Get_1T2H_abccba_RVTpath(string HX_rvtFilePath, string HX_HXT_rvtFilePath)
@@ -4093,6 +4131,12 @@ namespace Dwelling_Assembly
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 12) + @".rvt";
             CMD._TXC_rvt = HX_rvtFilePath + TXCname.Substring(0, TXCnameLength - 11) + @".rvt";// -11 源于_right_
             CMD._TXC_HXT_rvt = HX_HXT_rvtFilePath + selTXC_HXT + @".rvt";
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 12);
+            CMD._TXC_name = TXCname.Substring(0, TXCnameLength - 11);
+            CMD._TXC_HXT_name = selTXC_HXT;
         }
 
         //生成模型 1T2H 模式为aabbac 3DY
@@ -4114,6 +4158,12 @@ namespace Dwelling_Assembly
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 11) + @".rvt";
             CMD._TXB_HXT_rvt = HX_HXT_rvtFilePath + selTXB_HXT + @".rvt";
             CMD._TXC_rvt = HX_rvtFilePath + TXCname.Substring(0, TXCnameLength - 12) + @".rvt";// -11 源于_right_
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 11);
+            CMD._TXB_HXT_name = selTXB_HXT;
+            CMD._TXC_name = TXCname.Substring(0, TXCnameLength - 12);
         }
 
         //生成模型 1T2H 模式为abbbbc 3DY
@@ -4136,6 +4186,12 @@ namespace Dwelling_Assembly
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 12) + @".rvt";
             CMD._TXB_HXT_rvt = HX_HXT_rvtFilePath + selTXB_HXT + @".rvt";
             CMD._TXC_rvt = HX_rvtFilePath + TXCname.Substring(0, TXCnameLength - 12) + @".rvt";// -11 源于_right_
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 12);
+            CMD._TXB_HXT_name = selTXB_HXT;
+            CMD._TXC_name = TXCname.Substring(0, TXCnameLength - 12);
         }
         //生成模型 1T2H 模式为abccbd 3DY
         public void Get_1T2H_abccbd_RVTpath(string HX_rvtFilePath, string HX_HXT_rvtFilePath)
@@ -4161,7 +4217,15 @@ namespace Dwelling_Assembly
             CMD._TXC_rvt = HX_rvtFilePath + TXCname.Substring(0, TXCnameLength - 11) + @".rvt";// -11 源于_small_left
             CMD._TXC_HXT_rvt = HX_HXT_rvtFilePath + selTXC_HXT + @".rvt";
             CMD._TXD_rvt = HX_rvtFilePath + TXDname.Substring(0, TXDnameLength - 12) + @".rvt";// -11 源于_small_Right
-            //MessageBox.Show(CMD._TXD_rvt);
+                                                                                               //MessageBox.Show(CMD._TXD_rvt);
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 12);
+            CMD._TXC_name = TXCname.Substring(0, TXCnameLength - 11);
+            CMD._TXC_HXT_name = selTXC_HXT;
+            CMD._TXD_name = TXDname.Substring(0, TXDnameLength - 12);
+
         }
 
         //生成模型 2T4H 模式为 abba 1DY
@@ -4179,6 +4243,10 @@ namespace Dwelling_Assembly
             CMD._TXA_rvt = HX_rvtFilePath + TXAname.Substring(0, TXAnameLength - 11) + @".rvt";// -11 源于_left_
             CMD._TXA_HXT_rvt = HX_HXT_rvtFilePath + selTXA_HXT + @".rvt";
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 11) + @".rvt";
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 11);
         }
         //生成模型 2T4H 模式为 abbc 1DY
         //生成模型 2T4H 模式为 abbccbba 2DY
@@ -4199,6 +4267,11 @@ namespace Dwelling_Assembly
             CMD._TXA_HXT_rvt = HX_HXT_rvtFilePath + selTXA_HXT + @".rvt";
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 11) + @".rvt";
             CMD._TXC_rvt = HX_rvtFilePath + TXCname.Substring(0, TXCnameLength - 12) + @".rvt";// -12 源于_right_
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 11);
+            CMD._TXC_name = TXCname.Substring(0, TXCnameLength - 12);
         }
         //生成模型 2T4H 模式为 abbaabbc 2DY
         public void Get_2T4H_abbaabbc_RVTpath(string HX_rvtFilePath, string HX_HXT_rvtFilePath)
@@ -4218,6 +4291,11 @@ namespace Dwelling_Assembly
             CMD._TXA_HXT_rvt = HX_HXT_rvtFilePath + selTXA_HXT + @".rvt";
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 11) + @".rvt";
             CMD._TXC_rvt = HX_rvtFilePath + TXCname.Substring(0, TXCnameLength - 12) + @".rvt";// -12 源于_right_
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 11);
+            CMD._TXC_name = TXCname.Substring(0, TXCnameLength - 12);
         }
         //生成模型 2T4H 模式为 abbccbbd 2DY
         public void Get_2T4H_abbccbbd_RVTpath(string HX_rvtFilePath, string HX_HXT_rvtFilePath)
@@ -4241,6 +4319,12 @@ namespace Dwelling_Assembly
             CMD._TXB_rvt = HX_rvtFilePath + TXBname.Substring(0, TXBnameLength - 11) + @".rvt";
             CMD._TXC_rvt = HX_rvtFilePath + TXCname.Substring(0, TXCnameLength - 11) + @".rvt";
             CMD._TXD_rvt = HX_rvtFilePath + TXDname.Substring(0, TXDnameLength - 12) + @".rvt";// -12 源于_right_
+
+            CMD._TXA_name = TXAname.Substring(0, TXAnameLength - 11);
+            CMD._TXA_HXT_name = selTXA_HXT;
+            CMD._TXB_name = TXBname.Substring(0, TXBnameLength - 11);
+            CMD._TXC_name = TXCname.Substring(0, TXCnameLength - 11);
+            CMD._TXD_name = TXDname.Substring(0, TXDnameLength - 12);
         }
         /// <summary>
         /// 读取txt里面的内容
@@ -4410,11 +4494,6 @@ namespace Dwelling_Assembly
         private void listBox1_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             this.button3.IsEnabled = true;
-        }
-
-        private void button4_Click(object sender, SelectionChangedEventArgs e)
-        {
-            Hxzuhe_auto();
         }
 
         private void button4_Click(object sender, RoutedEventArgs e)

@@ -94,50 +94,7 @@ namespace LINE_ROAD
 
             List<Arc> list_arc = new List<Arc>();
 
-            #region
-            //将两根线的转折点做倒角(排除3根及以上线汇到一个点的情况)
-            //for (int i = 0; i < list_line.Count; i++)
-            //{
-            //    for (int j = i + 1; j < list_line.Count; j++)
-            //    {
-            //        bool findthirdline = false;
-            //        if (list_line[i].Intersect(list_line[j]) == SetComparisonResult.Overlap)
-            //        {
-            //            XYZ point_start_i = list_line[i].GetEndPoint(0);
-            //            XYZ point_end_i = list_line[i].GetEndPoint(1);
-            //            XYZ point_start_j = list_line[j].GetEndPoint(0);
-            //            XYZ point_end_j = list_line[j].GetEndPoint(1);
-
-            //            XYZ point_intersection = null;
-            //            if (point_start_i.IsAlmostEqualTo(point_start_j)) { point_intersection = point_start_i; }
-            //            if (point_start_i.IsAlmostEqualTo(point_end_j)) { point_intersection = point_start_i; }
-            //            if (point_end_i.IsAlmostEqualTo(point_start_j)) { point_intersection = point_end_i; }
-            //            if (point_end_i.IsAlmostEqualTo(point_end_j)) { point_intersection = point_end_i; }
-            //            if (point_intersection == null) { continue; }
-
-            //            for (int k = 0; k < list_line.Count; k++)
-            //            {
-            //                if (k == i || k == j) { continue; }
-            //                XYZ point_start_k = list_line[k].GetEndPoint(0);
-            //                XYZ point_end_k = list_line[k].GetEndPoint(1);
-            //                if (point_intersection.IsAlmostEqualTo(point_start_k) || point_intersection.IsAlmostEqualTo(point_end_k))
-            //                { findthirdline = true; break; }
-            //            }
-            //        }
-            //        if (findthirdline) { continue; }
-            //        else
-            //        {
-            //            Line newline1;
-            //            Line newline2;
-            //            Arc arc = Chamfer(list_line[i], list_line[j], radius, out newline1, out newline2);
-            //            list_arc.Add(arc);
-            //            list_line[i] = newline1;
-            //            list_line[j] = newline2;
-
-            //        }
-            //    }
-            //}
-            #endregion
+   
 
             //单线模式下,将两根线的转折点做倒角(排除3根及以上线汇到一个点的情况)
             for (int i = 0; i < list_line.Count; i++)
@@ -145,24 +102,28 @@ namespace LINE_ROAD
                 for (int c = 0; c < 2; c++)
                 {
                     int temp = i;
-                    List<int> list_int = new List<int>();
-                    XYZ point_i = list_line[i].GetEndPoint(c);
-                    for (int j = 0; j < list_line.Count; j++)
+
+                    List<int> list_int = new List<int>();//收集与 i 线段 一个端点重合的 线段的索引值
+
+                    XYZ point_i = list_line[i].GetEndPoint(c);//第一根线的第一个端点
+
+                    for (int j = 0; j < list_line.Count; j++)//判断 i 线段与 j 线段的关系
                     {
                         if (j == i) { continue; }
-                        XYZ point_start_j = list_line[j].GetEndPoint(0);
+                        XYZ point_start_j = list_line[j].GetEndPoint(0);//拿出 j 线段的两个端点
                         XYZ point_end_j = list_line[j].GetEndPoint(1);
-                        if (point_i.IsAlmostEqualTo(point_start_j) || point_i.IsAlmostEqualTo(point_end_j))
+                        if (point_i.IsAlmostEqualTo(point_start_j) || point_i.IsAlmostEqualTo(point_end_j)) //如果 i 线段与 j 线段 端点重合
                         {
-                            list_int.Add(j);
+                            list_int.Add(j);//如果重合，则把j索引值拿到列表中
                         }
                     }
-                    if (list_int.Count == 1)
+
+                    if (list_int.Count == 1)//基于条件 判断是否倒角 如果收集的重合线段索引值只有1个，则开展倒角
                     {
                         int j = list_int[0];
                         Line newline1;
                         Line newline2;
-                        Arc arc = Chamfer(list_line[i], list_line[j], radius, out newline1, out newline2);
+                        Arc arc = Chamfer(list_line[i], list_line[j], radius, out newline1, out newline2);//进行倒角
                         list_arc.Add(arc);
                         list_line[i] = newline1;
                         list_line[j] = newline2;
@@ -228,53 +189,7 @@ namespace LINE_ROAD
                 }
             }
 
-            //foreach (Arc arc in list_arc_nooffset)
-            //{
-            //    XYZ point_arc = GetIntersectionByArcTangent(arc);
-            //    for (int i = 0; i < list_line.Count; i++)
-            //    {
-            //        IntersectionResultArray intersectionResultArray;
-            //        XYZ intersection;
-            //        if (arc.Intersect(list_line[i], out intersectionResultArray) == SetComparisonResult.Overlap)
-            //        { intersection = intersectionResultArray.get_Item(0).XYZPoint; }
-            //        else
-            //        { continue; }
-            //        XYZ point_start_line = list_line[i].GetEndPoint(0);
-            //        XYZ point_end_line = list_line[i].GetEndPoint(1);
-
-            //        if (point_arc.IsAlmostEqualTo(point_start_line))
-            //        { list_line[i] = Line.CreateBound(intersection, point_end_line); i--; }
-            //        else if (point_arc.IsAlmostEqualTo(point_end_line))
-            //        { list_line[i] = Line.CreateBound(intersection, point_start_line); i--; }
-
-            //    }
-            //}
-
-
-
-            ////将路封闭
-            //List<Line> list_line_Closed = new List<Line>();
-            //for (int i = 0; i < list_line.Count-1; i++)
-            //{
-            //    for (int x = 0; x < 2; x++)
-            //    {
-            //        XYZ point_1 = list_line[i].GetEndPoint(x);
-
-            //        for (int j = i + 1; j < list_line.Count; j++)
-            //        {
-            //            for (int y = 0; y < 2; y++)
-            //            {
-            //                XYZ point_2 = list_line[j].GetEndPoint(y);
-            //                double distance_temp = point_1.DistanceTo(point_2);
-            //                if (AlmostEqual(distance_temp, offset*2))
-            //                {
-            //                    Line line_close = Line.CreateBound(point_1, point_2);
-            //                    list_line_Closed.Add(line_close);
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
+     
 
 
 

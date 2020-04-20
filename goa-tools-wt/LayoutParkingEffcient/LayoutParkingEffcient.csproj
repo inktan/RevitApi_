@@ -43,11 +43,11 @@
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="RevitAPI">
-      <HintPath>..\REVIT_API\2020\RevitAPI.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\Revit 2020\RevitAPI.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="RevitAPIUI">
-      <HintPath>..\REVIT_API\2020\RevitAPIUI.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\Revit 2020\RevitAPIUI.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -72,6 +72,10 @@
     <Compile Include="MainWindow.xaml.xaml.cs">
       <DependentUpon>MainWindow.xaml.xaml</DependentUpon>
     </Compile>
+    <Compile Include="_Clipper_methods.cs" />
+    <Compile Include="_ParkingAlgorithm.cs" />
+    <Compile Include="_Wt_Class.cs" />
+    <Compile Include="_Wt_Methods.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="MainWindow.xaml.xaml">
@@ -83,6 +87,12 @@
     <ProjectReference Include="..\..\goa-tools-common\goa.Common\goa.Common.csproj">
       <Project>{3b63163d-ce10-43a5-86c5-d5fb43e65ee9}</Project>
       <Name>goa.Common</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\clipper_library\clipper_library.csproj">
+      <Project>{3dd95f32-5a50-4d36-b307-ee449c32d4a2}</Project>
+      <Name>clipper_library</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

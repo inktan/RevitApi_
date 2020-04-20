@@ -55,6 +55,7 @@ namespace Ribbon
             //tab
             application.CreateRibbonTab("goa tools 模型");
             application.CreateRibbonTab("goa tools 制图");
+            application.CreateRibbonTab("goa tools 组");
 
             //var stopwatch = new Stopwatch();
             //stopwatch.Start();
@@ -133,9 +134,11 @@ namespace Ribbon
             //stacked items group 1
             var pbd_selc_dependents = new PushButtonData("SELC_DPNT", "选择附属图元", projectAssemblyFullPath("SELC_DPNT.dll"), "SELC_DPNT.CMD");
             var pbd_selc_group_of_same_level = new PushButtonData("selectAllGroup", "选择同层模型组", projectAssemblyFullPath("selectAllGroup.dll"), "selectAllGroup.CMD");
+            var pbd_join_mult = new PushButtonData("JOIN_MULT", "批量连接", projectAssemblyFullPath("JOIN_MULT.dll"), "JOIN_MULT.CMD");
             rp_model.AddStackedItems(
                 pbd_selc_dependents,
-                pbd_selc_group_of_same_level);
+                pbd_selc_group_of_same_level,
+                pbd_join_mult);
             //stacked items group 2
             var pbd_move_3d = new PushButtonData("pointToPoint3DMove", "三维移动", projectAssemblyFullPath("pointToPoint3DMove.dll"), "pointToPoint3DMove.CMD");
             var pbd_wall_miter = new PushButtonData("wallMiterConnect", "墙批量改斜接", projectAssemblyFullPath("wallMiterConnect.dll"), "wallMiterConnect.CMD");

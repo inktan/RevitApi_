@@ -13,7 +13,6 @@ namespace LayoutParkingEffcient
             MainWindow = null;   // no dialog needed yet; the command will bring it
             return Result.Succeeded;
         }
-
         public Result OnShutdown(UIControlledApplication application)
         {
             if (MainWindow != null)
@@ -22,6 +21,5 @@ namespace LayoutParkingEffcient
             }
             return Result.Succeeded;
         }
-
     }
 }

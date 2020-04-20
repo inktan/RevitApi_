@@ -23,8 +23,10 @@ namespace LayoutParkingEffcient
         public static double parkingPlaceWight = 2400;
         public static double Wd = 5500;
         public static double columnWidth = 600;
+        public static double Wd_main = 6000;
+        public static double redline_offset_distance = 5000;
 
-        public static List<Line> _selRegionBoundings = new List<Line>();
+        public static string layoutMethod = "";
 
         public Result Execute(ExternalCommandData commandData,
                       ref string message,

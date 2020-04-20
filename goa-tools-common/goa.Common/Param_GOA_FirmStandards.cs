@@ -63,28 +63,28 @@ namespace goa.Common
         public static Dictionary<string, FacadeFamilyType> FacadeFamilyTypeID
             = new Dictionary<string, FacadeFamilyType>()
             {
-                {"FACADE-H-LINE", FacadeFamilyType.Horizontal_Line },
-                {"FACADE-H-L", FacadeFamilyType.Horizontal_L },
-                {"FACADE-H-U", FacadeFamilyType.Horizontal_U },
-                {"FACADE-V-LINE", FacadeFamilyType.Vertical_Line},
-                {"FACADE-V-L", FacadeFamilyType.Vertical_L },
-                {"FACADE-V-REC", FacadeFamilyType.Vertical_Rec },
-                {"FACADE-V-U-DN", FacadeFamilyType.Vertical_U_Down },
-                {"FACADE-V-U-UP", FacadeFamilyType.Vertical_U_Up },
-                {"FACADE-3D-L-UP", FacadeFamilyType.Spatial_L_Up },
-                {"FACADE-3D-L-DN", FacadeFamilyType.Spatial_L_Down },
-                {"FACADE-3D-C", FacadeFamilyType.Spatial_C },
+                {"FACADE-H-LINE", FacadeFamilyType.Horizontal_Line }, //水平直线
+                {"FACADE-H-L", FacadeFamilyType.Horizontal_L }, //水平L
+                {"FACADE-H-U", FacadeFamilyType.Horizontal_U }, //水平U
+                {"FACADE-V-LINE", FacadeFamilyType.Vertical_Line}, //垂直直线
+                {"FACADE-V-L", FacadeFamilyType.Vertical_L }, //垂直L
+                {"FACADE-V-REC", FacadeFamilyType.Vertical_Rec }, //垂直矩形
+                {"FACADE-V-U-DN", FacadeFamilyType.Vertical_U_Down }, //垂直U上
+                {"FACADE-V-U-UP", FacadeFamilyType.Vertical_U_Up }, //垂直U下
+                {"FACADE-3D-L-UP", FacadeFamilyType.Spatial_L_Up }, //三维L上
+                {"FACADE-3D-L-DN", FacadeFamilyType.Spatial_L_Down }, //三维L下
+                {"FACADE-3D-C", FacadeFamilyType.Spatial_C }, //三维C形
             };
 
         public static Dictionary<string, EnviFamilyType> EnviFamilyTypeID
             = new Dictionary<string, EnviFamilyType>()
             {
-                {"ENVI-WINDOW", EnviFamilyType.Window },
-                {"ENVI-BAYWINDOW", EnviFamilyType.BayWindow },
-                {"ENVI-BALCONY", EnviFamilyType.Balcony },
-                {"ENVI-BALCONY-L", EnviFamilyType.Balcony_L },
-                {"ENVI-BAYWINDOW-L", EnviFamilyType.BayWindow_L },
-                {"ENVI-EQUIPMENT", EnviFamilyType.Equipment },
+                {"ENVI-WINDOW", EnviFamilyType.Window }, //窗
+                {"ENVI-BAYWINDOW", EnviFamilyType.BayWindow }, //飘窗
+                {"ENVI-BALCONY", EnviFamilyType.Balcony }, //阳台
+                {"ENVI-BALCONY-L", EnviFamilyType.Balcony_L }, //转角阳台
+                {"ENVI-BAYWINDOW-L", EnviFamilyType.BayWindow_L }, //转角飘窗
+                {"ENVI-EQUIPMENT", EnviFamilyType.Equipment }, //设备平台
             };
     }
 

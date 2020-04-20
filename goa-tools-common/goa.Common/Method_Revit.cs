@@ -34,6 +34,15 @@ namespace goa.Common
             return rd(_uv.U) >= rd(_boxUV.Min.U) && rd(_uv.V) >= rd(_boxUV.Min.V)
                 && rd(_uv.U) <= rd(_boxUV.Max.U) && rd(_uv.V) <= rd(_boxUV.Max.V);
         }
+        public static bool IsInside(this BoundingBoxXYZ _box, XYZ _p)
+        {
+            return rd(_p.X) >= rd(_box.Min.X)
+                && rd(_p.Y) >= rd(_box.Min.Y)
+                && rd(_p.Z) >= rd(_box.Min.Z)
+                && rd(_p.X) <= rd(_box.Max.X)
+                && rd(_p.Y) <= rd(_box.Max.Y)
+                && rd(_p.Z) <= rd(_box.Max.Z);
+        }
         private static int rounding = 5;
         private static double rd(this double d)
         {
@@ -46,6 +55,19 @@ namespace goa.Common
             var p2 = _boxUV.Max;
             var p3 = new UV(_boxUV.Min.U, _boxUV.Max.V);
             var array = new UV[4] { p0, p1, p2, p3 };
+            return array;
+        }
+        public static XYZ[] GetVertices(this BoundingBoxXYZ _box)
+        {
+            var p0 = _box.Min;
+            var p1 = new XYZ(_box.Max.X, _box.Min.Y, _box.Min.Z);
+            var p2 = new XYZ(_box.Max.X, _box.Max.Y, _box.Min.Z);
+            var p3 = new XYZ(_box.Min.X, _box.Max.Y, _box.Min.Z);
+            var p4 = new XYZ(_box.Min.X, _box.Min.Y, _box.Max.Z);
+            var p5 = new XYZ(_box.Max.X, _box.Min.Y, _box.Max.Z);
+            var p6 = _box.Max;
+            var p7 = new XYZ(_box.Min.X, _box.Max.Y, _box.Max.Z);
+            var array = new XYZ[8] { p0, p1, p2, p3, p4, p5, p6, p7 };
             return array;
         }
         public static List<Line> GetBoundaryLines(this BoundingBoxUV _boxUV, Plane _plane)
@@ -83,6 +105,14 @@ namespace goa.Common
                 _area = (maxU - minU) * (maxV - minV);
                 return true;
             }
+        }
+        public static bool Overlaps(this BoundingBoxXYZ _box1, BoundingBoxXYZ _box2)
+        {
+            var vertices1 = _box1.GetVertices();
+            var vertices2 = _box2.GetVertices();
+            var b1 = vertices1.Any(x => _box2.IsInside(x));
+            var b2 = vertices2.Any(x => _box1.IsInside(x));
+            return b1 || b2;
         }
         public static double GetArea(this BoundingBoxUV _box)
         {
@@ -185,7 +215,7 @@ namespace goa.Common
         /// <summary>
         /// Duplicate existing family, with input name.
         /// </summary>
-        public static void DuplicateFamily(Document _parentDoc, Document _famDoc)
+        public static Family DuplicateFamily(Document _parentDoc, Document _famDoc)
         {
             //pick existing family instance
             var filter = new FamilyInstanceSelectionFilter();
@@ -193,7 +223,8 @@ namespace goa.Common
             {
                 var name = _famDoc.Title;
                 var newName = InputUniqueName(_parentDoc, name);
-                if (newName == "") return;
+                if (newName == "")
+                    return null;
 
                 //save as new family into temp folder
                 var opt = new SaveAsOptions();
@@ -211,16 +242,18 @@ namespace goa.Common
                 _famDoc.SaveAs(filePath, opt);
                 _famDoc.Close();
                 //load into project doc
+                Family newFam;
                 using (Transaction trans = new Transaction(_parentDoc, "复制族"))
                 {
                     trans.Start();
-                    _parentDoc.LoadFamily(filePath);
+                    _parentDoc.LoadFamily(filePath, out newFam);
                     trans.Commit();
                 }
+                return newFam;
             }
             catch (Autodesk.Revit.Exceptions.OperationCanceledException ex)
             {
-                return;
+                return null;
             }
         }
         public static string InputUniqueName(Document _parentDoc, string _defaultName)
@@ -245,30 +278,6 @@ namespace goa.Common
         #endregion
 
         #region Geometry_Vector
-        public static List<XYZ> DivideByDistance(this Line _line, double _interval, bool _includeStart, bool _includeEnd)
-        {
-            List<XYZ> points = new List<XYZ>();
-            var start = _line.GetEndPoint(0);
-            var end = _line.GetEndPoint(1);
-            if (_includeStart)
-                points.Add(start);
-            var dir = (end - start).Normalize() * _interval;
-            var current = start;
-            for (int i = 0; i < 10000; i++)
-            {
-                current = current + dir;
-                var project = _line.Project(current);
-                var rawP = project.Parameter;
-                var nP = _line.ComputeNormalizedParameter(rawP);
-                if (nP.IsAlmostEqualByScale(1, 0.0001))
-                    break;
-                else
-                    points.Add(current);
-            }
-            if (_includeEnd)
-                points.Add(end);
-            return points;
-        }
         /// <summary>
         /// Project given 3D XYZ point onto plane.
         /// </summary>
@@ -299,6 +308,14 @@ namespace goa.Common
             p = p + plane.YVec * uv.V;
             return p;
         }
+        public static bool IsAlmostEqualTo(this XYZ _this, XYZ _other, double _e)
+        {
+            if (Math.Abs(_this.X - _other.X) > _e
+                || Math.Abs(_this.Y - _other.Y) > _e
+                || Math.Abs(_this.Z - _other.Z) > _e)
+                return false;
+            return true;
+        }
         /// <summary>
         /// Return signed distance from plane to a given point.
         /// </summary>
@@ -310,24 +327,6 @@ namespace goa.Common
         public static bool IsParallel(this XYZ _xyz, XYZ _xyz2)
         {
             return _xyz.CrossProduct(_xyz2).GetLength().IsAlmostEqualByDifference(0);
-        }
-        public static bool IsOnExtensionOf(this Line _baseLine, Line _line)
-        {
-            var parallel = _baseLine.Direction.IsParallel(_line.Direction);
-            if (parallel == false)
-                return false;
-            //check overlap is zero
-            var p0 = _baseLine.GetEndPoint(0).ClosestPointOnLine(_line);
-            var p1 = _baseLine.GetEndPoint(1).ClosestPointOnLine(_line);
-            return p0.SqDist(p1).IsAlmostEqualByDifference(0);
-        }
-        public static bool Intersects(this Line _line, Plane _plane)
-        {
-            var length = lineIntersection(_plane.Origin, _plane.Normal, _line.Origin, _line.Direction);
-            if (length < 0 || length > _line.Length)
-                return false;
-            else
-                return true;
         }
         private static double lineIntersection(XYZ planePoint, XYZ planeNormal, XYZ linePoint, XYZ lineDirection)
         {
@@ -362,6 +361,142 @@ namespace goa.Common
         {
             return (_p1 + _p2) / 2;
         }
+        public static double GetSignedPolygonArea(this IList<UV> p)
+        {
+            int n = p.Count;
+            double sum = p[0].U * (p[1].V - p[n - 1].V);
+            for (int i = 1; i < n - 1; ++i)
+            {
+                sum += p[i].U * (p[i + 1].V - p[i - 1].V);
+            }
+            sum += p[n - 1].U * (p[0].V - p[n - 2].V);
+            return Math.Abs(0.5 * sum);
+        }
+        /// <summary>
+        /// Angle from this vector to the other vector, 
+        /// measure the projection on XY plane. 
+        /// CW from -2PI to 2PI
+        /// </summary>
+        /// <param name="_v0"></param>
+        /// <param name="_v1"></param>
+        /// <returns></returns>
+        public static double AngleToOnXY(this XYZ _v0, XYZ _v1)
+        {
+            double angle = Math.Atan2(_v0.X, _v0.Y) - Math.Atan2(_v1.X, _v1.Y);
+            return angle;
+        }
+        public static string ToStringDigits(this UV _uv, int _digits)
+        {
+            var u = Math.Round(_uv.U, _digits).ToString();
+            var v = Math.Round(_uv.V, _digits).ToString();
+            return u + " , " + v;
+        }
+        public static string ToStringDigits(this XYZ _xyz, int _digits)
+        {
+            var x = Math.Round(_xyz.X, _digits).ToString();
+            var y = Math.Round(_xyz.Y, _digits).ToString();
+            var z = Math.Round(_xyz.Z, _digits).ToString();
+            return x + " , " + y + " , " + z;
+        }
+        #endregion
+
+        #region Geometry_Line
+        public static Line ProjectOnto(this Line _line, Plane _plane)
+        {
+            var p0 = _plane.ProjectOnto(_line.GetEndPoint(0));
+            var p1 = _plane.ProjectOnto(_line.GetEndPoint(1));
+            if (p0.IsAlmostEqualTo(p1))
+            {
+                return null;
+            }
+            try
+            {
+                return Line.CreateBound(p0, p1);
+            }
+            catch (Autodesk.Revit.Exceptions.ArgumentsInconsistentException ex)
+            {
+                return null;
+            }
+        }
+        public static List<XYZ> DivideByDistance(this Line _line, double _interval, bool _includeStart, bool _includeEnd)
+        {
+            List<XYZ> points = new List<XYZ>();
+            var start = _line.GetEndPoint(0);
+            var end = _line.GetEndPoint(1);
+            if (_includeStart)
+                points.Add(start);
+            var dir = (end - start).Normalize() * _interval;
+            var current = start;
+            for (int i = 0; i < 10000; i++)
+            {
+                current = current + dir;
+                var project = _line.Project(current);
+                var rawP = project.Parameter;
+                var nP = _line.ComputeNormalizedParameter(rawP);
+                if (nP.IsAlmostEqualByScale(1, 0.0001))
+                    break;
+                else
+                    points.Add(current);
+            }
+            if (_includeEnd)
+                points.Add(end);
+            return points;
+        }
+        public static bool IsAlmostIdentical(this Line _line, Line _other, double _e)
+        {
+            return
+                _line.GetEndPoint(0).IsAlmostEqualTo(_other.GetEndPoint(0), _e)
+               && _line.GetEndPoint(1).IsAlmostEqualTo(_other.GetEndPoint(1), _e);
+        }
+        public static bool IsOnExtensionOf(this Line _baseLine, Line _line)
+        {
+            var parallel = _baseLine.Direction.IsParallel(_line.Direction);
+            if (parallel == false)
+                return false;
+            //check overlap is zero
+            var p0 = _baseLine.GetEndPoint(0).ClosestPointOnLine(_line);
+            var p1 = _baseLine.GetEndPoint(1).ClosestPointOnLine(_line);
+            return p0.SqDist(p1).IsAlmostEqualByDifference(0);
+        }
+        /// <summary>
+        /// The line stays within, or overlap, the other line's bound.
+        /// </summary>
+        public static bool IsInside(this Line _line, Line _testLine)
+        {
+            //end points both on test line
+            var p0 = _line.GetEndPoint(0);
+            var p1 = _line.GetEndPoint(1);
+            var proj0 = _testLine.Project(p0);
+            var proj1 = _testLine.Project(p1);
+            if (proj0.Distance.IsAlmostEqualByDifference(0) == false
+                || proj1.Distance.IsAlmostEqualByDifference(0) == false)
+                return false;
+            //end points both within bound
+            var f0 = getProjectionParamNormalized(p0, _testLine);
+            var f1 = getProjectionParamNormalized(p1, _testLine);
+            if ((f0 < 0 && f0.IsAlmostEqualByDifference(0) == false)
+                || (f0 > 1 && f0.IsAlmostEqualByDifference(1) == false)
+                || (f1 < 0 && f1.IsAlmostEqualByDifference(0) == false)
+                || (f1 > 1 && f1.IsAlmostEqualByDifference(1) == false))
+            {
+                return false;
+            }
+
+            return true;
+        }
+        public static Line ExtendBy(this Line _line, double _length)
+        {
+            var newEnd = _line.GetEndPoint(1) + _line.Direction * _length;
+            return Line.CreateBound(_line.GetEndPoint(0), newEnd);
+        }
+        public static bool Intersects(this Line _line, Plane _plane)
+        {
+            var length = lineIntersection(_plane.Origin, _plane.Normal, _line.Origin, _line.Direction);
+            if (length < 0 || length > _line.Length)
+                return false;
+            else
+                return true;
+        }
         /// <summary>
         /// shortest distance value from point to a list of lines, within line bound.
         /// </summary>
@@ -392,6 +527,13 @@ namespace goa.Common
         /// </summary>
         public static XYZ ClosestPointOnLine(this XYZ _p, Line _line)
         {
+            var f = getProjectionParamNormalized(_p, _line);
+            if (f < 0) f = 0;
+            else if (f > 1) f = 1;
+            return _line.Evaluate(f, true);
+        }
+        private static double getProjectionParamNormalized(XYZ _p, Line _line)
+        {
             XYZ p1 = _line.GetEndPoint(0);
             XYZ p2 = _line.GetEndPoint(1);
             XYZ p0 = _p;
@@ -399,9 +541,7 @@ namespace goa.Common
             //f = [(q-p1).(p2-p1)]÷|p2-p1|²
             double f =
                 ((p0 - p1).DotProduct(p2 - p1)) / Math.Pow((p2 - p1).GetLength(), 2);
-            if (f <= 0) return p1;
-            if (f >= 1) return p2;
-            else return _line.Evaluate(f, true);
+            return f;
         }
         private static double getProjectionParamNormalized(UV _uv, UVLine _line)
         {
@@ -459,45 +599,6 @@ namespace goa.Common
             else
                 return new UVLine(p1, p2);
         }
-        public static XYZ ClosestPointOnCurve(this XYZ _p, Curve _curveOnto)
-        {
-            var result1 = _curveOnto.Project(_p);
-            var param1 = _curveOnto.ComputeNormalizedParameter(result1.Parameter);
-            if (param1 >= 1)
-            {
-                return _curveOnto.GetEndPoint(1);
-            }
-            else if (param1 <= 0)
-            {
-                return _curveOnto.GetEndPoint(0);
-            }
-            else
-            {
-                return result1.XYZPoint;
-            }
-        }
-        public static Line ProjectOnto(this Line _line, Plane _plane)
-        {
-            var p0 = _plane.ProjectOnto(_line.GetEndPoint(0));
-            var p1 = _plane.ProjectOnto(_line.GetEndPoint(1));
-            if (p0.IsAlmostEqualTo(p1))
-            {
-                return null;
-            }
-            try
-            {
-                return Line.CreateBound(p0, p1);
-            }
-            catch (Autodesk.Revit.Exceptions.ArgumentsInconsistentException ex)
-            {
-                return null;
-            }
-        }
-        public static Line ExtendBy(this Line _line, double _length)
-        {
-            var newEnd = _line.GetEndPoint(1) + _line.Direction * _length;
-            return Line.CreateBound(_line.GetEndPoint(0), newEnd);
-        }
         public static double MinDistanceToLine(this Line _line, Line _otherLine)
         {
             var dists = new List<double>();
@@ -516,49 +617,480 @@ namespace goa.Common
             dists.Add(_otherLine.p1.MinDistanceToLine(_line));
             return dists.Min();
         }
-        public static double GetSignedPolygonArea(this IList<UV> p)
-        {
-            int n = p.Count;
-            double sum = p[0].U * (p[1].V - p[n - 1].V);
-            for (int i = 1; i < n - 1; ++i)
-            {
-                sum += p[i].U * (p[i + 1].V - p[i - 1].V);
-            }
-            sum += p[n - 1].U * (p[0].V - p[n - 2].V);
-            return Math.Abs(0.5 * sum);
-        }
-        /// <summary>
-        /// Angle from this vector to the other vector, 
-        /// measure the projection on XY plane. 
-        /// CW from -2PI to 2PI
-        /// </summary>
-        /// <param name="_v0"></param>
-        /// <param name="_v1"></param>
-        /// <returns></returns>
-        public static double AngleToOnXY(this XYZ _v0, XYZ _v1)
-        {
-            double angle = Math.Atan2(_v0.X, _v0.Y) - Math.Atan2(_v1.X, _v1.Y);
-            return angle;
-        }
-        public static string ToStringDigits(this UV _uv, int _digits)
-        {
-            var u = Math.Round(_uv.U, _digits).ToString();
-            var v = Math.Round(_uv.V, _digits).ToString();
-            return u + " , " + v;
-        }
-        public static string ToStringDigits(this XYZ _xyz, int _digits)
-        {
-            var x = Math.Round(_xyz.X, _digits).ToString();
-            var y = Math.Round(_xyz.Y, _digits).ToString();
-            var z = Math.Round(_xyz.Z, _digits).ToString();
-            return x + " , " + y + " , " + z;
-        }
         public static string ToStringDigits(this Line _line, int _digits)
         {
-            return 
-                _line.GetEndPoint(0).ToStringDigits(_digits) 
-                + "||" 
+            return
+                _line.GetEndPoint(0).ToStringDigits(_digits)
+                + "||"
                 + _line.GetEndPoint(1).ToStringDigits(_digits);
+        }
+        #endregion
+
+        #region Geometry_Curve
+        public static XYZ ClosestPointOnCurve(this XYZ _p, Curve _curveOnto)
+        {
+            var result1 = _curveOnto.Project(_p);
+            var param1 = _curveOnto.ComputeNormalizedParameter(result1.Parameter);
+            if (param1 >= 1)
+            {
+                return _curveOnto.GetEndPoint(1);
+            }
+            else if (param1 <= 0)
+            {
+                return _curveOnto.GetEndPoint(0);
+            }
+            else
+            {
+                return result1.XYZPoint;
+            }
+        }
+        public static List<Transform> DivideByDist(this Curve _c, double _dist, bool _includeEnd)
+        {
+            List<Transform> list = new List<Transform>() { _c.ComputeDerivatives(0, true) };
+            var steps = Math.Round(100 * _c.ApproximateLength / _dist);
+            double inc = 1 / steps;
+            double param = 0;
+            double segment = 0;
+            for (int i = 0; i < 9999; i++)
+            {
+                if (segment < _dist)
+                {
+                    XYZ previous = _c.Evaluate(param, true);
+                    param += inc;
+                    if (param > 1)
+                        break;
+                    XYZ current = _c.Evaluate(param, true);
+                    var dist = current.DistanceTo(previous);
+                    segment += dist;
+                }
+                else
+                {
+                    list.Add(_c.ComputeDerivatives(param, true));
+                    segment = 0;
+                }
+            }
+            if (_includeEnd)
+            {
+                list.Add(_c.ComputeDerivatives(1, true));
+            }
+            return list;
+        }
+        #endregion
+
+        #region Geometry_CurveLoop
+        public static List<Line> SortLinesContiguous(this List<Line> _lines)
+        {
+            var curves = _lines.Cast<Curve>().ToList();
+            bool open;
+            var loop = curves.SortCurvesContiguousAsCurveLoop(out open);
+            return loop.Cast<Line>().ToList();
+        }
+        public static List<Curve> SortCurvesContiguous(this List<Curve> _curves)
+        {
+            bool open;
+            var cl = _curves.SortCurvesContiguousAsCurveLoop(out open);
+            return cl.Cast<Curve>().ToList();
+        }
+        /// <summary>
+        /// Sort list of curves to be contiguous, create curveloop, 
+        /// orient it to CW, return curve loop. Throw InvalidCurveLoopException
+        /// if curve loop is not a single loop, or has more than two segmetns 
+        /// from one point.
+        /// </summary>
+        /// <param name="_curves"></param>
+        /// <param name="_isOpenLoop"></param>
+        /// <returns></returns>
+        public static CurveLoop SortCurvesContiguousAsCurveLoop(this List<Curve> _curves, out bool _isOpenLoop)
+        {
+            CurveLoopType type = GetLoopType(_curves);
+            CurveLoop loop = new CurveLoop();
+            if (type == CurveLoopType.Closed)
+            {
+                _isOpenLoop = false;
+                loop = SortClosedLoopCurvesContiguous(_curves);
+            }
+            else if (type == CurveLoopType.Open)
+            {
+                _isOpenLoop = true;
+                loop = SortOpenLoopCurvesContiguous(_curves);
+            }
+            else
+            {
+                string message = "Invalid curve loop.";
+                throw new InvalidCurveLoopException(message);
+            }
+            orientCurveLoopToClockWise(loop);
+            return loop;
+        }
+        public static CurveLoop SortCurveArrayContiguous(this CurveArray _ca, out bool _isOpenLoop)
+        {
+            List<Curve> list = _ca.ToList();
+            return SortCurvesContiguousAsCurveLoop(list, out _isOpenLoop);
+        }
+        /// <summary>
+        /// Curves need to be valid closed loop
+        /// </summary>
+        /// <param name="_curves"></param>
+        /// <returns></returns>
+        private static CurveLoop SortClosedLoopCurvesContiguous(List<Curve> _curves)
+        {
+            Curve curve = _curves.First();
+            return CreateContiguousLoopFromCurveIterative(curve, _curves);
+        }
+        /// <summary>
+        /// check if curves form a single loop by starting at each curve and 
+        /// create curve loop, then check the max number of curves in one 
+        /// loop. If is smaller than total number of curves, there is more 
+        /// than one loop.
+        /// </summary>
+        /// <param name="_curves"></param>
+        /// <returns></returns>
+        public static bool IsSingleLoop(this List<Curve> _curves)
+        {
+            int maxCount = 0;
+            foreach (Curve curve in _curves)
+            {
+                try
+                {
+                    CurveLoop loop = CreateContiguousLoopFromCurveIterative(curve, _curves);
+                    int loopCount = loop.Count();
+                    maxCount = Math.Max(loopCount, maxCount);
+                }
+                catch (InvalidCurveLoopException ex)
+                {
+                    return false;
+                }
+            }
+
+            if (maxCount != _curves.Count)
+                return false;
+            else
+                return true;
+        }
+        /// <summary>
+        /// loop through all curves end points, put them 
+        /// into a dictionary of list of points with coordiantes as key. 
+        /// Closed loop has two curves in each value; open loop has two 
+        /// values with just one curve; invalid loop might have more than 
+        /// two values with just one curve, or more than two curves in 
+        /// any one value.
+        /// </summary>
+        /// <param name="_curves"></param>
+        /// <returns></returns>
+        public static CurveLoopType GetLoopType(this List<Curve> _curves)
+        {
+            //check if is a single loop
+            if (!IsSingleLoop(_curves))
+                return CurveLoopType.Invalid;
+
+            //add all end points to dictionary
+            Dictionary<string, List<XYZ>> dic = new Dictionary<string, List<XYZ>>();
+            foreach (Curve curve in _curves)
+            {
+                XYZ p0 = curve.GetEndPoint(0);
+                XYZ p1 = curve.GetEndPoint(1);
+                string key0 = GetApproximateCoordinatesAsString(p0, 2);
+                string key1 = GetApproximateCoordinatesAsString(p1, 2);
+                bool containsKey0 = dic.ContainsKey(key0);
+                bool containsKey1 = dic.ContainsKey(key1);
+
+                if (dic.ContainsKey(key0))
+                {
+                    var value = dic[key0];
+                    value.Add(p0);
+                }
+                else
+                {
+                    dic.Add(key0, new List<XYZ>() { p0 });
+                }
+
+                if (dic.ContainsKey(key1))
+                {
+                    var value = dic[key1];
+                    value.Add(p1);
+                }
+                else
+                {
+                    dic.Add(key1, new List<XYZ>() { p1 });
+                }
+            }
+
+            //check each value
+            int numberOfListWithOnePoint = 0;
+            foreach (var valuePair in dic)
+            {
+                var list = valuePair.Value;
+                int count = list.Count;
+                if (count == 1)
+                {
+                    numberOfListWithOnePoint++;
+                    if (numberOfListWithOnePoint > 2)
+                    {
+                        return CurveLoopType.Invalid;
+                    }
+                }
+                else if (count > 2)
+                {
+                    return CurveLoopType.Invalid;
+                }
+            }
+
+            if (numberOfListWithOnePoint == 0)
+                return CurveLoopType.Closed;
+            else
+                return CurveLoopType.Open;
+        }
+        private static string GetApproximateCoordinatesAsString(this XYZ _xyz, int _digits)
+        {
+            string x = Math.Round(_xyz.X, _digits).ToString();
+            string y = Math.Round(_xyz.Y, _digits).ToString();
+            string z = Math.Round(_xyz.Z, _digits).ToString();
+            string s = string.Format("{0},{1},{2}", x, y, z);
+            return s;
+        }
+        private static CurveArray SortClosedCurveArrayContiguous(CurveArray _ca)
+        {
+            List<Curve> list = new List<Curve>();
+            foreach (Curve c in _ca)
+                list.Add(c);
+            CurveLoop resultLoop = SortClosedLoopCurvesContiguous(list);
+
+            CurveArray ca = new CurveArray();
+            foreach (Curve c in resultLoop)
+                ca.Append(c);
+            return ca;
+        }
+        /// <summary>
+        /// Curves need to be valid open loop
+        /// </summary>
+        /// <param name="_curves"></param>
+        /// <returns></returns>
+        private static CurveLoop SortOpenLoopCurvesContiguous(List<Curve> _curves)
+        {
+            //figure out which curve is at the starting end
+            Curve startingCurve = null;
+            CurveLoop loop = new CurveLoop();
+            foreach (Curve thisCurve in _curves)
+            {
+                Curve startMatchCurve = null;
+                Curve endMatchCurve = null;
+                foreach (Curve nextCurve in _curves)
+                {
+                    //skip identical/reversal curve
+                    if (CurvesAreIdentical(thisCurve, nextCurve)
+                        || CurvesAreReversed(thisCurve, nextCurve))
+                        continue;
+
+                    if (thisCurve.GetEndPoint(0).IsAlmostEqualTo(nextCurve.GetEndPoint(0))
+                        || thisCurve.GetEndPoint(0).IsAlmostEqualTo(nextCurve.GetEndPoint(1)))
+                    {
+                        startMatchCurve = nextCurve;
+                    }
+                    else if (thisCurve.GetEndPoint(1).IsAlmostEqualTo(nextCurve.GetEndPoint(0))
+                        || thisCurve.GetEndPoint(1).IsAlmostEqualTo(nextCurve.GetEndPoint(1)))
+                    {
+                        endMatchCurve = nextCurve;
+                    }
+                }
+
+                //skip if this curve is in the middle of loop
+                if (null != startMatchCurve
+                    && null != endMatchCurve)
+                    continue;
+                //if next curve start/end at this curve's start point
+                //reverse this curve, set as start curve
+                else if (null != startMatchCurve)
+                {
+                    startingCurve = thisCurve.CreateReversed();
+                }
+                //if next curve start/end at this curve's end point
+                //set this curve as start curve
+                else
+                {
+                    startingCurve = thisCurve;
+                }
+            }
+
+            if (null == startingCurve)
+                throw new Exception("Failed to find starting curve for open loop.");
+
+            return CreateContiguousLoopFromCurveIterative(startingCurve, _curves);
+        }
+        private static CurveLoop CreateContiguousLoopFromCurveIterative(Curve _startCurve, List<Curve> _curves)
+        {
+            CurveLoop resultLoop = new CurveLoop();
+
+            resultLoop.Append(_startCurve);
+
+            List<Curve> curvesToCheck = new List<Curve>();
+            curvesToCheck.AddRange(_curves);
+
+            if (curvesToCheck.Contains(_startCurve))
+                curvesToCheck.Remove(_startCurve);
+
+            int total = curvesToCheck.Count;
+            for (int i = 0; i < total; i++)
+            {
+                bool found = false;
+                Curve thisCurve = resultLoop.Last();
+
+                XYZ end1 = thisCurve.GetEndPoint(1);
+                XYZ start1 = thisCurve.GetEndPoint(0);
+
+                foreach (Curve c in curvesToCheck)
+                {
+                    if (CurvesAreIdentical(thisCurve, c)
+                        || CurvesAreReversed(thisCurve, c))
+                        continue;
+
+                    XYZ start2 = c.GetEndPoint(0);
+                    XYZ end2 = c.GetEndPoint(1);
+                    if (end1.IsAlmostEqualTo(start2))
+                    {
+                        //if already found, throw exception
+                        if (found)
+                            throw new InvalidCurveLoopException("Invalid curve loop.");
+                        //add to loop
+                        resultLoop.Append(c);
+                        found = true;
+                    }
+                    else if (end1.IsAlmostEqualTo(end2))
+                    {
+                        //if already found, throw exception
+                        if (found)
+                            throw new InvalidCurveLoopException("Invalid curve loop.");
+                        //reverse next curve, add to loop
+                        Curve reversed = c.CreateReversed();
+                        resultLoop.Append(reversed);
+                        found = true;
+                    }
+                }
+
+                //if this curve is the starting curve, and its end point is not connected to other curves
+                //test its start point, if find connection, reverse and replace it in result loop
+                if (found == false && resultLoop.Count() == 1)
+                {
+                    foreach (Curve c in curvesToCheck)
+                    {
+                        XYZ start2 = c.GetEndPoint(0);
+                        XYZ end2 = c.GetEndPoint(1);
+
+                        if (start1.IsAlmostEqualTo(start2))
+                        {
+                            //revert this curve, replace start curve in result loop
+                            var reversedThisCurve = thisCurve.CreateReversed();
+                            resultLoop = new CurveLoop();
+                            resultLoop.Append(reversedThisCurve);
+                            //add to loop
+                            resultLoop.Append(c);
+                            found = true;
+                        }
+                        else if (start1.IsAlmostEqualTo(end2))
+                        {
+                            //revert this curve, replace start curve in result loop
+                            var reversedThisCurve = thisCurve.CreateReversed();
+                            resultLoop = new CurveLoop();
+                            resultLoop.Append(reversedThisCurve);
+                            //reverse next curve, add to loop
+                            Curve reversed = c.CreateReversed();
+                            resultLoop.Append(reversed);
+                            found = true;
+                        }
+                    }
+                }
+
+                if (found && curvesToCheck.Contains(thisCurve))
+                    curvesToCheck.Remove(thisCurve);
+            }
+            return resultLoop;
+        }
+        /// <summary>
+        /// Checks two end points only
+        /// </summary>
+        /// <param name="_curve1"></param>
+        /// <param name="_curve2"></param>
+        /// <returns></returns>
+        private static bool CurvesAreIdentical(Curve _curve1, Curve _curve2)
+        {
+            XYZ start1 = _curve1.GetEndPoint(0);
+            XYZ end1 = _curve1.GetEndPoint(1);
+            XYZ start2 = _curve2.GetEndPoint(0);
+            XYZ end2 = _curve2.GetEndPoint(1);
+            if (start1.IsAlmostEqualTo(start2)
+                && end1.IsAlmostEqualTo(end2))
+            {
+                return true;
+            }
+            else
+                return false;
+        }
+        private static bool CurvesAreReversed(Curve _curve1, Curve _curve2)
+        {
+            XYZ start1 = _curve1.GetEndPoint(0);
+            XYZ end1 = _curve1.GetEndPoint(1);
+            XYZ start2 = _curve2.GetEndPoint(0);
+            XYZ end2 = _curve2.GetEndPoint(1);
+            if (start1.IsAlmostEqualTo(end2)
+                && end1.IsAlmostEqualTo(start2))
+            {
+                return true;
+            }
+            else
+                return false;
+        }
+        internal static void orientCurveLoopToClockWise(CurveLoop _loop)
+        {
+            Curve curve = _loop.First();
+            if (IsCurveCounterClockWise(curve))
+            {
+                _loop.Flip();
+            }
+        }
+        private static bool IsCurveCounterClockWise(Curve _curve)
+        {
+            XYZ p0 = _curve.GetEndPoint(0);
+            XYZ p1 = _curve.GetEndPoint(1);
+            double angle = p0.AngleToOnXY(p1);
+            if ((0 < angle && angle < Math.PI)
+                || (-2 * Math.PI < angle && angle < -1 * Math.PI))
+                return true;
+            else
+                return false;
+        }
+        public static CurveArrArray SortClosedCurveArrArrayContiguous(this CurveArrArray _caa)
+        {
+            CurveArrArray caa = new CurveArrArray();
+            foreach (CurveArray ca in _caa)
+                caa.Append(SortClosedCurveArrayContiguous(ca));
+            return caa;
+        }
+        public static List<Curve> ToList(this CurveArray _ca)
+        {
+            List<Curve> list = new List<Curve>();
+            foreach (Curve c in _ca)
+                list.Add(c);
+            return list;
+        }
+        public static List<CurveLoop> ToLoopList(this CurveArrArray _caa)
+        {
+            List<CurveLoop> result = new List<CurveLoop>();
+            foreach (CurveArray ca in _caa)
+            {
+                bool b;
+                var loop = ca.SortCurveArrayContiguous(out b);
+                result.Add(loop);
+            }
+            return result;
+        }
+        public static XYZ GetCentroid(this CurveLoop _loop)
+        {
+            XYZ centroid = XYZ.Zero;
+            foreach (Curve c in _loop)
+            {
+                centroid += c.GetEndPoint(0);
+            }
+            centroid /= _loop.Count();
+            return centroid;
         }
         #endregion
 
@@ -716,439 +1248,81 @@ namespace goa.Common
         }
         #endregion
 
-        #region Geometry_CurveLoop
-        public static List<Line> SortLinesContiguous(this List<Line> _lines)
-        {
-            var curves = _lines.Cast<Curve>().ToList();
-            bool open;
-            var loop = curves.SortCurvesContiguousAsCurveLoop(out open);
-            return loop.Cast<Line>().ToList();
-        }
-
-        public static List<Curve> SortCurvesContiguous(this List<Curve> _curves)
-        {
-            bool open;
-            var cl = _curves.SortCurvesContiguousAsCurveLoop(out open);
-            return cl.Cast<Curve>().ToList();
-        }
-
+        #region Polygon
         /// <summary>
-        /// Sort list of curves to be contiguous, create curveloop, 
-        /// orient it to CW, return curve loop. Throw InvalidCurveLoopException
-        /// if curve loop is not a single loop, or has more than two segmetns 
-        /// from one point.
+        /// 判断一个点是否在Polygon内
         /// </summary>
-        /// <param name="_curves"></param>
-        /// <param name="_isOpenLoop"></param>
+        /// <param name="_newXYZ"></param>
+        /// <param name="_Lines"></param>
+        /// <param name="SelObstacleAreas"></param>
         /// <returns></returns>
-        public static CurveLoop SortCurvesContiguousAsCurveLoop(this List<Curve> _curves, out bool _isOpenLoop)
+        public static bool PointIsInOrOutPolygon(XYZ _XYZ, List<Line> _Lines)
         {
-            CurveLoopType type = GetLoopType(_curves);
-            CurveLoop loop = new CurveLoop();
-            if (type == CurveLoopType.Closed)
+            bool _PointIsInPolygon = false;
+            bool _isOverlapPolygon = isOverlapPolygon(_XYZ, _Lines);//第一步，判断点在总多边形内部部还是外部，在为true，不在为false；当前判断无法剔除，点落在多边形边界线上的情况，
+            bool _isInLine = isInLine(_XYZ, _Lines);//第二步，该函数判断点在不在边界线上，在为true，不在为false；
+            if (_isOverlapPolygon && !_isInLine)//双重判断，不在线上，在多边形区域内
             {
-                _isOpenLoop = false;
-                loop = SortClosedLoopCurvesContiguous(_curves);
+                _PointIsInPolygon = true;
             }
-            else if (type == CurveLoopType.Open)
-            {
-                _isOpenLoop = true;
-                loop = SortOpenLoopCurvesContiguous(_curves);
-            }
-            else
-            {
-                string message = "Invalid curve loop.";
-                throw new InvalidCurveLoopException(message);
-            }
-            orientCurveLoopToClockWise(loop);
-            return loop;
+            return _PointIsInPolygon;
         }
-
-        public static CurveLoop SortCurveArrayContiguous(this CurveArray _ca, out bool _isOpenLoop)
-        {
-            List<Curve> list = _ca.ToList();
-            return SortCurvesContiguousAsCurveLoop(list, out _isOpenLoop);
-        }
-
         /// <summary>
-        /// Curves need to be valid closed loop
+        /// 使用射线法，求一个点是不是在Polygon内
         /// </summary>
-        /// <param name="_curves"></param>
+        /// <param name="_XYZ"></param>
+        /// <param name="_selRegionBoundings"></param>
         /// <returns></returns>
-        private static CurveLoop SortClosedLoopCurvesContiguous(List<Curve> _curves)
+        public static bool isOverlapPolygon(XYZ _XYZ, List<Line> _Lines)
         {
-            Curve curve = _curves.First();
-            return CreateContiguousLoopFromCurveIterative(curve, _curves);
-        }
+            bool _isOverlapPolygon = false;
+            int intersectCount = 0;
 
-        /// <summary>
-        /// check if curves form a single loop by starting at each curve and 
-        /// create curve loop, then check the max number of curves in one 
-        /// loop. If is smaller than total number of curves, there is more 
-        /// than one loop.
-        /// </summary>
-        /// <param name="_curves"></param>
-        /// <returns></returns>
-        public static bool IsSingleLoop(this List<Curve> _curves)
-        {
-            int maxCount = 0;
-            foreach (Curve curve in _curves)
+            Line _LInebound = Line.CreateBound(_XYZ, new XYZ(_XYZ.X + 10000000, 0, 0));//求一个点的射线
+            foreach (Line _Line in _Lines)
             {
-                try
+                IntersectionResultArray results;
+                SetComparisonResult result = _LInebound.Intersect(_Line, out results);
+                if (result == SetComparisonResult.Overlap)//判断基准线是否与轴网相交
                 {
-                    CurveLoop loop = CreateContiguousLoopFromCurveIterative(curve, _curves);
-                    int loopCount = loop.Count();
-                    maxCount = Math.Max(loopCount, maxCount);
-                }
-                catch (InvalidCurveLoopException ex)
-                {
-                    return false;
-                }
-            }
-
-            if (maxCount != _curves.Count)
-                return false;
-            else
-                return true;
-        }
-
-        /// <summary>
-        /// loop through all curves end points, put them 
-        /// into a dictionary of list of points with coordiantes as key. 
-        /// Closed loop has two curves in each value; open loop has two 
-        /// values with just one curve; invalid loop might have more than 
-        /// two values with just one curve, or more than two curves in 
-        /// any one value.
-        /// </summary>
-        /// <param name="_curves"></param>
-        /// <returns></returns>
-        public static CurveLoopType GetLoopType(this List<Curve> _curves)
-        {
-            //check if is a single loop
-            if (!IsSingleLoop(_curves))
-                return CurveLoopType.Invalid;
-
-            //add all end points to dictionary
-            Dictionary<string, List<XYZ>> dic = new Dictionary<string, List<XYZ>>();
-            foreach (Curve curve in _curves)
-            {
-                XYZ p0 = curve.GetEndPoint(0);
-                XYZ p1 = curve.GetEndPoint(1);
-                string key0 = GetApproximateCoordinatesAsString(p0, 2);
-                string key1 = GetApproximateCoordinatesAsString(p1, 2);
-                bool containsKey0 = dic.ContainsKey(key0);
-                bool containsKey1 = dic.ContainsKey(key1);
-
-                if (dic.ContainsKey(key0))
-                {
-                    var value = dic[key0];
-                    value.Add(p0);
-                }
-                else
-                {
-                    dic.Add(key0, new List<XYZ>() { p0 });
-                }
-
-                if (dic.ContainsKey(key1))
-                {
-                    var value = dic[key1];
-                    value.Add(p1);
-                }
-                else
-                {
-                    dic.Add(key1, new List<XYZ>() { p1 });
-                }
-            }
-
-            //check each value
-            int numberOfListWithOnePoint = 0;
-            foreach (var valuePair in dic)
-            {
-                var list = valuePair.Value;
-                int count = list.Count;
-                if (count == 1)
-                {
-                    numberOfListWithOnePoint++;
-                    if (numberOfListWithOnePoint > 2)
+                    if (results != null)
                     {
-                        return CurveLoopType.Invalid;
-                    }
-                }
-                else if (count > 2)
-                {
-                    return CurveLoopType.Invalid;
-                }
-            }
+                        XYZ _LineendPoint_0 = _Line.GetEndPoint(0);
+                        XYZ _LineendPoint_1 = _Line.GetEndPoint(1);
 
-            if (numberOfListWithOnePoint == 0)
-                return CurveLoopType.Closed;
-            else
-                return CurveLoopType.Open;
-        }
+                        //下一步 判定假设 参看文章 https://blog.csdn.net/u283056051/article/details/53980925
 
-        private static string GetApproximateCoordinatesAsString(this XYZ _xyz, int _digits)
-        {
-            string x = Math.Round(_xyz.X, _digits).ToString();
-            string y = Math.Round(_xyz.Y, _digits).ToString();
-            string z = Math.Round(_xyz.Z, _digits).ToString();
-            string s = string.Format("{0},{1},{2}", x, y, z);
-            return s;
-        }
-        private static CurveArray SortClosedCurveArrayContiguous(CurveArray _ca)
-        {
-            List<Curve> list = new List<Curve>();
-            foreach (Curve c in _ca)
-                list.Add(c);
-            CurveLoop resultLoop = SortClosedLoopCurvesContiguous(list);
-
-            CurveArray ca = new CurveArray();
-            foreach (Curve c in resultLoop)
-                ca.Append(c);
-            return ca;
-        }
-
-
-
-        /// <summary>
-        /// Curves need to be valid open loop
-        /// </summary>
-        /// <param name="_curves"></param>
-        /// <returns></returns>
-        private static CurveLoop SortOpenLoopCurvesContiguous(List<Curve> _curves)
-        {
-            //figure out which curve is at the starting end
-            Curve startingCurve = null;
-            CurveLoop loop = new CurveLoop();
-            foreach (Curve thisCurve in _curves)
-            {
-                Curve startMatchCurve = null;
-                Curve endMatchCurve = null;
-                foreach (Curve nextCurve in _curves)
-                {
-                    //skip identical/reversal curve
-                    if (CurvesAreIdentical(thisCurve, nextCurve)
-                        || CurvesAreReversed(thisCurve, nextCurve))
-                        continue;
-
-                    if (thisCurve.GetEndPoint(0).IsAlmostEqualTo(nextCurve.GetEndPoint(0))
-                        || thisCurve.GetEndPoint(0).IsAlmostEqualTo(nextCurve.GetEndPoint(1)))
-                    {
-                        startMatchCurve = nextCurve;
-                    }
-                    else if (thisCurve.GetEndPoint(1).IsAlmostEqualTo(nextCurve.GetEndPoint(0))
-                        || thisCurve.GetEndPoint(1).IsAlmostEqualTo(nextCurve.GetEndPoint(1)))
-                    {
-                        endMatchCurve = nextCurve;
-                    }
-                }
-
-                //skip if this curve is in the middle of loop
-                if (null != startMatchCurve
-                    && null != endMatchCurve)
-                    continue;
-                //if next curve start/end at this curve's start point
-                //reverse this curve, set as start curve
-                else if (null != startMatchCurve)
-                {
-                    startingCurve = thisCurve.CreateReversed();
-                }
-                //if next curve start/end at this curve's end point
-                //set this curve as start curve
-                else
-                {
-                    startingCurve = thisCurve;
-                }
-            }
-
-            if (null == startingCurve)
-                throw new Exception("Failed to find starting curve for open loop.");
-
-            return CreateContiguousLoopFromCurveIterative(startingCurve, _curves);
-        }
-
-        private static CurveLoop CreateContiguousLoopFromCurveIterative(Curve _startCurve, List<Curve> _curves)
-        {
-            CurveLoop resultLoop = new CurveLoop();
-
-            resultLoop.Append(_startCurve);
-
-            List<Curve> curvesToCheck = new List<Curve>();
-            curvesToCheck.AddRange(_curves);
-
-            if (curvesToCheck.Contains(_startCurve))
-                curvesToCheck.Remove(_startCurve);
-
-            int total = curvesToCheck.Count;
-            for (int i = 0; i < total; i++)
-            {
-                bool found = false;
-                Curve thisCurve = resultLoop.Last();
-
-                XYZ end1 = thisCurve.GetEndPoint(1);
-                XYZ start1 = thisCurve.GetEndPoint(0);
-
-                foreach (Curve c in curvesToCheck)
-                {
-                    if (CurvesAreIdentical(thisCurve, c)
-                        || CurvesAreReversed(thisCurve, c))
-                        continue;
-
-                    XYZ start2 = c.GetEndPoint(0);
-                    XYZ end2 = c.GetEndPoint(1);
-                    if (end1.IsAlmostEqualTo(start2))
-                    {
-                        //if already found, throw exception
-                        if (found)
-                            throw new InvalidCurveLoopException("Invalid curve loop.");
-                        //add to loop
-                        resultLoop.Append(c);
-                        found = true;
-                    }
-                    else if (end1.IsAlmostEqualTo(end2))
-                    {
-                        //if already found, throw exception
-                        if (found)
-                            throw new InvalidCurveLoopException("Invalid curve loop.");
-                        //reverse next curve, add to loop
-                        Curve reversed = c.CreateReversed();
-                        resultLoop.Append(reversed);
-                        found = true;
-                    }
-                }
-
-                //if this curve is the starting curve, and its end point is not connected to other curves
-                //test its start point, if find connection, reverse and replace it in result loop
-                if (found == false && resultLoop.Count() == 1)
-                {
-                    foreach (Curve c in curvesToCheck)
-                    {
-                        XYZ start2 = c.GetEndPoint(0);
-                        XYZ end2 = c.GetEndPoint(1);
-
-                        if (start1.IsAlmostEqualTo(start2))
+                        if ((_LineendPoint_0.Y < _XYZ.Y && _LineendPoint_1.Y >= _XYZ.Y) || (_LineendPoint_0.Y > _XYZ.Y && _LineendPoint_1.Y <= _XYZ.Y))
                         {
-                            //revert this curve, replace start curve in result loop
-                            var reversedThisCurve = thisCurve.CreateReversed();
-                            resultLoop = new CurveLoop();
-                            resultLoop.Append(reversedThisCurve);
-                            //add to loop
-                            resultLoop.Append(c);
-                            found = true;
-                        }
-                        else if (start1.IsAlmostEqualTo(end2))
-                        {
-                            //revert this curve, replace start curve in result loop
-                            var reversedThisCurve = thisCurve.CreateReversed();
-                            resultLoop = new CurveLoop();
-                            resultLoop.Append(reversedThisCurve);
-                            //reverse next curve, add to loop
-                            Curve reversed = c.CreateReversed();
-                            resultLoop.Append(reversed);
-                            found = true;
+                            intersectCount += results.Size;
                         }
                     }
                 }
-
-                if (found && curvesToCheck.Contains(thisCurve))
-                    curvesToCheck.Remove(thisCurve);
             }
-            return resultLoop;
+            if (intersectCount % 2 != 0)//判断交点的数量是否为奇数或者偶数，奇数为内true，偶数为外false
+            {
+                _isOverlapPolygon = true;
+            }
+            return _isOverlapPolygon;
         }
-
         /// <summary>
-        /// Checks two end points only
+        /// 判断一个点是不是与Polygon边界重合
         /// </summary>
-        /// <param name="_curve1"></param>
-        /// <param name="_curve2"></param>
+        /// <param name="_XYZ"></param>
+        /// <param name="_selRegionBoundings"></param>
         /// <returns></returns>
-        private static bool CurvesAreIdentical(Curve _curve1, Curve _curve2)
+        public static bool isInLine(XYZ _XYZ, IList<Line> _Lines)
         {
-            XYZ start1 = _curve1.GetEndPoint(0);
-            XYZ end1 = _curve1.GetEndPoint(1);
-            XYZ start2 = _curve2.GetEndPoint(0);
-            XYZ end2 = _curve2.GetEndPoint(1);
-            if (start1.IsAlmostEqualTo(start2)
-                && end1.IsAlmostEqualTo(end2))
+            bool _isInLien = false;
+            foreach (Line _Line in _Lines)
             {
-                return true;
+                if (_Line.Distance(_XYZ) < 0.003)//该处需要注意 Revit2020版本中 曲线长度的最小极限小值为 0.00256026455729167 Feet 0.7803686370625 MilliMeter
+                {
+                    _isInLien = true;
+                    break;
+                }
             }
-            else
-                return false;
-        }
-
-        private static bool CurvesAreReversed(Curve _curve1, Curve _curve2)
-        {
-            XYZ start1 = _curve1.GetEndPoint(0);
-            XYZ end1 = _curve1.GetEndPoint(1);
-            XYZ start2 = _curve2.GetEndPoint(0);
-            XYZ end2 = _curve2.GetEndPoint(1);
-            if (start1.IsAlmostEqualTo(end2)
-                && end1.IsAlmostEqualTo(start2))
-            {
-                return true;
-            }
-            else
-                return false;
-        }
-
-        internal static void orientCurveLoopToClockWise(CurveLoop _loop)
-        {
-            Curve curve = _loop.First();
-            if (IsCurveCounterClockWise(curve))
-            {
-                _loop.Flip();
-            }
-        }
-
-        private static bool IsCurveCounterClockWise(Curve _curve)
-        {
-            XYZ p0 = _curve.GetEndPoint(0);
-            XYZ p1 = _curve.GetEndPoint(1);
-            double angle = p0.AngleToOnXY(p1);
-            if ((0 < angle && angle < Math.PI)
-                || (-2 * Math.PI < angle && angle < -1 * Math.PI))
-                return true;
-            else
-                return false;
-        }
-
-        public static CurveArrArray SortClosedCurveArrArrayContiguous(this CurveArrArray _caa)
-        {
-            CurveArrArray caa = new CurveArrArray();
-            foreach (CurveArray ca in _caa)
-                caa.Append(SortClosedCurveArrayContiguous(ca));
-            return caa;
-        }
-
-        public static List<Curve> ToList(this CurveArray _ca)
-        {
-            List<Curve> list = new List<Curve>();
-            foreach (Curve c in _ca)
-                list.Add(c);
-            return list;
-        }
-
-        public static List<CurveLoop> ToLoopList(this CurveArrArray _caa)
-        {
-            List<CurveLoop> result = new List<CurveLoop>();
-            foreach (CurveArray ca in _caa)
-            {
-                bool b;
-                var loop = ca.SortCurveArrayContiguous(out b);
-                result.Add(loop);
-            }
-            return result;
-        }
-
-        public static XYZ GetCentroid(this CurveLoop _loop)
-        {
-            XYZ centroid = XYZ.Zero;
-            foreach (Curve c in _loop)
-            {
-                centroid += c.GetEndPoint(0);
-            }
-            centroid /= _loop.Count();
-            return centroid;
+            return _isInLien;
         }
         #endregion
 
@@ -1266,10 +1440,6 @@ namespace goa.Common
         #endregion
 
         #region Material
-
-        #endregion
-
-        #region Material
         public static Material TransferMaterial(this Material _source, Document _targetDoc)
         {
             string name = _source.Name;
@@ -1307,7 +1477,6 @@ namespace goa.Common
         #endregion
 
         #region Parameter
-
         /// <summary>
         /// Read parameter value in its native storage data type.
         /// </summary>
@@ -1350,7 +1519,6 @@ namespace goa.Common
                     }
             }
         }
-
         /// <summary>
         /// Get the meaningful value from parameter.
         /// Return Element if storage type is ElementId
@@ -1414,7 +1582,6 @@ namespace goa.Common
                     }
             }
         }
-
         public static void SetValue(this Parameter p, object value)
         {
             //special case for key parameter
@@ -1497,7 +1664,6 @@ namespace goa.Common
                     break;
             }
         }
-
         public static string GetId(this Parameter p)
         {
             string id = p.GetUniqueId();
@@ -1505,7 +1671,6 @@ namespace goa.Common
                 id = p.Id.ToString();
             return id;
         }
-
         public static string GetId(this FamilyParameter p)
         {
             string id = p.GetUniqueId();
@@ -1513,7 +1678,6 @@ namespace goa.Common
                 id = p.Id.ToString();
             return id;
         }
-
         /// <summary>
         /// one method for all types of parameters. 
         /// Project parameter does not have a unique identity, return null;
@@ -1531,7 +1695,6 @@ namespace goa.Common
             else
                 return null;
         }
-
         /// <summary>
         /// family parameter, the same as parameter.
         /// </summary>
@@ -1548,7 +1711,6 @@ namespace goa.Common
             else
                 return null;
         }
-
         public static Parameter GetParameter(this Element _elem, string _id)
         {
             //try built_in parameter
@@ -1575,7 +1737,6 @@ namespace goa.Common
             }
             return null;
         }
-
         public static Parameter GetParameterByName(this Element _elem, string _name)
         {
             foreach (Parameter p in _elem.Parameters)
@@ -1585,7 +1746,6 @@ namespace goa.Common
             }
             return null;
         }
-
         #endregion
 
         #region Test
@@ -1681,42 +1841,44 @@ namespace goa.Common
                 {
                     var refInstance = refElem as FamilyInstance;
                     var targetInstance = doc.GetElement(targetIds[i]) as FamilyInstance;
-                    return getTransform(refInstance, targetInstance);
+                    return GetTransform(refInstance, targetInstance);
                 }
             }
             return null;
         }
         public static Transform GetTransform(Wall _refWall, Wall _targetWall)
         {
-            var refT = getTransform(_refWall);
-            var targetT = getTransform(_targetWall);
-            return targetT * refT.Inverse;
+            var refT = GetTransform(_refWall);
+            var targetT = GetTransform(_targetWall);
+            var t = targetT * refT.Inverse;
+            return t;
         }
-        private static Transform getTransform(Wall _wall)
+        public static Transform GetTransform(Wall _wall)
         {
-            var X = _wall.Orientation;
-            var rotation = Transform.CreateRotation(XYZ.BasisZ, Math.PI / 2);
-            var Y = _wall.Flipped
-                ? rotation.OfVector(X)
-                : rotation.Inverse.OfVector(X);
+            var Y = _wall.Orientation;
+            if (_wall.Flipped)
+                Y *= -1;
+            var Z = XYZ.BasisZ;
+            var X = _wall.Orientation.CrossProduct(Z);
+
             var t = Transform.Identity;
             t.BasisX = X;
             t.BasisY = Y;
-            t.BasisZ = XYZ.BasisZ;
+            t.BasisZ = Z;
             t.Origin = ((LocationCurve)_wall.Location).Curve.GetEndPoint(0);
             return t;
         }
-        private static Transform getTransform(FamilyInstance _refInstance, FamilyInstance _targetInstance)
+        public static Transform GetTransform(FamilyInstance _refInstance, FamilyInstance _targetInstance)
         {
-            var refT = getTransform(_refInstance);
-            var targetT = getTransform(_targetInstance);
+            var refT = GetTransform(_refInstance);
+            var targetT = GetTransform(_targetInstance);
             return targetT * refT.Inverse;
         }
         public static Transform GetAllTransform(this FamilyInstance _fi)
         {
-            return getTransform(_fi);
+            return GetTransform(_fi);
         }
-        private static Transform getTransform(FamilyInstance _fi)
+        public static Transform GetTransform(FamilyInstance _fi)
         {
             var t = Transform.Identity;
             t.BasisX = _fi.HandOrientation;

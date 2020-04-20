@@ -93,7 +93,11 @@
                     <RowDefinition Height="481*"/>
                     <RowDefinition Height="20*" MaxHeight="20" MinHeight="20"/>
                 </Grid.RowDefinitions>
-                <Button x:Name="button3" Content="生成户型基础设计模型" Margin="0" Padding="5,1"   Grid.Row="2" IsEnabled="False" HorizontalAlignment="Right" Height="19" Width="132" Click="button3_Click" VerticalAlignment="Bottom"/>
+                <StackPanel  Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"  >
+                    <RadioButton x:Name="radioButton9" Content="生成户型轮廓" VerticalAlignment="Center"  Margin="5,0" IsChecked="True"/>
+                    <RadioButton x:Name="radioButton10" Content="生成户型基础设计模型" VerticalAlignment="Center"  Margin="5,0"/>
+                    <Button x:Name="button3" Content="确认" Margin="5,0" Padding="15,0"   IsEnabled="False"  Click="button3_Click"/>
+                </StackPanel>
                 <ListBox x:Name="listBox1" SelectionChanged="listBox1_SelectionChanged" Grid.Row="1" >
                 </ListBox>
                 <WrapPanel VerticalAlignment="Top" Margin="2,2,0,0" HorizontalAlignment="Left" >

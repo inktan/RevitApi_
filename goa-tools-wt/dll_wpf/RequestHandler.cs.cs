@@ -47,6 +47,8 @@ namespace dll_wpf
             catch (Exception ex)
             {
                 //UserMessages.ShowErrorMessage(ex, window);
+                TaskDialog.Show("error", ex.Message);
+
             }
             finally
             {

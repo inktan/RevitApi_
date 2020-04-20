@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.271
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "goa.Common", "goa.Common\goa.Common.csproj", "{3B63163D-CE10-43A5-86C5-D5FB43E65EE9}"
 EndProject
@@ -49,6 +49,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Install_Per_User", "Install_Per_User\Install_Per_User.csproj", "{2409D3C7-145D-4302-9714-9F86119EFB58}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".gitignore", ".gitignore", "{AA9E2E07-456E-434E-AEC0-33FC435A002B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "goa.Common.Excel", "goa.Common.Excel\goa.Common.Excel.csproj", "{91A9AD12-FF58-460B-A66B-8D21103DA025}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -118,6 +120,18 @@ Global
 		{2409D3C7-145D-4302-9714-9F86119EFB58}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2409D3C7-145D-4302-9714-9F86119EFB58}.Release|x86.ActiveCfg = Release|Any CPU
 		{2409D3C7-145D-4302-9714-9F86119EFB58}.Release|x86.Build.0 = Release|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.123|Any CPU.ActiveCfg = Release|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.123|Any CPU.Build.0 = Release|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.123|x86.ActiveCfg = Release|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.123|x86.Build.0 = Release|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.Debug|x86.Build.0 = Debug|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.Release|x86.ActiveCfg = Release|Any CPU
+		{91A9AD12-FF58-460B-A66B-8D21103DA025}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

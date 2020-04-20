@@ -11,6 +11,7 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB.Events;
 
 using goa.Common;
+using wt_Common;
 
 namespace Dwelling_Assembly
 {
@@ -152,6 +153,7 @@ namespace Dwelling_Assembly
             catch (Exception ex)
             {
                 //UserMessages.ShowErrorMessage(ex, window);
+                TaskDialog.Show("error", ex.Message);
             }
             finally
             {
@@ -175,8 +177,17 @@ namespace Dwelling_Assembly
             View actView = doc.ActiveView;
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
-            Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+
+            //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -274,79 +285,156 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -354,6 +442,7 @@ namespace Dwelling_Assembly
                     transGroupCreateDwellingses.RollBack();
                 }
             }
+
             #region ***关闭所有源文档，但是不保存  time_20200312
             ResetDocument(_TXA_, _TXB_, _TXC_, _TXD_, _TXA_Core_, _TXB_Core_, _TXC_Core_, _TXD_Core_);
             #endregion
@@ -374,7 +463,17 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+            Plane _mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
+                                    //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -452,7 +551,17 @@ namespace Dwelling_Assembly
 
             if (CMD._TXA_rvt != "null_path")
             {
+                ICollection<ElementId> _TXA_3D_EleIds_temp = (new FilteredElementCollector(_TXA_)).WherePasses(orFilter).WhereElementIsNotElementType().ToElementIds();
+                FL01_view = new FilteredElementCollector(_TXA_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
+                ICollection<ElementId> _TXA_TextNotes_temp = (new FilteredElementCollector(_TXA_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_TextNotes).WhereElementIsNotElementType().ToElementIds();
+                ICollection<ElementId> _TXA_Dimensions_temp = (new FilteredElementCollector(_TXA_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_Dimensions).WhereElementIsNotElementType().ToElementIds();
                 //判断是否需要对基础模型进行定位操作
+
+                double _aAaa_max_X;
+                double _aAaa_min_X = GetLeftRgiht_X_ingrid(_TXA_, _TXA_3D_EleIds_temp, out _aAaa_max_X);
+
+                mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaa_max_X + 1, 0, 0), new XYZ(_aAaa_max_X, 0, 0));
+                _mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaa_max_X + _aAaa_max_X + 1, 0, 0), new XYZ(_aAaa_max_X + _aAaa_max_X, 0, 0));
             }
             if (CMD._TXB_rvt != "null_path")
             {
@@ -472,96 +581,173 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    Plane _mid_plane = ori_plane;//该处为原点镜像轴
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
 
-                        double _aAaa_max_X;
-                        double _aAaa_min_X = GetLeftRgiht_X_ingrid_fromGroup(doc, mi_group_TXA_ids, out _aAaa_max_X);
-                        mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaa_max_X + 1, 0, 0), new XYZ(_aAaa_max_X, 0, 0));//该处为原点镜像轴
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
 
-                        _aAaa_min_X = GetLeftRgiht_X_ingrid_fromGroup(doc, _mi_group_TXA_ids, out _aAaa_max_X);
-                        _mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaa_max_X + 1, 0, 0), new XYZ(_aAaa_max_X, 0, 0));//该处为原点镜像轴
-                        ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _mi_TXA_dimension_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _mi_TXA_dimension_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -588,8 +774,20 @@ namespace Dwelling_Assembly
             View actView = doc.ActiveView;
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
-            Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+            Plane mid_plane = ori_plane;
+            Plane _mid_plane = ori_plane;
+            Plane __mid_plane = ori_plane;
+            Plane ___mid_plane = ori_plane;//该处mid定义为整体户型组合模式的中心对称轴位置
+                                           //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -667,7 +865,19 @@ namespace Dwelling_Assembly
 
             if (CMD._TXA_rvt != "null_path")
             {
+                ICollection<ElementId> _TXA_3D_EleIds_temp = (new FilteredElementCollector(_TXA_)).WherePasses(orFilter).WhereElementIsNotElementType().ToElementIds();
+                FL01_view = new FilteredElementCollector(_TXA_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
+                ICollection<ElementId> _TXA_TextNotes_temp = (new FilteredElementCollector(_TXA_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_TextNotes).WhereElementIsNotElementType().ToElementIds();
+                ICollection<ElementId> _TXA_Dimensions_temp = (new FilteredElementCollector(_TXA_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_Dimensions).WhereElementIsNotElementType().ToElementIds();
                 //判断是否需要对基础模型进行定位操作
+
+                double _aAaaaa_max_X;
+                double _aAaaaa_min_X = GetLeftRgiht_X_ingrid(_TXA_, _TXA_3D_EleIds_temp, out _aAaaaa_max_X);
+
+                mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaaaa_max_X + 1, 0, 0), new XYZ(_aAaaaa_max_X, 0, 0));
+                _mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaaaa_max_X + _aAaaaa_max_X + 1, 0, 0), new XYZ(_aAaaaa_max_X + _aAaaaa_max_X, 0, 0));
+                __mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaaaa_max_X + _aAaaaa_max_X + _aAaaaa_max_X + 1, 0, 0), new XYZ(_aAaaaa_max_X + _aAaaaa_max_X + _aAaaaa_max_X, 0, 0));
+                ___mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaaaa_max_X + _aAaaaa_max_X + _aAaaaa_max_X + _aAaaaa_max_X + 1, 0, 0), new XYZ(_aAaaaa_max_X + _aAaaaa_max_X + _aAaaaa_max_X + _aAaaaa_max_X, 0, 0));
             }
             if (CMD._TXB_rvt != "null_path")
             {
@@ -687,113 +897,190 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    Plane _mid_plane = ori_plane;
-                    Plane __mid_plane = ori_plane;
-                    Plane ___mid_plane = ori_plane;
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
 
-                        double _aAaa_max_X;
-                        double _aAaa_min_X = GetLeftRgiht_X_ingrid_fromGroup(doc, mi_group_TXA_ids, out _aAaa_max_X);
-                        mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaa_max_X + 1, 0, 0), new XYZ(_aAaa_max_X, 0, 0));//该处为原点镜像轴
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
 
-                        _aAaa_min_X = GetLeftRgiht_X_ingrid_fromGroup(doc, _mi_group_TXA_ids, out _aAaa_max_X);
-                        _mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaa_max_X + 1, 0, 0), new XYZ(_aAaa_max_X, 0, 0));//该处为原点镜像轴
-                        ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _mi_TXA_dimension_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_ids, _mid_plane, true);
 
-                        _aAaa_min_X = GetLeftRgiht_X_ingrid_fromGroup(doc, __mi_group_TXA_ids, out _aAaa_max_X);
-                        __mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaa_max_X + 1, 0, 0), new XYZ(_aAaa_max_X, 0, 0));//该处为原点镜像轴
-                        ICollection<ElementId> ___mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, __mi_group_TXA_ids, __mid_plane, true);
-                        ICollection<ElementId> ___mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, __mi_group_TXA_textnote_ids, __mid_plane, true);
-                        ICollection<ElementId> ___mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, __mi_TXA_dimension_ids, __mid_plane, true);
+                            ICollection<ElementId> ___mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, __mi_group_TXA_ids, __mid_plane, true);
 
-                        _aAaa_min_X = GetLeftRgiht_X_ingrid_fromGroup(doc, ___mi_group_TXA_ids, out _aAaa_max_X);
-                        ___mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aAaa_max_X + 1, 0, 0), new XYZ(_aAaa_max_X, 0, 0));//该处为原点镜像轴
-                        ICollection<ElementId> ____mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, ___mi_group_TXA_ids, ___mid_plane, true);
-                        ICollection<ElementId> ____mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, ___mi_group_TXA_textnote_ids, ___mid_plane, true);
-                        ICollection<ElementId> ____mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, ___mi_TXA_dimension_ids, ___mid_plane, true);
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> ____mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, ___mi_group_TXA_ids, ___mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _mi_TXA_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> ___mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, __mi_group_TXA_ids, __mid_plane, true);
+                            ICollection<ElementId> ___mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, __mi_group_TXA_textnote_ids, __mid_plane, true);
+                            ICollection<ElementId> ___mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, __mi_TXA_dimension_ids, __mid_plane, true);
+
+                            ICollection<ElementId> ____mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, ___mi_group_TXA_ids, ___mid_plane, true);
+                            ICollection<ElementId> ____mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, ___mi_group_TXA_textnote_ids, ___mid_plane, true);
+                            ICollection<ElementId> ____mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, ___mi_TXA_dimension_ids, ___mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -817,8 +1104,16 @@ namespace Dwelling_Assembly
             View actView = doc.ActiveView;
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
-            Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                                                                                //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -926,80 +1221,155 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    Plane _mid_plane = ori_plane;
-                    Plane __mid_plane = ori_plane;
-                    Plane ___mid_plane = ori_plane;
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -1023,8 +1393,17 @@ namespace Dwelling_Assembly
             View actView = doc.ActiveView;
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
-            Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+            Plane mid_plane = null;
+            //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -1107,7 +1486,7 @@ namespace Dwelling_Assembly
             if (CMD._TXB_rvt != "null_path")
             {
                 ICollection<ElementId> _TXB_3D_EleIds_temp = (new FilteredElementCollector(_TXB_)).WherePasses(orFilter).WhereElementIsNotElementType().ToElementIds();
-                FL01_view = new FilteredElementCollector(_TXB_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
+                FL01_view = new FilteredElementCollector(_TXB_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).WhereElementIsNotElementType().FirstOrDefault(x => x.Name == "FL01") as View;
                 ICollection<ElementId> _TXB_TextNotes_temp = (new FilteredElementCollector(_TXB_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_TextNotes).WhereElementIsNotElementType().ToElementIds();
                 ICollection<ElementId> _TXB_Dimensions_temp = (new FilteredElementCollector(_TXB_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_Dimensions).WhereElementIsNotElementType().ToElementIds();
                 //判断是否需要对基础模型进行定位操作
@@ -1117,6 +1496,11 @@ namespace Dwelling_Assembly
                 ICollection<ElementId> mi_TXB_Dimensions_temp = _MirrorElements_ChangeHandler(_TXB_, _TXB_Dimensions_temp, ori_plane, true);
                 _deleteEles(_TXB_, _TXB_3D_EleIds_temp);
                 _deleteEles(_TXB_, _TXB_TextNotes_temp);
+
+                double _aBba_max_X;
+                double _aBba_min_X = GetLeftRgiht_X_ingrid(_TXB_, mi_TXB_3D_EleIds_temp, out _aBba_max_X);
+                mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aBba_max_X + 1, 0, 0), new XYZ(_aBba_max_X, 0, 0));//该处为原点镜像轴
+
             }
             if (CMD._TXC_rvt != "null_path")
             {
@@ -1132,92 +1516,167 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    Plane _mid_plane = ori_plane;
-                    Plane __mid_plane = ori_plane;
-                    Plane ___mid_plane = ori_plane;
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+                    {
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        double _aBba_max_X;
-                        double _aBba_min_X = GetLeftRgiht_X_ingrid_fromGroup(doc, group_TXB_ids, out _aBba_max_X);
-                        mid_plane = Plane.CreateByNormalAndOrigin(new XYZ(_aBba_max_X + 1, 0, 0), new XYZ(_aBba_max_X, 0, 0));//该处为原点镜像轴
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -1242,7 +1701,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -1360,89 +1828,171 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    Plane _mid_plane = ori_plane;
-                    Plane __mid_plane = ori_plane;
-                    Plane ___mid_plane = ori_plane;
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        Plane _mid_plane = ori_plane;
+                        Plane __mid_plane = ori_plane;
+                        Plane ___mid_plane = ori_plane;
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -1468,7 +2018,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -1550,7 +2109,7 @@ namespace Dwelling_Assembly
             if (CMD._TXA_rvt != "null_path")
             {
                 ICollection<ElementId> _TXA_3D_EleIds_temp = (new FilteredElementCollector(_TXA_)).WherePasses(orFilter).WhereElementIsNotElementType().ToElementIds();
-                FL01_view = new FilteredElementCollector(_TXA_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
+                FL01_view = new FilteredElementCollector(_TXA_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).WhereElementIsNotElementType().FirstOrDefault(x => x.Name == "FL01") as View;
                 ICollection<ElementId> _TXA_TextNotes_temp = (new FilteredElementCollector(_TXA_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_TextNotes).WhereElementIsNotElementType().ToElementIds();
                 ICollection<ElementId> _TXA_Dimensions_temp = (new FilteredElementCollector(_TXA_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_Dimensions).WhereElementIsNotElementType().ToElementIds();
                 //判断是否需要对基础模型进行定位操作
@@ -1561,7 +2120,7 @@ namespace Dwelling_Assembly
             if (CMD._TXB_rvt != "null_path")
             {
                 ICollection<ElementId> _TXB_3D_EleIds_temp = (new FilteredElementCollector(_TXB_)).WherePasses(orFilter).WhereElementIsNotElementType().ToElementIds();
-                FL01_view = new FilteredElementCollector(_TXB_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
+                FL01_view = new FilteredElementCollector(_TXB_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).WhereElementIsNotElementType().FirstOrDefault(x => x.Name == "FL01") as View;
                 ICollection<ElementId> _TXB_TextNotes_temp = (new FilteredElementCollector(_TXB_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_TextNotes).WhereElementIsNotElementType().ToElementIds();
                 ICollection<ElementId> _TXB_Dimensions_temp = (new FilteredElementCollector(_TXB_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_Dimensions).WhereElementIsNotElementType().ToElementIds();
                 //判断是否需要对基础模型进行定位操作
@@ -1591,95 +2150,181 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
 
-                        ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, distance_move_aaBbaa, group_TXB_Core_ids);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, distance_move_aaBbaa, group_TXB_Core_ids);
+                            MoveGrouIds(doc, distance_move_aaBbaa, group_TXB_Core_textnote_ids);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        MoveGrouIds(doc, distance_move_aaBbaa, group_TXB_Core_ids);
-                        MoveGrouIds(doc, distance_move_aaBbaa, group_TXB_Core_textnote_ids);
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -1704,7 +2349,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -1789,7 +2443,7 @@ namespace Dwelling_Assembly
             if (CMD._TXB_rvt != "null_path")
             {
                 ICollection<ElementId> _TXB_3D_EleIds_temp = (new FilteredElementCollector(_TXB_)).WherePasses(orFilter).WhereElementIsNotElementType().ToElementIds();
-                FL01_view = new FilteredElementCollector(_TXB_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
+                FL01_view = new FilteredElementCollector(_TXB_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).WhereElementIsNotElementType().FirstOrDefault(x => x.Name == "FL01") as View;
                 ICollection<ElementId> _TXB_TextNotes_temp = (new FilteredElementCollector(_TXB_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_TextNotes).WhereElementIsNotElementType().ToElementIds();
                 ICollection<ElementId> _TXB_Dimensions_temp = (new FilteredElementCollector(_TXB_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_Dimensions).WhereElementIsNotElementType().ToElementIds();
                 //判断是否需要对基础模型进行定位操作
@@ -1820,96 +2474,183 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, _mid_plane, true);
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
 
-                        ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -1934,7 +2675,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -2052,97 +2802,185 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
 
-                        ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _mi_TXA_dimension_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_ids, _mid_plane, true);
 
-                        ICollection<ElementId> ___mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> ___mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> ___mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> ___mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, _mi_group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _mi_TXA_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> ___mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> ___mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> ___mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -2167,7 +3005,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -2287,82 +3134,162 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -2387,7 +3314,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -2519,91 +3455,175 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, distance_move_aabbac, group_TXB_Core_ids);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, ori_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, ori_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, ori_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, distance_move_aabbac, group_TXB_Core_ids);
+                            MoveGrouIds(doc, distance_move_aabbac, group_TXB_Core_textnote_ids);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        MoveGrouIds(doc, distance_move_aabbac, group_TXB_Core_ids);
-                        MoveGrouIds(doc, distance_move_aabbac, group_TXB_Core_textnote_ids);
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -2628,7 +3648,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -2749,93 +3778,179 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
 
-                        ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -2863,7 +3978,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -2994,90 +4118,173 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, mid_plane, true);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_ids);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXC_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXC_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXC_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXC_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_ids);
+                            MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_textnote_ids);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXC_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXC_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXC_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXC_dimension_ids, mid_plane, true);
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_ids);
-                        MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_ids);
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -3105,7 +4312,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -3246,86 +4462,167 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, mid_plane, true);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_ids);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXC_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXC_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXC_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXC_dimension_ids, mid_plane, true);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_ids);
+                            MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_textnote_ids);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXC_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXC_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXC_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXC_dimension_ids, mid_plane, true);
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_ids);
-                        MoveGrouIds(doc, distance_move_abCcbd, group_TXC_Core_textnote_ids);
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -3350,7 +4647,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -3478,96 +4784,183 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
 
-                        ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, _mid_plane, true);
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -3592,7 +4985,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -3708,7 +5110,16 @@ namespace Dwelling_Assembly
             }
             if (CMD._TXC_rvt != "null_path")
             {
+                ICollection<ElementId> _TXC_3D_EleIds_temp = (new FilteredElementCollector(_TXC_)).WherePasses(orFilter).WhereElementIsNotElementType().ToElementIds();
+                FL01_view = new FilteredElementCollector(_TXC_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
+                ICollection<ElementId> _TXC_TextNotes_temp = (new FilteredElementCollector(_TXC_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_TextNotes).WhereElementIsNotElementType().ToElementIds();
+                ICollection<ElementId> _TXC_Dimensions_temp = (new FilteredElementCollector(_TXC_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_Dimensions).WhereElementIsNotElementType().ToElementIds();
                 //判断是否需要对基础模型进行定位操作
+                ICollection<ElementId> mi_TXB_3D_EleIds_temp = _MirrorElements_ChangeHandler(_TXC_, _TXC_3D_EleIds_temp, _mid_plane, true);
+                ICollection<ElementId> mi_TXB_TextNotes_temp = _MirrorElements_ChangeHandler(_TXC_, _TXC_TextNotes_temp, _mid_plane, true);
+                ICollection<ElementId> mi_TXB_Dimensions_temp = _MirrorElements_ChangeHandler(_TXC_, _TXC_Dimensions_temp, _mid_plane, true);
+                _deleteEles(_TXC_, _TXC_3D_EleIds_temp);
+                _deleteEles(_TXC_, _TXC_TextNotes_temp);
             }
             if (CMD._TXD_rvt != "null_path")
             {
@@ -3720,95 +5131,177 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
 
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> __mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXC_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXC_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXC_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXC_dimension_ids, _mid_plane, true);
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
 
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -3833,7 +5326,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -3917,7 +5419,7 @@ namespace Dwelling_Assembly
             if (CMD._TXB_rvt != "null_path")
             {
                 ICollection<ElementId> _TXB_3D_EleIds_temp = (new FilteredElementCollector(_TXB_)).WherePasses(orFilter).WhereElementIsNotElementType().ToElementIds();
-                FL01_view = new FilteredElementCollector(_TXB_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
+                FL01_view = new FilteredElementCollector(_TXB_).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).WhereElementIsNotElementType().FirstOrDefault(x => x.Name == "FL01") as View;
                 ICollection<ElementId> _TXB_TextNotes_temp = (new FilteredElementCollector(_TXB_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_TextNotes).WhereElementIsNotElementType().ToElementIds();
                 ICollection<ElementId> _TXB_Dimensions_temp = (new FilteredElementCollector(_TXB_, FL01_view.Id)).OwnedByView(FL01_view.Id).OfCategory(BuiltInCategory.OST_Dimensions).WhereElementIsNotElementType().ToElementIds();
                 //判断是否需要对基础模型进行定位操作
@@ -3941,115 +5443,220 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
-
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_textnote_ids);
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
-
-                        //TaskDialog.Show("Revit", move_distance_TXA_.ToString());
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
                         {
-                            //该处主要原因为剪刀楼梯不需要复制
-                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_ids);
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_textnote_ids);
-
-                            //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
-                            AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
                         }
-                        else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                        if (CMD._TXB_rvt != "null_path")
                         {
-                            //需要对1T4H的核心筒进行移动 向左移动一个核心筒的凹口
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
                         }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_ids);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+
+                            //TaskDialog.Show("Revit", move_distance_TXA_.ToString());
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_ids);
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                //AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                //需要对1T4H的核心筒进行移动 向左移动一个核心筒的凹口
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);
+                            }
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_textnote_ids);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+
+                            //TaskDialog.Show("Revit", move_distance_TXA_.ToString());
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                                ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_textnote_ids);
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                //需要对1T4H的核心筒进行移动 向左移动一个核心筒的凹口
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);
+                            }
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -4074,7 +5681,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -4194,156 +5810,285 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
-
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
-
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, _mid_plane, true);
-
-                        ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
-
-                        //TaskDialog.Show("Revit", move_distance_TXA_.ToString());
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXA_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXA_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_textnote_ids);
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
-
-                        ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
-
-                        ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_textnote_ids);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);//aaaA
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);//aaaA
-
-                        if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
                         {
-                            //该处主要原因为剪刀楼梯不需要复制
-                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);//aAaa
-                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);//aAaa
-
-                            ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);//aaAa
-                            ICollection<ElementId> __mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_textnote_ids, _mid_plane, true);//aaAa
-
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_ids);//aAaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_textnote_ids);//aAaa
-
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_ids);//aaAa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_textnote_ids);//aaAa      
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_textnote_ids);//aaaA
-
-                            //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
-                            AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
                         }
-                        else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                        if (CMD._TXB_rvt != "null_path")
                         {
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_textnote_ids);//aaaA
-
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
                         }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
+
+                            //TaskDialog.Show("Revit", move_distance_TXA_.ToString());
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXA_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_ids);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);//aaaA
+
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);//aAaa
+
+                                ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);//aaAa
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_ids);//aAaa
+
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_ids);//aaAa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                //AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
+
+                            }
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
+
+                            //TaskDialog.Show("Revit", move_distance_TXA_.ToString());
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXA_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXA_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_textnote_ids);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_textnote_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);//aaaA
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);//aaaA
+
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);//aAaa
+                                ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);//aAaa
+
+                                ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);//aaAa
+                                ICollection<ElementId> __mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_textnote_ids, _mid_plane, true);//aaAa
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_ids);//aAaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_textnote_ids);//aAaa
+
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_ids);//aaAa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_textnote_ids);//aaAa      
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+
+                            }
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -4368,7 +6113,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -4485,113 +6239,218 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
-
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
-
-                        //TaskDialog.Show("Revit", move_distance_TXA_.ToString());
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_textnote_ids);
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")//核心筒是先镜像后移动
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
                         {
-                            //该处主要原因为剪刀楼梯不需要复制
-                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_ids);
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_textnote_ids);
-
-                            //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
-                            AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
                         }
-                        else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))
+                        if (CMD._TXB_rvt != "null_path")
                         {
-                            //需要对1T4H的核心筒进行移动 由于镜像原因，一个向左移动，一个向右移动
-                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXA_Core_ids);
-                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXA_Core_textnote_ids);
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
                         }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+
+                            //TaskDialog.Show("Revit", move_distance_TXA_.ToString());
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")//核心筒是先镜像后移动
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_ids);
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                //AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))
+                            {
+                                //需要对1T4H的核心筒进行移动 由于镜像原因，一个向左移动，一个向右移动
+                                MoveGrouIds(doc, -move_distance_TXA_down, group_TXA_Core_ids);
+                            }
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+
+                            //TaskDialog.Show("Revit", move_distance_TXA_.ToString());
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_textnote_ids);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")//核心筒是先镜像后移动
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                                ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_textnote_ids);
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))
+                            {
+                                //需要对1T4H的核心筒进行移动 由于镜像原因，一个向左移动，一个向右移动
+                                MoveGrouIds(doc, -move_distance_TXA_down, group_TXA_Core_ids);
+                                MoveGrouIds(doc, -move_distance_TXA_down, group_TXA_Core_textnote_ids);
+                            }
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -4616,7 +6475,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -4741,151 +6609,277 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
-
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, _mid_plane, true);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down, mi_group_TXA_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down, mi_group_TXA_textnote_ids);
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
-
-                        ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
-
-                        ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, __mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, __mi_group_TXB_textnote_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, _mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, _mi_group_TXB_textnote_ids);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_group_TXC_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXC_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_TXC_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXC_dimension_ids, _mid_plane, true);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_textnote_ids);
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
-
-                        if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
                         {
-                            //该处主要原因为剪刀楼梯不需要复制
-                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-
-                            ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);
-                            ICollection<ElementId> __mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_textnote_ids, _mid_plane, true);
-
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_ids);//aAaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_textnote_ids);//aAaa
-
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_ids);//aaAa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_textnote_ids);//aaAa      
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_textnote_ids);//aaaA
-
-                            //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
-                            AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
                         }
-                        else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                        if (CMD._TXB_rvt != "null_path")
                         {
-                            //无操作
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down, mi_group_TXA_ids);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, __mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, _mi_group_TXB_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_ids);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+
+                                ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_ids);//aAaa
+
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_ids);//aaAa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                //AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                //无操作
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
+
+                            }
 
                         }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
+                    }
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+                    {
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
 
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down, mi_group_TXA_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down, mi_group_TXA_textnote_ids);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, __mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, __mi_group_TXB_textnote_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, _mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down, _mi_group_TXB_textnote_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_group_TXC_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXC_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_TXC_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXC_dimension_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_textnote_ids);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                                ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                                ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);
+                                ICollection<ElementId> __mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_textnote_ids, _mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_ids);//aAaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_textnote_ids);//aAaa
+
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_ids);//aaAa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_textnote_ids);//aaAa      
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                //无操作
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_ids);//aaaA
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXA_down + move_distance_TXA_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+
+                            }
+
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -4910,7 +6904,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -5039,153 +7042,281 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
-
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
-
-                        ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_textnote_ids);
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
-
-                        ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
-
-                        ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_textnote_ids);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down, group_TXC_textnote_ids);
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
-
-                        if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
                         {
-                            //该处主要原因为剪刀楼梯不需要复制
-                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-
-                            ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);
-                            ICollection<ElementId> __mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_textnote_ids, _mid_plane, true);
-
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_ids);//aAaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_textnote_ids);//aAaa
-
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_ids);//aaAa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_textnote_ids);//aaAa      
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_ids);//aaaA
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_textnote_ids);//aaaA
-
-                            //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
-                            AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
                         }
-                        else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                        if (CMD._TXB_rvt != "null_path")
                         {
-                            //无操作
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_ids);//aaaA
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
                         }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
 
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_ids);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+
+                                ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_ids);//aAaa
+
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_ids);//aaAa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_ids);//aaaA
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                //AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                //无操作
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_ids);//aaaA
+                            }
+
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, group_TXA_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXA_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXA_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXA_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXA_dimension_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, mi_group_TXA_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXA_textnote_ids);
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_textnote_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down, group_TXC_textnote_ids);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                                ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                                ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);
+                                ICollection<ElementId> __mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_textnote_ids, _mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_ids);//aAaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down + move_distance_TXA_up, mi_group_TXA_Core_textnote_ids);//aAaa
+
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_ids);//aaAa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_up, __mi_group_TXA_Core_textnote_ids);//aaAa      
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_ids);//aaaA
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                //无操作
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_ids);//aaaA
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+                            }
+
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -5210,7 +7341,16 @@ namespace Dwelling_Assembly
             View FL01_view = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).OfClass(typeof(ViewPlan)).FirstOrDefault(x => x.Name == "FL01") as View;
             Plane ori_plane = Plane.CreateByNormalAndOrigin(new XYZ(1, 0, 0), new XYZ(0, 0, 0));//该处为原点镜像轴
             Plane mid_plane = null;//该处mid定义为整体户型组合模式的中心对称轴位置
-            LogicalOrFilter orFilter = CreatorFilter(uiapp);
+                                   //根据UI界面选项，进行模型过滤
+            LogicalOrFilter orFilter = null;
+            if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
+            {
+                orFilter = CreatorFilter_OutLine();
+            }
+            else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
+            {
+                orFilter = CreatorFilter_basicModel();
+            }
             #endregion
 
             #region ***声明 all 变量 time_20200312
@@ -5344,151 +7484,279 @@ namespace Dwelling_Assembly
             {
                 if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
                 {
-                    #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
-                    if (CMD._TXA_rvt != "null_path")
+                    if (CMD._Recalloptions == "outline_sola")//调取户型轮廓Group
                     {
-                        group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
-                    }
-                    if (CMD._TXB_HXT_rvt != "null_path")
-                    {
-                        group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
-                    }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
-                    }
-                    #endregion
-
-                    #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
-                    //abccbd 根据字母组合进行判断
-                    double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXD_up = GetGlobalParametersValue_double(_TXD_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
-                    double move_distance_TXD_down = GetGlobalParametersValue_double(_TXD_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
-
-                    if (CMD._TXA_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXB_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
-                        ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
-                        ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
-
-                        ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
-
-                        ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_textnote_ids);
-                    }
-                    if (CMD._TXC_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_group_TXC_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXC_textnote_ids, _mid_plane, true);
-                        ICollection<ElementId> mi_TXC_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXC_dimension_ids, _mid_plane, true);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_textnote_ids);
-
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_textnote_ids);
-                    }
-                    if (CMD._TXD_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down, group_TXD_ids);
-                        MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down, group_TXD_textnote_ids);
-                    }
-                    if (CMD._TXA_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                        ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
-                        ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
-
-                        if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
                         {
-                            //该处主要原因为剪刀楼梯不需要复制
-                            ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
-                            ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
-
-                            ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);
-                            ICollection<ElementId> __mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_textnote_ids, _mid_plane, true);
-
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_ids);//aAaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_textnote_ids);//aAaa
-
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_ids);//aaAa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_textnote_ids);//aaAa      
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_ids);//aaaA
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_textnote_ids);//aaaA
-
-                            //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
-                            AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            group_TXA_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_, doc, CMD._TXA_name);
                         }
-                        else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                        if (CMD._TXB_rvt != "null_path")
                         {
-                            //无操作
-
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_ids);//aaaA
-                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+                            group_TXB_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_, doc, CMD._TXB_name);
                         }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_, doc, CMD._TXC_name);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_, doc, CMD._TXD_name);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXA_Core_, doc, CMD._TXA_HXT_name);
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXB_Core_, doc, CMD._TXB_HXT_name);
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXC_Core_, doc, CMD._TXC_HXT_name);
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_outline_sola_GroupId_copyFrom_Ori(_TXD_Core_, doc, CMD._TXD_HXT_name);
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXD_up = GetGlobalParametersValue_double(_TXD_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXD_down = GetGlobalParametersValue_double(_TXD_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_ids);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down, group_TXD_ids);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+
+                                ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_ids);//aAaa
+
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_ids);//aaAa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_ids);//aaaA
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                //AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                //无操作
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_ids);//aaaA
+                            }
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXB_HXT_rvt != "null_path")
+                    else if (CMD._Recalloptions == "basic_model")//调取户型基础设计模型
                     {
-                        //判断是否需要对复制进来的模型数据进行二次操作
+                        #region ***将定位好的基础模型数据，复制到当前工作视图 并creat group 标注元素只有list，不可以creat group time_20200312
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            group_TXA_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_, doc, orFilter, actView, out group_TXA_textnote_ids, out _TXA_dimension_ids, "_TXA_", "_TXA_textnote_");
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            group_TXB_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_, doc, orFilter, actView, out group_TXB_textnote_ids, out _TXB_dimension_ids, "_TXB_", "_TXB_textnote_");
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            group_TXC_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_, doc, orFilter, actView, out group_TXC_textnote_ids, out _TXC_dimension_ids, "_TXC_", "_TXC_textnote_");
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            group_TXD_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_, doc, orFilter, actView, out group_TXD_textnote_ids, out _TXD_dimension_ids, "_TXD_", "_TXD_textnote_");
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            group_TXA_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXA_Core_, doc, orFilter, actView, out group_TXA_Core_textnote_ids, out _TXA_Core_dimension_ids, "_TXA_Core_", "_TXA_Core_textnote_");
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            group_TXB_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXB_Core_, doc, orFilter, actView, out group_TXB_Core_textnote_ids, out _TXB_Core_dimension_ids, "_TXB_Core_", "_TXB_Core_textnote_");
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            group_TXC_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXC_Core_, doc, orFilter, actView, out group_TXC_Core_textnote_ids, out _TXC_Core_dimension_ids, "_TXC_Core_", "_TXC_Core_textnote_");
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            group_TXD_Core_ids = Creat_Unit_GroupId_copyFrom_Ori(_TXD_Core_, doc, orFilter, actView, out group_TXD_Core_textnote_ids, out _TXD_Core_dimension_ids, "_TXD_Core_", "_TXD_Core_textnote_");
+                        }
+                        #endregion
+
+                        #region 在当前视图，对户型进行排列组合 注意模型复制到当前文档时，所处的位置 time_20200312
+                        //abccbd 根据字母组合进行判断
+                        double move_distance_TXA_up = GetGlobalParametersValue_double(_TXA_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXA_down = GetGlobalParametersValue_double(_TXA_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_up = GetGlobalParametersValue_double(_TXC_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXC_down = GetGlobalParametersValue_double(_TXC_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXD_up = GetGlobalParametersValue_double(_TXD_, "move_distance_up_length_global");//_TXB_移动的为_TXA_的缝隙距离
+                        double move_distance_TXD_down = GetGlobalParametersValue_double(_TXD_, "move_distance_down_length_global");//_TXB_移动的为_TXA_的缝隙距离
+
+                        if (CMD._TXA_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXB_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, mid_plane, true);
+                            ICollection<ElementId> mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, mid_plane, true);
+                            ICollection<ElementId> mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, mid_plane, true);
+
+                            ICollection<ElementId> __mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> __mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, mi_TXB_dimension_ids, _mid_plane, true);
+
+                            ICollection<ElementId> _mi_group_TXB_ids = _MirrorElements_ChangeHandler(doc, group_TXB_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXB_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXB_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_TXB_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXB_dimension_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down, mi_group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, __mi_group_TXB_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXA_down - move_distance_TXA_down, _mi_group_TXB_textnote_ids);
+                        }
+                        if (CMD._TXC_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> mi_group_TXC_ids = _MirrorElements_ChangeHandler(doc, group_TXC_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_group_TXC_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXC_textnote_ids, _mid_plane, true);
+                            ICollection<ElementId> mi_TXC_dimension_ids = _MirrorElements_ChangeHandler(doc, _TXC_dimension_ids, _mid_plane, true);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, group_TXC_textnote_ids);
+
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down, mi_group_TXC_textnote_ids);
+                        }
+                        if (CMD._TXD_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down, group_TXD_ids);
+                            MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down, group_TXD_textnote_ids);
+                        }
+                        if (CMD._TXA_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                            ICollection<ElementId> _mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, _mid_plane, true);
+                            ICollection<ElementId> _mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, _mid_plane, true);
+
+                            if (!CMD._TXA_HXT_rvt.Contains(@"CORE_5408") && !CMD._TXA_HXT_rvt.Contains(@"CORE_335406"))//core_5408为剪刀楼梯 CORE_335406为1T4H模式
+                            {
+                                //该处主要原因为剪刀楼梯不需要复制
+                                ICollection<ElementId> mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_ids, mid_plane, true);
+                                ICollection<ElementId> mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, group_TXA_Core_textnote_ids, mid_plane, true);
+
+                                ICollection<ElementId> __mi_group_TXA_Core_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_ids, _mid_plane, true);
+                                ICollection<ElementId> __mi_group_TXA_Core_textnote_ids = _MirrorElements_ChangeHandler(doc, mi_group_TXA_Core_textnote_ids, _mid_plane, true);
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_ids);//aAaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down + move_distance_TXC_up, mi_group_TXA_Core_textnote_ids);//aAaa
+
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_ids);//aaAa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_up, __mi_group_TXA_Core_textnote_ids);//aaAa      
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_ids);//aaaA
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+
+                                //添加核心筒走廊_此处操作为_通过修改全局参数，控制核心筒走廊宽度的一半；
+                                AddCorefloor(doc, _TXA_Core_, distance_TXB_X);
+                            }
+                            else if (CMD._TXA_HXT_rvt.Contains(@"CORE_335406") || CMD._TXA_HXT_rvt.Contains(@"CORE_5408"))
+                            {
+                                //无操作
+
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_up, group_TXA_Core_textnote_ids);//Aaaa
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_ids);//aaaA
+                                MoveGrouIds(doc, -move_distance_TXA_down - move_distance_TXC_down - move_distance_TXC_down - move_distance_TXD_down + move_distance_TXD_up, _mi_group_TXA_Core_textnote_ids);//aaaA
+                            }
+                        }
+                        if (CMD._TXB_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXC_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        if (CMD._TXD_HXT_rvt != "null_path")
+                        {
+                            //判断是否需要对复制进来的模型数据进行二次操作
+                        }
+                        #endregion
                     }
-                    if (CMD._TXC_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    if (CMD._TXD_HXT_rvt != "null_path")
-                    {
-                        //判断是否需要对复制进来的模型数据进行二次操作
-                    }
-                    #endregion
+
                     transGroupCreateDwellingses.Assimilate();
                 }
                 else
@@ -5968,7 +8236,7 @@ namespace Dwelling_Assembly
         /// </summary>
         /// <param name="uiapp"></param>
         /// <returns></returns>
-        public LogicalOrFilter CreatorFilter(UIApplication uiapp)
+        public LogicalOrFilter CreatorFilter_basicModel()
         {
             //设置多个过滤器，进行目标模型复制
             IList<ElementFilter> filterSet = new List<ElementFilter>();
@@ -5979,8 +8247,21 @@ namespace Dwelling_Assembly
             filterSet.Add(new ElementCategoryFilter(BuiltInCategory.OST_Furniture));
             filterSet.Add(new ElementCategoryFilter(BuiltInCategory.OST_SpecialityEquipment));
             filterSet.Add(new ElementCategoryFilter(BuiltInCategory.OST_Floors));
+            filterSet.Add(new ElementCategoryFilter(BuiltInCategory.OST_Floors));
+            filterSet.Add(new ElementCategoryFilter(BuiltInCategory.OST_IOSModelGroups));
             //filterSet.Add(new ElementCategoryFilter(BuiltInCategory.OST_Dimensions));
             //filterSet.Add(new ElementCategoryFilter(BuiltInCategory.OST_TextNotes));
+            LogicalOrFilter orFilter = new LogicalOrFilter(filterSet);
+            return orFilter;
+        }
+        public LogicalOrFilter CreatorFilter_OutLine()
+        {
+            //设置多个过滤器，进行目标模型复制
+            IList<ElementFilter> filterSet = new List<ElementFilter>();
+
+            filterSet.Add(new ElementCategoryFilter(BuiltInCategory.OST_Grids));
+            filterSet.Add(new ElementCategoryFilter(BuiltInCategory.OST_IOSModelGroups));
+
             LogicalOrFilter orFilter = new LogicalOrFilter(filterSet);
             return orFilter;
         }
@@ -5992,13 +8273,15 @@ namespace Dwelling_Assembly
         /// <param name="mi_group_TXC_ids"></param>
         public void MoveGrouIds(Document _TXA_, double distance, ICollection<ElementId> mi_group_TXC_ids)
         {
+            //剔除锁定图元
+            ICollection<ElementId> mi_group_TXC_ids_isnotPinned = _Methods.FileterPinnedElement(_TXA_, mi_group_TXC_ids);
             using (Transaction moveGroupId = new Transaction(_TXA_))
             {
                 DeleteErrOrWaringTaskDialog(moveGroupId);
                 try
                 {
                     moveGroupId.Start("moveGroupId");
-                    ElementTransformUtils.MoveElements(_TXA_, mi_group_TXC_ids, new XYZ(distance, 0, 0));
+                    ElementTransformUtils.MoveElements(_TXA_, mi_group_TXC_ids_isnotPinned, new XYZ(distance, 0, 0));
                     moveGroupId.Commit();
                 }
                 catch (Exception ex)
@@ -6064,13 +8347,15 @@ namespace Dwelling_Assembly
         public ICollection<ElementId> _MirrorElements_ChangeHandler(Document doc, ICollection<ElementId> elementIds, Plane plane, bool shifou)
         {
             ICollection<ElementId> result = new List<ElementId>();
+
+            ICollection<ElementId> elementIds_isnotPinned = _Methods.FileterPinnedElement(doc, elementIds);
             using (Transaction transaction = new Transaction(doc))
             {
                 DeleteErrOrWaringTaskDialog(transaction);
                 try
                 {
                     transaction.Start("Mirror");
-                    result = ElementTransformUtils.MirrorElements(doc, elementIds, plane, true);
+                    result = ElementTransformUtils.MirrorElements(doc, elementIds_isnotPinned, plane, true);
                     if (!shifou)
                     {
                         doc.Delete(elementIds);
@@ -6254,6 +8539,41 @@ namespace Dwelling_Assembly
             group_textnote_Ids = group_2D_ids;
 
             return group_3D_ids;
+        }
+
+        public ICollection<ElementId> Creat_Unit_outline_sola_GroupId_copyFrom_Ori(Document ori_doc, Document doc, string group_outline_name)
+        {
+            ICollection<ElementId> _outline_group_ids = new List<ElementId>();
+            //注意 规避 组类型
+            //注意 规避 组类型
+            //注意 规避 组类型
+            ElementId _OutLinegroupId = (new FilteredElementCollector(ori_doc)).OfCategory(BuiltInCategory.OST_IOSModelGroups).WhereElementIsNotElementType().FirstOrDefault(x => x.Name == "outline_sola").Id;
+
+            //复制到当前文档
+            ICollection<ElementId> SetIds_TXB_ = new List<ElementId> { _OutLinegroupId };//将外轮廓线 模型组 复制到当前文档中
+            using (Transaction copyToNewDoc = new Transaction(doc))
+            {
+                DeleteErrOrWaringTaskDialog(copyToNewDoc);
+                copyToNewDoc.Start("copyToNewDoc");
+
+                CopyPasteOptions opts = new CopyPasteOptions();
+                opts.SetDuplicateTypeNamesHandler(new CopyEventHandler());
+                _outline_group_ids = ElementTransformUtils.CopyElements(ori_doc, SetIds_TXB_, doc, null, opts);
+
+                copyToNewDoc.Commit();
+            }
+            //在当前文档，对轮廓线 模型组进行重命名
+            using (Transaction trans = new Transaction(doc))
+            {
+                trans.Start("trans");
+                foreach (ElementId _eleId in _outline_group_ids)
+                {
+                    Group _group = doc.GetElement(_eleId) as Group;
+                    _group.GroupType.Name = group_outline_name;
+                }
+                trans.Commit();
+            }
+            return _outline_group_ids;
         }
         /// <summary>
         /// 获取并复制一个类别文档的二维注释，可指定类别，默认为从 FL01 标高读取数据

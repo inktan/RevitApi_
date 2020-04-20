@@ -15,6 +15,8 @@ using System.Windows.Shapes;
 using System.IO;
 using System.Windows.Controls.Primitives;
 
+using goa.Common;
+
 using Autodesk.Revit.UI;
 using Autodesk.Revit.DB;
 
@@ -44,8 +46,10 @@ namespace LayoutParkingEffcient
             this.listBox.ItemsSource = CMD.TestList;
 
             IList<string> parkingMode = new List<string>();
-            parkingMode.Add("垂直式");
-            parkingMode.Add("平行式");
+            parkingMode.Add("垂直式_0°");
+            parkingMode.Add("垂直式_90°");
+            parkingMode.Add("平行式_0°");
+            parkingMode.Add("平行式_90°");
             parkingMode.Add("斜列式-倾角30°");
             parkingMode.Add("斜列式-倾角45°");
             parkingMode.Add("斜列式-倾角60°");
@@ -83,41 +87,48 @@ namespace LayoutParkingEffcient
         #endregion
 
         //some method~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        /// <summary>
-        /// 点击我 功能
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            if (CMD._selRegionBoundings.Count != 0)
-            {
-                //设置停车位 数据需要单位换算
-                double parkingPlaceHeight = Convert.ToDouble(this.parkingPlaceHeight.Text);
-                double parkingPlaceWight = Convert.ToDouble(this.parkingPlaceWight.Text);
-                double Wd = Convert.ToDouble(this.Wd.Text);
-                double columnWidth = Convert.ToDouble(this.columnWidth.Text);
-
-                parkingPlaceHeight = UnitUtils.Convert(parkingPlaceHeight, DisplayUnitType.DUT_MILLIMETERS, DisplayUnitType.DUT_DECIMAL_FEET);
-                parkingPlaceWight = UnitUtils.Convert(parkingPlaceWight, DisplayUnitType.DUT_MILLIMETERS, DisplayUnitType.DUT_DECIMAL_FEET);
-                Wd = UnitUtils.Convert(Wd, DisplayUnitType.DUT_MILLIMETERS, DisplayUnitType.DUT_DECIMAL_FEET);
-                columnWidth = UnitUtils.Convert(columnWidth, DisplayUnitType.DUT_MILLIMETERS, DisplayUnitType.DUT_DECIMAL_FEET);
-
-                CMD.parkingPlaceHeight = parkingPlaceHeight;
-                CMD.parkingPlaceWight = parkingPlaceWight;
-                CMD.Wd = Wd;
-                CMD.columnWidth = columnWidth;
-
-                makeRequest(RequestId.TestMethod_temp);//与创建模型命令进行对接
-            }
-            else
-            {
-                MessageBox.Show("请设计师选择闭合边界线，注意在选择之前，将所有线转化为模型线。");
-            }
-        }
         private void button1_Click_1(object sender, RoutedEventArgs e)
         {
-            makeRequest(RequestId.SelectRegionalBoundary);//选择车库边界曲线
+            double parkingPlaceHeight = Convert.ToDouble(this.parkingPlaceHeight.Text);//车位 高度
+            double parkingPlaceWight = Convert.ToDouble(this.parkingPlaceWight.Text);//车位 宽度
+            double Wd = Convert.ToDouble(this.Wd.Text);//通车道 宽度
+            double columnWidth = Convert.ToDouble(this.columnWidth.Text);//柱子 宽度
+
+            CMD.parkingPlaceHeight = Methods.MilliMeterToFeet(parkingPlaceHeight);
+            CMD.parkingPlaceWight = Methods.MilliMeterToFeet(parkingPlaceWight);
+            CMD.Wd = Methods.MilliMeterToFeet(Wd);
+            CMD.columnWidth = Methods.MilliMeterToFeet(columnWidth);
+
+            double Wd_main = Convert.ToDouble(this.Wd_main.Text);//主车道宽度
+            double redline_distance = Convert.ToDouble(this.redline_distance.Text);//红线退距
+
+            CMD.Wd_main = Methods.MilliMeterToFeet(Wd_main);
+            CMD.redline_offset_distance = Methods.MilliMeterToFeet(redline_distance);
+
+            CMD.layoutMethod = this.comboBox.SelectedItem.ToString();
+
+            makeRequest(RequestId.SelGarageBoundary);//选择车库边界曲线
+        }
+
+        private void button3_Click(object sender, RoutedEventArgs e)
+        {
+
+            makeRequest(RequestId.CheckLineStyle);//检查线类型是否存在
+        }
+
+        private void button4_Click(object sender, RoutedEventArgs e)
+        {
+            makeRequest(RequestId.CheckpolygonClosed);//检查组内线条是否闭合
+        }
+
+        private void button5_Click(object sender, RoutedEventArgs e)
+        {
+            makeRequest(RequestId.CheckInGroupLineStyleIsSame);//检查组内线条样式是否统一
+        }
+
+        private void button1_Copy_Click(object sender, RoutedEventArgs e)
+        {
+            makeRequest(RequestId.TestOthers);//检查组内线条样式是否统一
         }
     }//class
 }//namespace

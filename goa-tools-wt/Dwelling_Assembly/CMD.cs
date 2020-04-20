@@ -50,6 +50,17 @@ namespace Dwelling_Assembly
         public static string _TXC_HXT_rvt = "null_path";
         public static string _TXD_HXT_rvt = "null_path";
 
+        public static string _TXA_name = "null_path";
+        public static string _TXB_name = "null_path";
+        public static string _TXC_name = "null_path";
+        public static string _TXD_name = "null_path";
+        public static string _TXA_HXT_name = "null_path";
+        public static string _TXB_HXT_name = "null_path";
+        public static string _TXC_HXT_name = "null_path";
+        public static string _TXD_HXT_name = "null_path";
+
+        public static string _Recalloptions = "";
+
         public Result Execute(ExternalCommandData commandData,
                       ref string message,
                       ElementSet elements)

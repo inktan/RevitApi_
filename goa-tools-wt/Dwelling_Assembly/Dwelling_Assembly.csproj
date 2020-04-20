@@ -75,6 +75,7 @@
     <Compile Include="MainWindow.xaml.xaml.cs">
       <DependentUpon>MainWindow.xaml.xaml</DependentUpon>
     </Compile>
+    <Compile Include="_Methods.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="MainWindow.xaml.xaml">

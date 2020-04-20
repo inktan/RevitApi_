@@ -5,8 +5,12 @@ namespace LayoutParkingEffcient
     public enum RequestId : int
     {
         None = 0,
-        TestMethod_temp = 1,
-        SelectRegionalBoundary = 2,
+        LayoutParking = 1,
+        SelGarageBoundary = 2,
+        CheckpolygonClosed = 3,
+        CheckLineStyle = 4,
+        CheckInGroupLineStyleIsSame = 5,
+        TestOthers = 6,
     }
 
     public class Request

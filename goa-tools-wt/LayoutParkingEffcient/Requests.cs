@@ -4,13 +4,29 @@ namespace LayoutParkingEffcient
 {
     public enum RequestId : int
     {
-        None = 0,
-        LayoutParking = 1,
-        SelGarageBoundary = 2,
-        CheckpolygonClosed = 3,
-        CheckLineStyle = 4,
-        CheckInGroupLineStyleIsSame = 5,
-        TestOthers = 6,
+        None,
+        LayoutParking,
+        SetControlRegionBoundary,
+        CheckpolygonClosed,
+        CheckLineStyle,
+        CheckInGroupLineStyleIsSame,
+        CheckTwoCurveCoincidence,
+        DocumentChangedEventRegister,
+        DocumentChangedEventUnRegister,
+        GlobalRefresh,
+        IntelligentRefresh,
+        ChangeDirectionByRectange,
+        ChangeDirectionByPoint,
+        RefreshDataStatistics,
+        HidenDirectShape,
+        //OpenWidndowParameterSet ,
+        //OpenWidndowMiscellaneousFunction ,
+        //CloseOthersWindows ,
+        SelunFixedParkingFs,
+        SelFixedParkingFs,
+        SelColumsFs,
+        CutAlgorithm,
+        ChangeDirectionByBoundary,
     }
 
     public class Request

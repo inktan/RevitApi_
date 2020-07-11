@@ -7,9 +7,50 @@ using System.Threading.Tasks;
 using Autodesk.Revit.DB;
 using System.DirectoryServices;
 using Autodesk.Revit.UI.Selection;
+using System.Windows.Forms;
 
 namespace goa.Common
 {
+    #region Design Option
+    public class DesignOptionSet
+    {
+        public Element DesignOptionSet_revit;
+        public string Name { get { return DesignOptionSet_revit.Name; } }
+        public IList<DesignOption> DesignOptions { get; set; }
+
+        public static IList<DesignOptionSet> GetDesignOptionSets(Document document)
+        {
+            Dictionary<ElementId, List<DesignOption>> dic = new Dictionary<ElementId, List<DesignOption>>();
+            var allDesignOptions = new FilteredElementCollector(document).OfClass(typeof(DesignOption)).Cast<DesignOption>();
+            foreach (DesignOption dOpt in allDesignOptions)
+            {
+                Element dosElem = document.GetElement(dOpt.get_Parameter(BuiltInParameter.OPTION_SET_ID).AsElementId());
+                dic.TryAddValue(dosElem.Id, dOpt);
+            }
+            List<DesignOptionSet> list = new List<DesignOptionSet>();
+            foreach (var pair in dic)
+            {
+                var dos = new DesignOptionSet();
+                dos.DesignOptionSet_revit = document.GetElement(pair.Key);
+                dos.DesignOptions = pair.Value.Cast<DesignOption>().ToList();
+                list.Add(dos);
+            }
+            return list;
+        }
+    }
+    public class DesignOptionWrapper
+    {
+        public DesignOptionSet DesignOptionSet;
+        public DesignOption DesignOption;
+        public string LongName { get { return DesignOptionSet.Name + " : " + DesignOption.Name; } }
+        public DesignOptionWrapper(DesignOptionSet _set, DesignOption _deOp)
+        {
+            this.DesignOptionSet = _set;
+            this.DesignOption = _deOp;
+        }
+    }
+    #endregion
+
     #region Geometry
     public class UVLine
     {
@@ -49,6 +90,21 @@ namespace goa.Common
     #endregion
 
     #region Selection Filter
+    public class CurveElementSelectionFilter : ISelectionFilter
+    {
+        public bool AllowElement(Element elem)
+        {
+            if (elem is CurveElement)
+                return true;
+            else
+                return false;
+        }
+
+        public bool AllowReference(Reference reference, XYZ position)
+        {
+            return false;
+        }
+    }
     public class FilledRegionSelectionFilter : ISelectionFilter
     {
         public bool AllowElement(Element elem)
@@ -83,7 +139,7 @@ namespace goa.Common
     {
         public bool AllowElement(Element elem)
         {
-            if (elem is Panel)
+            if (elem is Autodesk.Revit.DB.Panel)
                 return true;
             else
                 return false;
@@ -94,6 +150,24 @@ namespace goa.Common
             return false;
         }
     }
+    public class LineElementSelectionFilter : ISelectionFilter
+    {
+        public bool AllowElement(Element elem)
+        {
+            if (elem is CurveElement)
+            {
+                var ce = elem as CurveElement;
+                if (ce.GeometryCurve is Line)
+                    return true;
+            }
+            return false;
+        }
+        public bool AllowReference(Reference reference, XYZ position)
+        {
+            return false;
+        }
+    }
+
     public class GroupSelectionFilter : ISelectionFilter
     {
         public bool AllowElement(Element elem)
@@ -107,6 +181,27 @@ namespace goa.Common
         public bool AllowReference(Reference reference, XYZ position)
         {
             return false;
+        }
+    }
+    public class FamilyLoadOptions : IFamilyLoadOptions
+    {
+        public bool OnFamilyFound(
+          bool familyInUse,
+          out bool overwriteParameterValues)
+        {
+            overwriteParameterValues = true;
+            return true;
+        }
+
+        public bool OnSharedFamilyFound(
+          Family sharedFamily,
+          bool familyInUse,
+          out FamilySource source,
+          out bool overwriteParameterValues)
+        {
+            source = FamilySource.Family;
+            overwriteParameterValues = true;
+            return true;
         }
     }
     public class WallSelectionFilter : ISelectionFilter
@@ -162,6 +257,20 @@ namespace goa.Common
             return false;
         }
     }
+    public class SitePlanFamilySelectionFilter : ISelectionFilter
+    {
+        public bool AllowElement(Element elem)
+        {
+            SitePlanFamilyType type = SitePlanFamilyType.Block_Highrise;
+            return elem is FamilyInstance
+                && FirmStandards.IsSitePlanFamily(elem, ref type);
+        }
+
+        public bool AllowReference(Reference reference, XYZ position)
+        {
+            return false;
+        }
+    }
     #endregion
 
     #region Transaction
@@ -210,7 +319,7 @@ namespace goa.Common
         private static string LDAPDomain = "dc=goa,dc=com,dc=cn";
 
         /// LDAP绑定路径
-        private static string ADPath = "LDAP://10.1.2.2:389";
+        private static string ADPath = "LDAP://10.1.2.90:389";
 
 
         /// 根据用户公共名称取得用户的 对象
@@ -241,6 +350,222 @@ namespace goa.Common
 
         }
 
+    }
+    #endregion
+
+    #region UserMessages
+    public static class UserMessages
+    {
+        public static string DefaultMessageCaption = "消息";
+        public static string ErrorMessageTechnical(Exception ex)
+        {
+            string s = "--- Error Type ---\r\n" + ex.GetType().ToString()
+                        + "\r\n--- Error Message ---\r\n" + ex.Message
+                        + "\r\n--- Source ---\r\n" + ex.Source
+                        + "\r\n--- TargetSite ---\r\n" + ex.TargetSite
+                        + "\r\n--- StackTrace ---\r\n" + ex.StackTrace;
+            return s;
+        }
+        public static void ShowMessage(string _message)
+        {
+            var newForm = new System.Windows.Forms.Form();//ensure messagebox will be on top
+            newForm.TopMost = true;
+            MessageBox.Show(newForm,
+                _message,
+                DefaultMessageCaption,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information,
+                MessageBoxDefaultButton.Button1);
+            newForm.Dispose();
+        }
+        public static void ShowErrorMessage(Exception ex, System.Windows.Forms.Form _parent)
+        {
+            var emt = ErrorMessageTechnical(ex);
+            var form = new Form_Error(emt);
+            form.TopMost = true;
+            if (_parent != null)
+                form.ShowDialog(_parent);
+            else
+                form.ShowDialog();
+        }
+        public static void ShowErrorMessage(string _errorMessage, string _mainInstruction, System.Windows.Forms.Form _parent)
+        {
+            var form = new Form_Error(_mainInstruction, _errorMessage);
+            form.TopMost = true;
+            form.ShowDialog(_parent);
+        }
+        public static DialogResult ShowYesNoDialog(string message)
+        {
+            using (var form = new System.Windows.Forms.Form())
+            {
+                form.TopMost = true;
+                var result = MessageBox.Show(message, DefaultMessageCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                form.Dispose();
+                return result;
+            }
+        }
+    }
+    #endregion
+
+    #region Utility Classes
+    /// <summary>
+    /// Unjoin and re-join a list of walls.
+    /// </summary>
+    public class WallEndJoinCtrl
+    {
+        private Dictionary<ElementId, bool[]> original = new Dictionary<ElementId, bool[]>();
+        private List<Wall> walls;
+
+        public WallEndJoinCtrl(List<Wall> _walls)
+        {
+            this.walls = _walls;
+            foreach (var w in _walls)
+            {
+                var j0 = WallUtils.IsWallJoinAllowedAtEnd(w, 0);
+                var j1 = WallUtils.IsWallJoinAllowedAtEnd(w, 1);
+                original[w.Id] = new bool[] { j0, j1 };
+            }
+        }
+
+        public void UnjoinAll()
+        {
+            foreach (var w in this.walls)
+            {
+                WallUtils.DisallowWallJoinAtEnd(w, 0);
+                WallUtils.DisallowWallJoinAtEnd(w, 1);
+            }
+        }
+
+        public void Restore()
+        {
+            foreach (var w in this.walls)
+            {
+                if (w == null || w.IsValidObject == false)
+                    continue;
+                var values = this.original[w.Id];
+                if (values[0])
+                    WallUtils.AllowWallJoinAtEnd(w, 0);
+                if (values[1])
+                    WallUtils.AllowWallJoinAtEnd(w, 1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Find and remember the join-relations among a list of elements,
+    /// unjoin all, and retore later.
+    /// </summary>
+    public class JoinedGeometryCtrl
+    {
+        private Dictionary<ElementId, List<ElementId>> joinMap = new Dictionary<ElementId, List<ElementId>>();
+        private List<Element> elements;
+
+        public JoinedGeometryCtrl(List<Element> _elems)
+        {
+            this.elements = _elems;
+            var count = _elems.Count;
+            var doc = _elems.First().Document;
+            for (int i = 0; i < count - 1; i++)
+            {
+                var e1 = _elems[i];
+                for (int j = i + 1; j < count; j++)
+                {
+                    var e2 = _elems[j];
+                    if (JoinGeometryUtils.AreElementsJoined(doc, e1, e2))
+                    {
+                        if (joinMap.ContainsKey(e1.Id) == false)
+                        {
+                            joinMap[e1.Id] = new List<ElementId>() { e2.Id };
+                        }
+                        else
+                        {
+                            joinMap[e1.Id].Add(e2.Id);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void UnjoinAll()
+        {
+            var doc = this.elements.First().Document;
+            foreach (var p in this.joinMap)
+            {
+                var e1 = doc.GetElement(p.Key);
+                var ids = p.Value;
+                foreach (var id in ids)
+                {
+                    var e2 = doc.GetElement(id);
+                    JoinGeometryUtils.UnjoinGeometry(doc, e1, e2);
+                }
+            }
+        }
+
+        public void Restore()
+        {
+            var doc = this.elements.First().Document;
+            foreach (var p in this.joinMap)
+            {
+                var e1 = doc.GetElement(p.Key);
+                var ids = p.Value;
+                foreach (var id in ids)
+                {
+                    var e2 = doc.GetElement(id);
+                    try
+                    {
+                        JoinGeometryUtils.JoinGeometry(doc, e1, e2);
+                    }
+                    catch
+                    {
+
+                    }
+                }
+            }
+        }
+    }
+    #endregion
+
+    #region Dialog supress
+    /// <summary>
+    /// Suppress warnings that can be ignored, continue translaction
+    /// without prompting user.
+    /// Will not ignore serious errors.
+    /// </summary>
+    public class DialogSuppressor : IFailuresPreprocessor
+    {
+        public FailureProcessingResult PreprocessFailures
+            (FailuresAccessor a)
+        {
+            IList<FailureMessageAccessor> failures
+                = a.GetFailureMessages();
+
+            bool canContinue = true;
+            foreach (FailureMessageAccessor f in failures)
+            {
+                var severity = f.GetSeverity();
+                if (severity == FailureSeverity.Error
+                    || severity == FailureSeverity.DocumentCorruption)
+                {
+                    canContinue = false;
+                    break;
+                }
+                else
+                {
+                    a.DeleteWarning(f);
+                }
+            }
+            if (canContinue)
+                return FailureProcessingResult.Continue;
+            else
+                return FailureProcessingResult.WaitForUserInput;
+        }
+
+        public void UseInTransaction(Transaction _trans)
+        {
+            var opt = _trans.GetFailureHandlingOptions();
+            opt.SetFailuresPreprocessor(this);
+            _trans.SetFailureHandlingOptions(opt);
+        }
     }
     #endregion
 }

@@ -5,59 +5,151 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:LayoutParkingEffcient"
              xmlns:System="clr-namespace:System;assembly=mscorlib"
-             mc:Ignorable="d" Topmost="True" WindowStartupLocation="Manual" Height="474.5" Width="720.5" Title="地库强排">
-    <Grid x:Name="myGrid" >
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="70*"/>
-            <ColumnDefinition Width="200*"/>
-            <ColumnDefinition Width="5*"/>
-            <ColumnDefinition Width="5*"/>
-        </Grid.ColumnDefinitions>
+             mc:Ignorable="d" Topmost="True" WindowStartupLocation="Manual" Height="550" Width="280" Title="地库强排" >
+    <Grid  >
         <Grid.RowDefinitions>
-            <RowDefinition Height="30*"/>
-            <RowDefinition Height="90*"/>
-            <RowDefinition Height="60*"/>
-            <RowDefinition Height="10*"/>
+            <RowDefinition Height="400*"/>
+            <RowDefinition Height="20*"/>
         </Grid.RowDefinitions>
+        <TabControl x:Name="tabControl"  Margin="0,2">
 
-        <GroupBox x:Name="groupBox1" Header="尺寸设定（mm）"  FontSize="13.333" Grid.Row="1" Margin="5">
-            <Grid Margin="0,5"   >
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="50*"/>
-                    <ColumnDefinition Width="30*"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="1"  >
-                    <TextBox x:Name="parkingPlaceHeight" TextWrapping="Wrap" Text="6000" HorizontalContentAlignment="Right" Margin="0,1" />
-                    <TextBox x:Name="parkingPlaceWight" TextWrapping="Wrap" Text="2500"  HorizontalContentAlignment="Right" Margin="0,1" />
-                    <TextBox x:Name="Wd" TextWrapping="Wrap" Text="6000"  HorizontalContentAlignment="Right" Margin="0,1"/>
-                    <TextBox x:Name="Wd_main" TextWrapping="Wrap" Text="6000"  HorizontalContentAlignment="Right" Margin="0,1"/>
-                    <TextBox x:Name="columnWidth" TextWrapping="Wrap" Text="600"  HorizontalContentAlignment="Right" Margin="0,1"/>
-                    <TextBox x:Name="redline_distance" TextWrapping="Wrap" Text="7000"  HorizontalContentAlignment="Right" Margin="0,1"/>
-                </StackPanel>
-                <StackPanel >
-                    <Label x:Name="labe_parkingPlaceHeight" Content="停车位（长度）" HorizontalContentAlignment="Center" FontSize="12"  />
-                    <Label x:Name="label_parkingPlaceWight" Content="停车位（宽度）" HorizontalContentAlignment="Center" FontSize="12" />
-                    <Label x:Name="label_Wd" Content="通车道（宽度）" HorizontalContentAlignment="Center"  FontSize="12"/>
-                    <Label x:Name="label_Wd_Copy" Content="主车道（宽度）" HorizontalContentAlignment="Center"  FontSize="12"/>
-                    <Label x:Name="label_columnWidth" Content="柱子（宽度）" HorizontalContentAlignment="Center"  FontSize="12"/>
-                    <Label x:Name="label_columnWidth_Copy" Content="地库红线偏移" HorizontalContentAlignment="Center"  FontSize="12"/>
-                </StackPanel>
-            </Grid>
-        </GroupBox>
-        <GroupBox x:Name="groupBox" Header="地库强排结果" Grid.Column="1" FontSize="13.333" Margin="5" Grid.RowSpan="3">
-            <ListBox x:Name="listBox"  />
-        </GroupBox>
-        <TextBlock x:Name="textBox" TextWrapping="Wrap" Text="GOA 大象设计" VerticalAlignment="Bottom" Height="17" Grid.ColumnSpan="4" Grid.Row="3" Background="WhiteSmoke"/>
-        <GroupBox x:Name="groupBox2" Header="停车方式" FontSize="13.333"  Margin="5">
-            <ComboBox x:Name="comboBox" Margin="0,5" SelectedIndex="0" VerticalAlignment="Top"/>
-        </GroupBox>
-        <StackPanel Grid.Row="2" Margin="5" HorizontalAlignment="Left">
-            <Button x:Name="button3" Content="检查必备线型" Margin="2" Click="button3_Click"/>
-            <Button x:Name="button4" Content="检查组内线条是否闭合" Margin="2" Click="button4_Click"/>
-            <Button x:Name="button5" Content="检查组内线条样式是否统一" Margin="2" Click="button5_Click"/>
-            <Button x:Name="button1" Content="框选地库强排区域" Click="button1_Click_1" Margin="2" />
-            <Button x:Name="button1_Copy" Content="其它测试" Click="button1_Copy_Click" Margin="2" />
-        </StackPanel>
+            <TabItem x:Name="TabItem1" Header="基础功能">
+                <Grid x:Name="myGrid" Background="White">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="100*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="200*"/>
+                        <RowDefinition Height="3"/>
+                        <RowDefinition Height="90*"/>
+                        <RowDefinition Height="3"/>
+                        <RowDefinition Height="50*"/>
+                    </Grid.RowDefinitions>
+
+                    <GroupBox x:Name="groupBox" Header="地库强排结果" FontSize="13.333" Margin="2" Grid.ColumnSpan="3">
+                        <ListBox x:Name="listBox"  />
+                    </GroupBox>
+
+                    <StackPanel x:Name="Refresh"   Grid.Column="2" Grid.Row="2" Margin="2"   VerticalAlignment="Center">
+                        <Button x:Name="button1" Content="点选地库外墙边界线" Click="button1_Click_1" Margin="0,3" Panel.ZIndex="7" />
+                        <Button x:Name="button" Content="车位布局全局刷新" Margin="0,3" Click="button_Click" VerticalAlignment="Top" Panel.ZIndex="6"/>
+                        <Button x:Name="button3" Content="车位布局智能刷新" Margin="0,3" Click="button3_Click"/>
+                        <Button x:Name="button6" Content="统计数据刷新" Margin="0,3" Click="Button6_Click" VerticalAlignment="Top" Panel.ZIndex="5"/>
+                    </StackPanel>
+
+                    <WrapPanel x:Name="WrapPanel1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,6,0,0"  Grid.Row="2"  >
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,6"  >
+                            <GroupBox x:Name="groupBox2" Header="方向设定" FontSize="10"  Margin="2" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top">
+                                <ComboBox x:Name="comboBox" Margin="0,5" SelectedIndex="0" VerticalAlignment="Top" />
+                            </GroupBox>
+
+                            <GroupBox x:Name="groupBox3" Header="局部切换" Grid.Row="2" VerticalAlignment="Center" FontSize="10" >
+                                <StackPanel VerticalAlignment="Top" >
+                                    <Button x:Name="button2" Content="指定区域" HorizontalAlignment="Center" Margin="2" Click="Button2_Click" VerticalAlignment="Center" FontSize="12" Panel.ZIndex="9" />
+                                    <Button x:Name="button5" Content="指定起点" HorizontalAlignment="Center" Margin="2"  VerticalAlignment="Center" Click="Button5_Click" FontSize="12" Panel.ZIndex="8" />
+                                </StackPanel>
+                            </GroupBox>
+                        </StackPanel>
+                        <CheckBox x:Name="checkBox" Content="是否计算最优解" Margin="10,0,0,0" VerticalAlignment="Center" Panel.ZIndex="4" FontSize="11"/>
+                    </WrapPanel>
+
+                    <GroupBox x:Name="groupBox1" Header="其它功能" Grid.Row="4" Grid.ColumnSpan="3" FontSize="10"   >
+                        <WrapPanel>
+                            <Button x:Name="button7" Content="框选停车位（未锁定）" Margin="5,5,5,2" VerticalAlignment="Top"   FontSize="10" Click="Button7_Click" Panel.ZIndex="1"/>
+                            <Button x:Name="button4" Content="框选停车位（锁定）" Margin="5,5,5,2" VerticalAlignment="Top"   FontSize="10" Panel.ZIndex="1" Click="Button4_Click"/>
+                            <Button x:Name="button8" Content="框选柱子" Margin="5,2" VerticalAlignment="Top"   FontSize="10" Click="Button8_Click"/>
+                            <Button x:Name="button9" Content="切分算法" Margin="5,2" VerticalAlignment="Top"   FontSize="10" Click="Button9_Click" />
+                            <Button x:Name="button10" Content="指定区域边界" Margin="5,2" VerticalAlignment="Top"   FontSize="10" Click="Button10_Click" />
+
+                        </WrapPanel>
+                    </GroupBox>
+
+                    <Rectangle   Grid.Row="1" Grid.Column="1" Fill="#FFF0F0F0" Grid.RowSpan="2"/>
+                    <Rectangle Fill="#FFF0F0F0" Grid.Row="1" Grid.ColumnSpan="3"/>
+                    <Rectangle Fill="#FFF0F0F0" Grid.Row="3" Grid.ColumnSpan="3"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="TabItem2" Header="辅助功能">
+                <Grid Background="White">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="100*"/>
+                        <RowDefinition Height="100*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel >
+                        <GroupBox x:Name="groupBox4" Header="辅助功能" Margin="0,5,0,0" >
+                            <StackPanel >
+                                <Button x:Name="_button3" Content="创建必备线型" Margin="5" Click="_button3_Click"/>
+                                <Button x:Name="_button4" Content="检查组内线条是否闭合" Margin="5" Click="_button4_Click"/>
+                                <Button x:Name="_button5" Content="检查组内线条样式是否统一" Margin="5" Click="_button5_Click"/>
+                                <Button x:Name="_button1_Copy" Content="检测两根曲线是否端点重合" Click="_button1_Copy_Click" Margin="5"/>
+                                <CheckBox x:Name="_checkBox" Content="开启监控模式" HorizontalAlignment="Left" VerticalAlignment="Top"  Checked="_checkBox_Checked" Unchecked="_checkBox_Unchecked" Margin="5"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                    <WrapPanel Grid.Row="1" Margin="0,0,0,36"  >
+                        <GroupBox x:Name="_groupBox3" Header="主车道辅助线" Margin="0,5,0,0" >
+                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal" >
+                                <Button x:Name="_button7" Content="一键隐藏"  Margin="5" Click="_Button7_Click" />
+                                <Button x:Name="_button8" Content="一键显示"  Margin="5" Click="_Button8_Click" />
+                            </StackPanel>
+                        </GroupBox>
+                    </WrapPanel >
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="TabItem3" Header="参数设置">
+                <Grid Background="White">
+                    <StackPanel  >
+                        <GroupBox x:Name="_groupBox1" Header="尺寸设定（mm）"  FontSize="13.333" Margin="2" >
+                            <StackPanel Margin="0,0,10,0">
+                                <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right" >
+                                    <Label x:Name="labe_parkingPlaceHeight" Content="停车位（长度）" HorizontalContentAlignment="Center" FontSize="12" HorizontalAlignment="Right"  />
+                                    <TextBox x:Name="parkingPlaceHeight" TextWrapping="Wrap" Text="6000" HorizontalContentAlignment="Right" Margin="10,3" Width="50" />
+                                </StackPanel>
+                                <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Label x:Name="label_parkingPlaceWight" Content="停车位（宽度）" HorizontalContentAlignment="Center" FontSize="12" HorizontalAlignment="Right" />
+                                    <TextBox x:Name="parkingPlaceWight" TextWrapping="Wrap" Text="2500"  HorizontalContentAlignment="Right" Margin="10,3"  Width="50" />
+                                </StackPanel>
+                                <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Label x:Name="label_Wd_Copy" Content="主通车道（宽度）" HorizontalContentAlignment="Center"  FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBox x:Name="Wd_main" TextWrapping="Wrap" Text="6000"  HorizontalContentAlignment="Right" Margin="10,3" Width="50" />
+                                </StackPanel>
+                                <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Label x:Name="label_Wd" Content="次通车道（宽度）" HorizontalContentAlignment="Center"  FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBox x:Name="Wd" TextWrapping="Wrap" Text="6000"  HorizontalContentAlignment="Right" Margin="10,3" Width="50" />
+                                </StackPanel>
+                                <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Label x:Name="label_columnWidth" Content="柱子（宽度）" HorizontalContentAlignment="Center"  FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBox x:Name="columnWidth" TextWrapping="Wrap" Text="500"  HorizontalContentAlignment="Right" Margin="10,3" Width="50" />
+                                </StackPanel>
+                                <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Label x:Name="label_columnBurfferDistance" Content="柱子（缓冲距离）" HorizontalContentAlignment="Center"  FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBox x:Name="columnBurfferDistance" TextWrapping="Wrap" Text="50"  HorizontalContentAlignment="Right" Margin="10,3" Width="50" />
+                                </StackPanel>
+                                <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Label x:Name="label_columnWidth_Copy" Content="地库红线偏移（距离）" HorizontalContentAlignment="Center"  FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBox x:Name="redline_distance" TextWrapping="Wrap" Text="6000"  HorizontalContentAlignment="Right" Margin="10,3" Width="50" />
+                                </StackPanel>
+                                <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Label x:Name="label_basementWall_offset_distance" Content="停车位距离外墙边界线" HorizontalContentAlignment="Center"  FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBox x:Name="basementWall_offset_distance" TextWrapping="Wrap" Text="400"  HorizontalContentAlignment="Right" Margin="10,3" Width="50" />
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <TextBlock x:Name="_textBox" TextWrapping="Wrap" Text="GOA 大象设计" VerticalAlignment="Center" Height="17" Grid.Row="1" Background="WhiteSmoke"/>
+
     </Grid>
 
 </Window>

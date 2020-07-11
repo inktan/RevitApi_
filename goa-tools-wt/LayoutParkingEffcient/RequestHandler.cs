@@ -10,14 +10,15 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB.Events;
+using Autodesk.Revit.DB.IFC;
 
 using goa.Common;
 using ClipperLib;
 using wt_Common;
+using Autodesk.Revit.DB.ExtensibleStorage;
 
 namespace LayoutParkingEffcient
 {
-    using cInt = Int64;
     using Path = List<IntPoint>;
     using Paths = List<List<IntPoint>>;
     using Path_xyz = List<XYZ>;
@@ -26,13 +27,27 @@ namespace LayoutParkingEffcient
     public class MainWindowRequestHandler : IExternalEventHandler
     {
         public Request Request = new Request();
+        private Guid _schemaGuid = new Guid("15E4F70C-5E48-4169-9C66-7547F5885A6A");
+        private string fieldBuilderName = "canParkingRegionXYZes";
+
+        //private ProgressWindow m_progressWindow = new ProgressWindow();
+        //private ProgressTracker m_progressTracker { get { return this.m_progressWindow.Tracker; } }
 
         public string GetName()
         {
-            return "Overlapping Elements Clean Up Request Handler";
+            return "RequestHandler";
         }
         public void Execute(UIApplication uiapp)
         {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Application app = uiapp.Application;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+            TransactionGroup transGroupParkingPlace = new TransactionGroup(doc);//开启事务组
+
             var window = APP.MainWindow;
             try
             {
@@ -42,29 +57,112 @@ namespace LayoutParkingEffcient
                         {
                             break;
                         }
-                    case RequestId.SelGarageBoundary:
+                    case RequestId.SetControlRegionBoundary:
                         {
-                            SelGarageBoundary(uiapp);
+                            transGroupParkingPlace.Start("选择地库外墙线圈");
+                            SetControlRegionBoundary(uiapp);
                             break;
                         }
                     case RequestId.CheckLineStyle:
                         {
+                            transGroupParkingPlace.Start("创建车位强排所有必备线型");
                             CheckLineStyles(uiapp);
                             break;
                         }
                     case RequestId.CheckpolygonClosed:
                         {
+                            transGroupParkingPlace.Start("检查组内线圈是否闭合");
                             CheckpolygonClosed(uiapp);
                             break;
                         }
                     case RequestId.CheckInGroupLineStyleIsSame:
                         {
+                            transGroupParkingPlace.Start("检查组内线样式是否统一");
                             CheckInGroupLineStyleIsSame(uiapp);
                             break;
                         }
-                    case RequestId.TestOthers:
+                    case RequestId.CheckTwoCurveCoincidence:
                         {
-                            TestOthers(uiapp);
+                            transGroupParkingPlace.Start("检测两根曲线端点是否重合");
+                            CheckTwoCurveCoincidence(uiapp);
+                            break;
+                        }
+                    case RequestId.DocumentChangedEventRegister:
+                        {
+                            transGroupParkingPlace.Start("启动监测");
+                            DocumentChangedEventRegister(uiapp);
+                            break;
+                        }
+                    case RequestId.DocumentChangedEventUnRegister:
+                        {
+                            transGroupParkingPlace.Start("车位自动排布");
+                            DocumentChangedEventUnRegister(uiapp);
+                            break;
+                        }
+                    case RequestId.ChangeDirectionByRectange:
+                        {
+                            transGroupParkingPlace.Start("局部调整车位排布方向");
+                            ChangeDirectionByRectange(uiapp);
+                            break;
+                        }
+                    case RequestId.ChangeDirectionByPoint:
+                        {
+                            transGroupParkingPlace.Start("局部调整车位排布方向");
+                            ChangeDirectionByPoint(uiapp);
+                            break;
+                        }
+                    case RequestId.GlobalRefresh:
+                        {
+                            transGroupParkingPlace.Start("车位布局 全局刷新");
+                            GlobalRefresh(uiapp);//该处暂定为
+                            break;
+                        }
+                    case RequestId.IntelligentRefresh:
+                        {
+                            transGroupParkingPlace.Start("车位布局 智能刷新");
+                            IntelligentRefresh(uiapp);
+                            break;
+                        }
+                    case RequestId.RefreshDataStatistics:
+                        {
+                            transGroupParkingPlace.Start("刷新车位统计数据");
+                            RefreshDataSatistis(uiapp);
+                            break;
+                        }
+                    case RequestId.HidenDirectShape:
+                        {
+                            transGroupParkingPlace.Start("隐藏 / 显示 车道辅助线");
+                            HidenDirectShape(uiapp);
+                            break;
+                        }
+                    case RequestId.SelunFixedParkingFs:
+                        {
+                            transGroupParkingPlace.Start("框选停车位族实例");
+                            SelunFixedParkingFs(uiapp);
+                            break;
+                        }
+                    case RequestId.SelFixedParkingFs:
+                        {
+                            transGroupParkingPlace.Start("框选停车位族实例");
+                            SelFixedParkingFs(uiapp);
+                            break;
+                        }
+                    case RequestId.SelColumsFs:
+                        {
+                            transGroupParkingPlace.Start("框选柱子族实例");
+                            SelColumsFs(uiapp);
+                            break;
+                        }
+                    case RequestId.CutAlgorithm:
+                        {
+                            transGroupParkingPlace.Start("切分算法");
+                            cutAlgorithm(uiapp);
+                            break;
+                        }
+                    case RequestId.ChangeDirectionByBoundary:
+                        {
+                            transGroupParkingPlace.Start("指定区域边界");
+                            ChangeDirectionByBoundary(uiapp);
                             break;
                         }
                     default:
@@ -72,11 +170,12 @@ namespace LayoutParkingEffcient
                             break;
                         }
                 }
+                transGroupParkingPlace.Assimilate();
             }
             catch (Exception ex)
             {
-                //UserMessages.ShowErrorMessage(ex, window);
                 TaskDialog.Show("error", ex.Message);
+                transGroupParkingPlace.RollBack();
             }
             finally
             {
@@ -86,7 +185,12 @@ namespace LayoutParkingEffcient
         }//execute
 
         //外部事件方法建立————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
-        public void TestOthers(UIApplication uiapp)
+
+        /// <summary>
+        /// 框选未锁定停车位族实例
+        /// </summary>
+        /// <param name="uiapp"></param>
+        public void SelunFixedParkingFs(UIApplication uiapp)
         {
             #region 与revit文档交互入口
             UIDocument uidoc = uiapp.ActiveUIDocument;
@@ -96,72 +200,126 @@ namespace LayoutParkingEffcient
             View acvtiView = doc.ActiveView;
             #endregion
 
-            double _ShortCurveTolerance = app.ShortCurveTolerance;
+            List<Element> selEles = sel.PickElementsByRectangle(new SelPickFilter_FamilyInstance(), "请框选停车位族实例")
+                .Where(p => p.Name == "停车位_详图线")
+                .ToList();
 
-            _Methods.TaskDialogShowMessage(_ShortCurveTolerance.ToString());
+            List<Element> unfixedParkingFs = selEles.Where(p => p.get_Parameter(CMD.parkingFixedGid).AsValueString() == "否").ToList();
 
-            _ShortCurveTolerance = Methods.FeetToMilliMeter(_ShortCurveTolerance);
-
-            _Methods.TaskDialogShowMessage(_ShortCurveTolerance.ToString());
+            sel.SetElementIds(_Methods.ElesToEleIds(unfixedParkingFs));
         }
         /// <summary>
-        /// 检测地库强排所需线型是否必备
+        /// 框选锁定停车位族实例
         /// </summary>
         /// <param name="uiapp"></param>
-        public void CheckLineStyles(UIApplication uiapp)
+        public void SelFixedParkingFs(UIApplication uiapp)
         {
             #region 与revit文档交互入口
             UIDocument uidoc = uiapp.ActiveUIDocument;
+            Application app = uiapp.Application;
             Document doc = uidoc.Document;
             Selection sel = uidoc.Selection;
             View acvtiView = doc.ActiveView;
             #endregion
-            List<string> AllLineGraphicsStylNames = _Methods.getAllLineGraphicsStylNames(doc);
-            //判断必备线型是否存在
-            if (AllLineGraphicsStylNames.Contains("地库_场地控制红线")
-                && AllLineGraphicsStylNames.Contains("地库_障碍物边界线")
-                && AllLineGraphicsStylNames.Contains("地库_停车区域边界线")
-                && AllLineGraphicsStylNames.Contains("地库_主车道中心线"))
+
+            List<Element> selEles = sel.PickElementsByRectangle(new SelPickFilter_FamilyInstance(), "请框选停车位族实例")
+                .Where(p => p.Name == "停车位_详图线")
+                .ToList();
+
+            List<Element> fixedParkingFs = selEles.Where(p => p.get_Parameter(CMD.parkingFixedGid).AsValueString() == "是").ToList();
+
+            sel.SetElementIds(_Methods.ElesToEleIds(fixedParkingFs));
+        }
+        /// <summary>
+        /// 框选柱子族实例
+        /// </summary>
+        /// <param name="uiapp"></param>
+        public void SelColumsFs(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Application app = uiapp.Application;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            List<Element> selEles = sel.PickElementsByRectangle(new SelPickFilter_FamilyInstance(), "请框选停车位族实例")
+                .Where(p => p.Name == "柱子_详图线")
+                .ToList();
+
+            sel.SetElementIds(_Methods.ElesToEleIds(selEles));
+        }
+        /// <summary>
+        /// 一键 隐藏 显示 directShape
+        /// </summary>
+        public void HidenDirectShape(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Application app = uiapp.Application;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            ICollection<ElementId> _directShapeIds = (new FilteredElementCollector(doc)).OfCategory(BuiltInCategory.OST_GenericModel).OfClass(typeof(DirectShape)).WhereElementIsNotElementType().ToElementIds();
+            //CMD.TestList.Add(_directShapeIds.Count.ToString());
+            using (Transaction hiddenDirectShape = new Transaction(doc, "一键隐藏directShape"))
             {
-                TaskDialog.Show("正确", "地库强排所需线型，均已存在当前文档中");
+                hiddenDirectShape.Start();
+                if (CMD.hidenDirectShape)
+                {
+                    acvtiView.HideElements(_directShapeIds);
+                }
+                else if (!CMD.hidenDirectShape)
+                {
+                    acvtiView.UnhideElements(_directShapeIds);
+                }
+                hiddenDirectShape.Commit();
             }
-            else//逐个判断，线型是否存在
+
+            return;
+        }
+        /// <summary>
+        /// 检查两根线段的端点是否重合
+        /// </summary>
+        public void CheckTwoCurveCoincidence(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Application app = uiapp.Application;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            IList<Element> eles = sel.PickElementsByRectangle();
+            CurveArray curveArray = new CurveArray();
+            foreach (Element ele in eles)
             {
-                if (!AllLineGraphicsStylNames.Contains("地库_场地控制红线"))//线型不存在，便创建
-                {
-                    Category _category = _Methods.CreatLineStyle(doc, "地库_场地控制红线", 2, new Color(255, 0, 0));
-                }
-                if (!AllLineGraphicsStylNames.Contains("地库_障碍物边界线"))
-                {
-                    Category _category = _Methods.CreatLineStyle(doc, "地库_障碍物边界线", 2, new Color(0, 128, 255));
-                }
-                if (!AllLineGraphicsStylNames.Contains("地库_停车区域边界线"))
-                {
-                    Category _category = _Methods.CreatLineStyle(doc, "地库_停车区域边界线", 2, new Color(255, 127, 0));
-                }
-                if (!AllLineGraphicsStylNames.Contains("地库_主车道中心线"))
-                {
-                    Category _category = _Methods.CreatLineStyle(doc, "地库_主车道中心线", 2, new Color(255, 0, 255));
-                }
-                //进行二次判断
-                AllLineGraphicsStylNames = _Methods.getAllLineGraphicsStylNames(doc);
-                if (AllLineGraphicsStylNames.Contains("地库_场地控制红线")
-                && AllLineGraphicsStylNames.Contains("地库_障碍物边界线")
-                && AllLineGraphicsStylNames.Contains("地库_停车区域边界线")
-                && AllLineGraphicsStylNames.Contains("地库_主车道中心线"))
-                {
-                    TaskDialog.Show("正确", "地库强排所需线型，均已存在当前文档中");
-                }
-                else
-                {
-                    throw new NotImplementedException("地库必备线型，自动创建失败，请手动创建");
-                }
+                DetailCurve _detailCurve = ele as DetailCurve;
+                Curve curve = _detailCurve.GeometryCurve;
+                curveArray.Append(curve);
+            }
+
+            XYZ endpoing_0 = curveArray.get_Item(0).GetEndPoint(0);
+            XYZ endpoing_1 = curveArray.get_Item(0).GetEndPoint(1);
+
+            XYZ _endpoing_0 = curveArray.get_Item(1).GetEndPoint(0);
+            XYZ _endpoing_1 = curveArray.get_Item(1).GetEndPoint(1);
+
+            if (endpoing_0.DistanceTo(_endpoing_0) < _Methods.PRECISION
+                               || endpoing_1.DistanceTo(_endpoing_0) < _Methods.PRECISION
+                               || endpoing_0.DistanceTo(_endpoing_1) < _Methods.PRECISION
+                               || endpoing_1.DistanceTo(_endpoing_1) < _Methods.PRECISION)//判断逻辑为，一个线段的两个点都会被重合一次，因此，重合总次数，为线段端点的2倍
+            {
+                _Methods.TaskDialogShowMessage("选择的两根详图线，首尾相交");
             }
         }
         /// <summary>
         /// 检查组内线段是否闭合
         /// </summary>
-        /// <param name="uiapp"></param>
         public void CheckpolygonClosed(UIApplication uiapp)
         {
             #region 与revit文档交互入口
@@ -170,21 +328,23 @@ namespace LayoutParkingEffcient
             Selection sel = uidoc.Selection;
             View acvtiView = doc.ActiveView;
             #endregion
-            List<Element> sel_groups = sel.PickElementsByRectangle(new SelPickFilter_DetailGroups(), "Select Region Boundings ").ToList();
+
+            List<Element> sel_groups = sel.PickElementsByRectangle(new SelPickFilter_Groups(), "Select Region Boundings ").ToList();
             foreach (Element _ele in sel_groups)
             {
                 if (_ele is Group)
                 {
                     Group _group = _ele as Group;
-                    List<Line> _lines = _Methods.GetLinesFromLineGroup(_group);
-                    bool isLoop = _Methods._LinesIsLoop(_lines);
+                    CurveArray _curves = _Methods.GetCurvesFromCurveGroup(_group);
+                    CurveLoop curveLoop = new CurveLoop();
+                    bool isLoop = _Methods.IsCurveLoop(_curves, out curveLoop);//该处比较严谨，必须满足线圈，才可以继续运行
                     if (isLoop)
                     {
-                        _Methods.TaskDialogShowMessage("闭合");
+                        _Methods.TaskDialogShowMessage("该线圈状态为闭合");
                     }
                     else
                     {
-                        _Methods.TaskDialogShowMessage("未闭合");
+                        _Methods.TaskDialogShowMessage("该线圈状态为未闭合");
                     }
                 }
             }
@@ -192,7 +352,6 @@ namespace LayoutParkingEffcient
         /// <summary>
         /// 检查组内线段样式是否统一
         /// </summary>
-        /// <param name="uiapp"></param>
         public void CheckInGroupLineStyleIsSame(UIApplication uiapp)
         {
             #region 与revit文档交互入口
@@ -202,14 +361,14 @@ namespace LayoutParkingEffcient
             View acvtiView = doc.ActiveView;
             #endregion
 
-            List<Element> sel_groups = sel.PickElementsByRectangle(new SelPickFilter_DetailGroups(), "Select Region Boundings ").ToList();
+            List<Element> sel_groups = sel.PickElementsByRectangle(new SelPickFilter_Groups(), "Select Region Boundings ").ToList();
             foreach (Element _ele in sel_groups)
             {
                 if (_ele is Group)
                 {
                     Group _group = _ele as Group;
                     string _GraphicsStyle_frist_name;
-                    bool iSame = IsSameAllDetailCurveLineStyleFromGroup(doc, _group, out _GraphicsStyle_frist_name);
+                    bool iSame = _Methods.IsSameAllCurveLineStyleFromGroup(doc, _group, out _GraphicsStyle_frist_name);
                     if (iSame)
                     {
                         TaskDialog.Show("正确", "组内详图线样式统一 \n线样式为：" + _GraphicsStyle_frist_name);
@@ -223,10 +382,9 @@ namespace LayoutParkingEffcient
             }
         }
         /// <summary>
-        /// 选择地库设计区域 框选红线内外所有物体
+        /// 定位一个停车区域 设定车位垂直车道方向
         /// </summary>
-        /// <param name="uiapp"></param>
-        public void SelGarageBoundary(UIApplication uiapp)
+        public void ChangeDirectionByBoundary(UIApplication uiapp)
         {
             #region 与revit文档交互入口
             UIDocument uidoc = uiapp.ActiveUIDocument;
@@ -235,623 +393,1703 @@ namespace LayoutParkingEffcient
             View acvtiView = doc.ActiveView;
             #endregion
 
-            # region 第一步 读取基本数据 红线和障碍物为组 主通道为独立详图曲线
-
-            List<Element> sel_Eles = sel.PickElementsByRectangle("Select Region Boundings ").ToList();//UI交互
-
-            // 如果存在车位，则强行重置删除
-            using (Transaction _trans_dele = new Transaction(doc, "_trans_dele"))
-            {
-                ICollection<ElementId> _pplace = new List<ElementId>();
-                foreach (Element _ele in sel_Eles)
-                {
-                    if (_ele.Name == "停车位_详图线")
-                    {
-                        _pplace.Add(_ele.Id);
-                    }
-                }
-                _trans_dele.Start();
-                doc.Delete(_pplace);
-                _trans_dele.Commit();
-            }
-
-            List<Group> RedLine_Group = new List<Group>();
-            List<Group> RedLine_Offset_Group = new List<Group>();
-            List<Group> Obstacle_Group = new List<Group>();
-            List<Element> MianRoad_DetailCurve = new List<Element>();
-
-            foreach (Element _ele in sel_Eles)
-            {
-                if (_ele is Group)//筛选目标Group
-                {
-                    Group _group = _ele as Group;
-
-                    //判断组内线条是否闭合
-                    List<Line> _lines = _Methods.GetLinesFromLineGroup(_group);
-                    bool isLoop = _Methods._LinesIsLoop(_lines);
-                    if (!isLoop)
-                    {
-                        throw new NotImplementedException("部分详图组内，线条未闭合");
-                    }
-
-                    ICollection<ElementId> _EleIds = _group.GetMemberIds();
-
-                    //判断组内线条样式是否相同
-                    string _GraphicsStyle_frist_name;//得到Group内线样式
-                    bool iSame = IsSameAllDetailCurveLineStyleFromGroup(doc, _group, out _GraphicsStyle_frist_name);
-                    if (!iSame)//需要判断组内线样式是否一致
-                    {
-                        throw new NotImplementedException("部分详图组内，线样式不统一，请检查");
-                    }
-                    if (_GraphicsStyle_frist_name == "地库_场地控制红线")
-                    {
-                        RedLine_Group.Add(_group);
-                    }
-                    else if (_GraphicsStyle_frist_name == "地库_停车区域边界线")
-                    {
-                        RedLine_Offset_Group.Add(_group);
-                    }
-                    else if (_GraphicsStyle_frist_name == "地库_障碍物边界线")
-                    {
-                        Obstacle_Group.Add(_group);
-                    }
-                }
-                else if (_ele is DetailCurve)//筛选目标 主车道 中心线
-                {
-                    DetailCurve _DetailCurve = _ele as DetailCurve;
-                    GraphicsStyle _GraphicsStyle = _DetailCurve.LineStyle as GraphicsStyle;
-                    if (_GraphicsStyle.Name == "地库_主车道中心线")
-                    {
-                        MianRoad_DetailCurve.Add(_ele);
-                    }
-                }
-            }
-            if (RedLine_Group.Count == 0)
-            {
-                throw new NotImplementedException("选择元素中，线型样式包含'地库_控制红线'的组不存在");
-            }
-            else if (RedLine_Group.Count > 1)
-            {
-                throw new NotImplementedException("选择元素中，线型样式包含'地库_控制红线'的组，不唯一");
-            }
+            #region 求出所有的线样式 Ids
+            //ElementId redLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_场地控制红线");
+            //ElementId obstacleLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_障碍物边界线");
+            //ElementId mainRoadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_主车道中心线");
+            //ElementId baseWallLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_地库外墙线");
+            //ElementId roadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_次车道中心线");
+            //ElementId redLineOffsetStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_红线退距线");
             #endregion
 
-            #region 第二步 数据处理 提取线列表
-            List<Line> RedLine_Line = new List<Line>();//一个组 控制红线 该处需要注意
-            List<Line> RedLine_Offset_Line = new List<Line>();//如果，场地中同时存在 地库_场地控制红线 地库_停车区域边界线， 则直接使用 地库_停车区域边界线，不再对地库_场地控制红线进行退距偏移处理
-            List<List<Line>> Obstacle_Line = new List<List<Line>>();//一个组 地库障碍物
-            List<Line> _MianRoad_Line = new List<Line>();//一个列表 地库主车道
+            #region UI交互 选择一个区域，选择一个边，filledregion的curveLoop顺序，在后台中，默认为逆时针。
+            FilledRegion selFilledRegion = doc.GetElement(sel.PickObject(ObjectType.Element, new SelPickFilter_FilledRegion())) as FilledRegion;
+            CurveArray selCurveLoop = _Methods.CurveLoopToCurveArray(selFilledRegion.GetBoundaries().First());//选择的停车区域
 
-            foreach (Group _gorup in RedLine_Group)//红线可用于求面积 和 退距偏移
-            {
-                List<Line> temp_RedLine_Line = _Methods.GetLinesFromLineGroup(_gorup);//曲线分段过多，导致性能降低
-                RedLine_Line = Methods.SortLinesContiguous(temp_RedLine_Line);//线段需要sort，进行排序
-            }
+            Reference reference = sel.PickObject(ObjectType.Edge, "请选择当前选择停车区域的任一边界，用以确认车位排布方向");
+            Element filledRegionBoundary = doc.GetElement(reference);
+            Line line = (filledRegionBoundary.GetGeometryObjectFromReference(reference) as Edge).AsCurve() as Line;
 
-            if (RedLine_Offset_Group.Count == 1)
-            {
-                foreach (Group _gorup in RedLine_Offset_Group)
-                {
-                    List<Line> temp_RedLine_Offset_Line = _Methods.GetLinesFromLineGroup(_gorup);//曲线分段过多，导致性能降低
-                    RedLine_Offset_Line = Methods.SortLinesContiguous(temp_RedLine_Offset_Line);//线段需要sort，进行排序
-                }
-            }
+            double rotateAngle = line.Direction.AngleTo(new XYZ(1, 0, 0));
 
-            foreach (Group _gorup in Obstacle_Group)
-            {
-                List<Line> _temp_Obstacle_Line = _Methods.GetLinesFromLineGroup(_gorup);
-                List<Line> __temp_Obstacle_Line = Methods.SortLinesContiguous(_temp_Obstacle_Line);
-                Obstacle_Line.Add(__temp_Obstacle_Line);
-            }
-            _MianRoad_Line = _Methods.ConvetDocLinesTolines(MianRoad_DetailCurve);
+            XYZ selPoint = sel.PickPoint();// UI交互 指定起点
             #endregion
 
-            #region 第三步 处理红线退距问题 将退居线绘制成组 以便设计师进行操作 clipper内置偏移，定位为内外同时偏移，会有两个点集结果 索引值 0  为 外圈偏移结果 1 为 内圈偏移结果
+            #region 判断选择区域定位线的方向位于第几象限
 
-            Paths Paths_redline_offest = new Paths();
-            if (RedLine_Offset_Group.Count == 0)//如果，场地中同时存在 地库_场地控制红线 地库_停车区域边界线， 则直接使用 地库_停车区域边界线，不再对地库_场地控制红线进行退距偏移处理
+            XYZ leftDownPoint = _Methods.GetLeftDownXYZfromLines(selCurveLoop);
+            XYZ axis = new XYZ(0, 0, 1);
+
+            Transform beforeTransform = Transform.Identity;
+            Transform afterTransform = Transform.Identity;
+            XYZ basicBoundary = line.Direction;
+            double _x = basicBoundary.X;
+            double _y = basicBoundary.Y;
+
+            if (_x >= 0 && _y >= 0)// 第一象限quadrant 如果x ou y = 0，说明线为水平线/垂直线
             {
-                Path_xyz Path_xyz_RedLine = _Methods.GetUniqueXYZFromLines(RedLine_Line);
-
-                Paths_redline_offest = clipper_methods._GetOffsetPonts_clipper_Path(Path_xyz_RedLine, CMD.redline_offset_distance);
-
-                Path_xyz _Path_xyz = clipper_methods.PathToPath_xyz(Paths_redline_offest[1]);//索引值 0  为 外圈偏移结果 1 为 内圈偏移结果
-
-                double toleranceDistance = Methods.MilliMeterToFeet(12000);//此处需要注意，Methods.SortLinesContiguous()，函数，当前测试表现为，需要线段的长度满足在12000mm之上
-                Path_xyz _unique_Path_xyz = _Methods.Pointlistdeduplication(_Path_xyz, toleranceDistance); //需要对点进行去重 解决invalid curve loop的问题；可能原因，sort排线段函数，对线段有最小距离要求
-
-                List<Line> redline_offset_in = _Methods.GetClosedLinesfromPoints(_unique_Path_xyz);
-
-                //将偏移线创建出来，成Group
-                List<ElementId> NewDetailCurveIds = new List<ElementId>();
-                using (Transaction CreatNewDetailLine = new Transaction(doc))
-                {
-                    CreatNewDetailLine.Start("CreatNewDetailLine");
-                    foreach (Line _line in redline_offset_in)
-                    {
-                        CMD.TestList.Add(Methods.FeetToMilliMeter(_line.Length).ToString());
-                        DetailCurve _DetailCurve = doc.Create.NewDetailCurve(acvtiView, _line);
-                        CurveElement _CurveElement = _DetailCurve as CurveElement;
-                        _Methods.SetLineStyle(doc, "地库_停车区域边界线", _CurveElement);
-
-                        NewDetailCurveIds.Add(_DetailCurve.Id);
-                    }
-                    CreatNewDetailLine.Commit();
-                }
-                using (Transaction CreatNewDetailLineGroup = new Transaction(doc))
-                {
-                    CreatNewDetailLineGroup.Start("CreatNewDetailLineGroup");
-                    Group _group = doc.Create.NewGroup(NewDetailCurveIds);
-                    CreatNewDetailLineGroup.Commit();
-                }
+                rotateAngle = -rotateAngle;
             }
-            else if (RedLine_Offset_Group.Count == 1)//如果，场地中同时存在 地库_场地控制红线 地库_停车区域边界线， 则直接使用 地库_停车区域边界线，不再对地库_场地控制红线进行退距偏移处理
+            else if (_x >= 0 && _y < 0)// 第四象限quadrant
             {
-                Path_xyz _Path_xyz = _Methods.GetUniqueXYZFromLines(RedLine_Offset_Line);
-                Paths_xyz _Paths_xyz = new Paths_xyz() { _Path_xyz, _Path_xyz };//考虑到 clipper 偏移，会有 内-1 外-0 的区别，因此，这里直接添加两个相同元素
-                Paths_redline_offest = clipper_methods.Paths_xyzToPaths(_Paths_xyz);
+                //
             }
-            #endregion
-
-            #region 第四步 处理住宅、地库出入口边界问题
-
-            Paths_xyz _Paths_xyz_Obstacle = new Paths_xyz();//基础障碍物范围
-            foreach (List<Line> _line_list in Obstacle_Line)
+            else if (_x < 0 && _y >= 0)// 第二象限quadrant
             {
-                _Paths_xyz_Obstacle.Add(_Methods.GetUniqueXYZFromLines(_line_list));//添加各个障碍物边界的点集
+                rotateAngle = Math.PI - rotateAngle;
             }
-            Paths _Paths_Obstacle = clipper_methods.Paths_xyzToPaths(_Paths_xyz_Obstacle);
+            else if (_x < 0 && _y <= 0)// 第三象限quadrant
+            {
+                rotateAngle = -(Math.PI - rotateAngle);
+            }
+            beforeTransform = Transform.CreateRotationAtPoint(axis, rotateAngle, leftDownPoint);//当基准线方向在第一象限时，transfom角度为负值，顺时针旋转
+            afterTransform = Transform.CreateRotationAtPoint(axis, -rotateAngle, leftDownPoint);//当基准线方向在第一象限时，transfom角度为负值，顺时针旋转
 
             #endregion
 
-            #region 第五布 处理主通道中心线 得到主通道占用空间
+            SubChangeDirectionByPointAndTransform(doc, selCurveLoop, selPoint, beforeTransform, afterTransform, Math.PI - rotateAngle);
 
-            Paths _WdMainOffset = new Paths();//拿到所有的主车道偏移后的围合点，需要将围合区域做并集
-            foreach (Line _line in _MianRoad_Line)
-            {
-                _WdMainOffset.Add(clipper_methods._GetOffsetPonts_clipper_line(_line, CMD.Wd_main / 2));//添加每根车道中心线偏移后的矩形点集
-            }
-
-            Paths Main_road_region = new Paths();//地库主车道占据空间
-            Clipper c_temp = new Clipper();//开展 所有线段的偏移矩形点击进行 clipper 合并
-            c_temp.AddPaths(_WdMainOffset, PolyType.ptSubject, true);
-            c_temp.AddPath(_WdMainOffset[0], PolyType.ptClip, true);
-            c_temp.Execute(ClipType.ctUnion, Main_road_region, PolyFillType.pftNonZero, PolyFillType.pftNonZero);//需要把每根主车道偏移出的空间，进行合并
-
-            #endregion
-
-            #region 第六步 基于 被裁剪区域（红退距后区域）和 裁剪区域 （住宅结构边界 车库出入口）进行 clipper 裁剪
-
-            //红线退距
-            Paths _redLineRegion = new Paths();
-            _redLineRegion.Add(Paths_redline_offest[1]); //clipper内置偏移，定位为内外同时偏移，会有两个点集结果
-            //障碍物
-            Paths _obstalRegion = new Paths();
-            //_obstalRegion.AddRange(_Paths_Obstacle);
-            _obstalRegion.AddRange(Main_road_region);
-
-            // 开展裁剪任务
-            Paths _canPlacedRegion = new Paths();//得到可停车区域
-            Clipper _end_c = new Clipper();
-            _end_c.AddPaths(_redLineRegion, PolyType.ptSubject, true);
-            _end_c.AddPaths(_obstalRegion, PolyType.ptClip, true);
-            _end_c.Execute(ClipType.ctDifference, _canPlacedRegion);
-
-            #endregion
-
-            #region 第七步 计算车位中心点 放置位置 同时开启事务 放置车位
-
-            int ParkingCounts = 0;//总车位数量
-            foreach (Path _path in _canPlacedRegion)//
-            {
-                // 1 对 单个可停车区域 进行处理
-                Path_xyz _Path_xyz = clipper_methods.PathToPath_xyz(_path);//将clipper 结果 转换到 Revit
-                Path_xyz _unique_Path_xyz = _Methods.Pointlistdeduplication(_Path_xyz); //需要对点进行去重 防止后台无法生成曲线 而报错 该处需要注意 Revit2020版本中 曲线的最小容差为 0.00256026455729167 Feet 0.7803686370625 MilliMeter
-                List<Line> _single_canPlacedRegion = _Methods.GetClosedLinesfromPoints(_unique_Path_xyz);//将点集 转换为 闭合多段线边界
-                _single_canPlacedRegion = Methods.SortLinesContiguous(_single_canPlacedRegion);//将点集 转换为 闭合多段线边界
-
-                //将裁减后的区域 显示出来
-                //_Methods.ShowTempGometry(doc, _single_canPlacedRegion);
-
-                ParkingAlgorithm _parkingAlgorithm = new ParkingAlgorithm();
-
-                List<XYZ> Max_tar_placeXYZs = _parkingAlgorithm.LayoutParking(_single_canPlacedRegion, Obstacle_Line);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
-
-                ParkingCounts += _parkingAlgorithm.Max_XYZ_count;
-
-                LayoutParking(doc, Max_tar_placeXYZs); //开启放置事务
-                //if (true)
-                //{
-                //    break;
-                //}
-            }
-
-            #endregion
-
-            #region 第八步 数据统计
-
-            string parkingplace_count = @"当前处于选择范围内的停车位数量为" + ParkingCounts.ToString() + @"个；";
-
-            double _Area = _Methods.GetAreafromLines(RedLine_Line);//计算面积，鞋带法 对数据需要进行小数取位数
-            _Area = UnitUtils.Convert(_Area, DisplayUnitType.DUT_SQUARE_FEET, DisplayUnitType.DUT_SQUARE_METERS);
-
-            double _ParkingEfficiency = _Area / ParkingCounts;//计算停车效率
-            _Area = _Methods.TakeNumberAfterDecimal(_Area, 2);
-            _ParkingEfficiency = _Methods.TakeNumberAfterDecimal(_ParkingEfficiency, 2);
-
-
-            string str_Area = @"当前地库红线内面积为" + _Area.ToString() + @"㎡；";
-            string str_ParkingEfficiency = @"当前选择区域的停车效率为" + _ParkingEfficiency.ToString() + @"㎡/车；" + "\n";
-
-            CMD.TestList.Add(str_Area);
-            CMD.TestList.Add(parkingplace_count);
-            CMD.TestList.Add(str_ParkingEfficiency);
-            #endregion
-
-            TaskDialog.Show("error", "测试成功");
         }
-
-        //以下为各种method—————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
         /// <summary>
-        /// 排布车位
+        /// 定位一个停车区域 设定起点位置 子方法
         /// </summary>
-        /// <param name="uiapp"></param>
-        public void LayoutParking(Document doc, List<XYZ> tar_placeXYZs)//全部转移到clipper中进行处理
+        public void SubChangeDirectionByPointAndTransform(Document doc, CurveArray selCurveLoop, XYZ selPoint, Transform beforeTransform, Transform afterTransform, double rotateAngle)
+        {
+            #region 求出所有的线样式 Ids
+            //ElementId redLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_场地控制红线");
+            ElementId obstacleLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_障碍物边界线");
+            //ElementId mainRoadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_主车道中心线");
+            //ElementId baseWallLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_地库外墙线");
+            //ElementId roadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_次车道中心线");
+            //ElementId redLineOffsetStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_红线退距线");
+            #endregion
+
+            #region 对选择区域做准备处理，删除 非固定停车位 柱子 族实例
+
+            RegionAlgorithm regionAlgorithm = new RegionAlgorithm(doc, selCurveLoop);//该实例包含 地库_地库外墙线 内的所有元素Id
+            CurveArrArray beforeCanPlacedRegions = regionAlgorithm.parkingCurveArrArray;
+            List<Element> filledRegions = _Methods.EleIdsToEles(doc, regionAlgorithm.filledRegions);
+            List<Element> allFixedParkingFS = _Methods.EleIdsToEles(doc, regionAlgorithm.fixedParkingFS);
+            List<Element> othersObstalFs = _Methods.EleIdsToEles(doc, regionAlgorithm.othersObstals);
+            List<Curve> allCurves = regionAlgorithm.allCurves;
+
+            using (var deleteTrans = new Transaction(doc, "删除所有未锁定停车位、柱子以及diretShape。"))//启动事务 删除当前地库外墙线区域内的停车位和柱子族实例（未锁定）
+            {
+                deleteTrans.Start();
+                doc.Delete(regionAlgorithm.unfixedParkingFS);
+                //doc.Delete(regionAlgorithm.fixedParkingAndColumnFS);
+                //doc.Delete(regionAlgorithm.directShapes);
+                deleteTrans.Commit();
+            }
+
+            #endregion
+
+            #region 获取与停车计算区域有关的障碍物区域
+
+            CurveArrArray nowObstacleCurveArrArray = new CurveArrArray();
+            filledRegions.ForEach(_p =>
+            {
+                FilledRegion p = _p as FilledRegion;
+                foreach (CurveArray curveArray in _Methods.CurveLoopsToCurveArrArray(p.GetBoundaries().ToList()))
+                    nowObstacleCurveArrArray.Append(curveArray);
+            });
+
+            #endregion
+
+            #region 此处需要判断填充区域 需不需要考虑架空处理 使用transform进行转换
+            CurveArrArray otherObstalLoops = GetOthersObstalRegions(doc, selCurveLoop, othersObstalFs);
+            foreach (CurveArray curveArray1 in otherObstalLoops)
+            {
+                nowObstacleCurveArrArray.Append(curveArray1);
+                #region 将新增属性线添加到allCurves中
+                foreach (Curve curve in curveArray1)
+                {
+                    curve.SetGraphicsStyleId(obstacleLineStyleId);
+                    allCurves.Add(curve);
+                }
+                #endregion
+            }
+            #endregion
+
+            #region 对固定车位进行处理 这里提取 已定位的车位区域，需要考虑 柱子的宽度 车道的宽度 
+
+            Paths_xyz unionParkingSplace = GetParkingSpaceUnion(doc, allFixedParkingFS);
+
+            CurveArrArray allFixedParkingCurveArray = _Methods.ListLinesToCurveArrArray(_Methods.GetListClosedtLineFromListPoints(unionParkingSplace));
+            foreach (CurveArray curveArray in allFixedParkingCurveArray)
+                nowObstacleCurveArrArray.Append(curveArray);
+
+            #endregion
+
+            #region Transform处理
+
+            if (beforeTransform != null)
+            {
+                if (!beforeTransform.IsIdentity)
+                {
+                    selPoint = beforeTransform.OfPoint(selPoint);
+                    selCurveLoop = _Methods.TransformCurveArray(selCurveLoop, beforeTransform);
+                    nowObstacleCurveArrArray = _Methods.TransformCurveArray(nowObstacleCurveArrArray, beforeTransform);
+                    allCurves = _Methods.TransformCurves(allCurves, beforeTransform);
+                }
+            }
+
+            #endregion
+
+            #region 得到目标区域内的相关属性线条 开启停车sweep算法
+
+            var transactionNow = new TransactionNow(doc);
+            ParkingAlgorithm parkingAlgorithm = new ParkingAlgorithm();
+
+            List<Point> Max_tar_columnplaceXYZs = new List<Point>();
+            List<Point> Max_tar_placeXYZs = new List<Point>();
+
+            if (CMD.isOptimalAlgorithm == true)
+            {
+                #region 此处需要给出指点起点后的最优解 ？？？？？？
+                Max_tar_placeXYZs = parkingAlgorithm.tarMaxSweepByPointInTarRegion(doc, selPoint, selCurveLoop, nowObstacleCurveArrArray, allCurves, out Max_tar_columnplaceXYZs, CMD.layoutMethod);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+                #endregion
+            }
+            else if (CMD.isOptimalAlgorithm == false)
+            {
+                Max_tar_placeXYZs = parkingAlgorithm.tarMaxSweepByPointInTarRegion(doc, selPoint, selCurveLoop, nowObstacleCurveArrArray, allCurves, out Max_tar_columnplaceXYZs, CMD.layoutMethod);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+            }
+            #endregion
+
+            #region Transform处理
+
+            if (afterTransform != null)
+            {
+                if (!afterTransform.IsIdentity)
+                {
+                    Max_tar_columnplaceXYZs = _Methods.TransformPath_xyz(Max_tar_columnplaceXYZs, afterTransform);
+                    Max_tar_placeXYZs = _Methods.TransformPath_xyz(Max_tar_placeXYZs, afterTransform);
+                }
+            }
+
+            #endregion
+
+            #region 开启放置车位事务
+            transactionNow.LayoutParking(Max_tar_placeXYZs, Max_tar_columnplaceXYZs, rotateAngle, CMD.layoutMethod);//开启放置事务 
+            #endregion
+        }
+        /// <summary>
+        /// 切分算法，涉及到基于基准线旋转的问题。遗留问题，中间缝隙，会变成两个柱子（600mm * 2）的距离。
+        /// </summary>
+        public void cutAlgorithm(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            #region 求出所有的线样式 Ids
+            //ElementId redLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_场地控制红线");
+            //ElementId obstacleLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_障碍物边界线");
+            //ElementId mainRoadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_主车道中心线");
+            //ElementId baseWallLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_地库外墙线");
+            //ElementId roadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_次车道中心线");
+            //ElementId redLineOffsetStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_红线退距线");
+            #endregion
+
+            #region UI交互 选择一个区域 选择一个起点
+            FilledRegion selFilledRegion = doc.GetElement(sel.PickObject(ObjectType.Element, new SelPickFilter_FilledRegion())) as FilledRegion;
+            CurveArray selCurveLoop = _Methods.CurveLoopToCurveArray(selFilledRegion.GetBoundaries().First());//选择的停车区域
+
+            Path selCurveLoopPath = clipper_methods.Path_xyzToPath(_Methods.GetUniqueXYZFromCurves(selCurveLoop));
+            #endregion
+
+            #region 划一根基准线，该基准线为柱子所在位置，通过基准线做一个相对较长的矩形，用于裁剪当前区域
+
+            XYZ selPointStart = sel.PickPoint("指定车位排布起点");// UI交互 指定起点
+            XYZ selPointDirection = sel.PickPoint("指定方向");// UI交互 指定起点
+            XYZ directionVector = selPointStart - selPointDirection;
+            int multiple = 10;
+            XYZ point01 = selPointStart + directionVector * multiple;
+            XYZ point02 = selPointDirection - directionVector * multiple;
+            Line basicLine = Line.CreateBound(point01, point02);
+            Path basicLineRegion = clipper_methods._GetOffsetPonts_clipper_line((basicLine as Curve), CMD.columnWidth / 2 + CMD.columnBurfferDistance);
+            Paths canPlacedRegion = clipper_methods.RegionCropctDifference(new Paths() { selCurveLoopPath }, new Paths() { basicLineRegion });//得到可停车区域
+
+            Paths_xyz parkingRegionsPoints = clipper_methods.PathsToPaths_xyz(canPlacedRegion);
+            #endregion
+
+            #region 对clipper切分出的区域，做处理，如何区分切分出的区域与基准线的关系，谁在上，谁在下，谁在左，谁在右
+
+            if (parkingRegionsPoints.Count < 3)
+            {
+                CurveArrArray firstCanPlacedRegions = _Methods.ListLinesToCurveArrArray(_Methods.GetListClosedtLineFromListPoints(parkingRegionsPoints));
+
+                #region 对一个区域进行车位排布，基于一个点定位车位排布起点
+                foreach (CurveArray _regionCurves in firstCanPlacedRegions)
+                {
+                    SubChangeDirectionByPoint(doc, _regionCurves, selPointStart);
+                }
+                #endregion
+            }
+            #endregion
+
+
+            #region 1.从静态数据线圈Id 提取地库_地库外墙线 2.判断选择区域在不在已选择Id线圈，如果不在需要提醒设计师
+            var basementWallRegion = GetRegionFromMemoryEleId(doc, CMD.baseMentWallLoopId);
+            #endregion
+            DataStatistics(doc, basementWallRegion);//停车区域点集需要更新
+        }
+        /// <summary>
+        /// 定位一个停车区域 设定起点位置
+        /// </summary>
+        public void ChangeDirectionByPoint(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            #region UI交互 选择一个区域 选择一个起点
+            //DirectShape selDs = doc.GetElement(sel.PickObject(ObjectType.Element, new SelPickFilter_FilledRegion())) as DirectShape;
+            //CurveArray selCurveLoop = GetCurveArrayFromDirectshape(selDs);//选择的停车区域
+            FilledRegion selFilledRegion = doc.GetElement(sel.PickObject(ObjectType.Element, new SelPickFilter_FilledRegion())) as FilledRegion;
+            CurveArray selCurveLoop = _Methods.CurveLoopToCurveArray(selFilledRegion.GetBoundaries().First());//选择的停车区域
+
+            XYZ selPoint = sel.PickPoint();// UI交互 指定起点
+            #endregion
+
+            #region 1.从静态数据线圈Id 提取地库_地库外墙线 2.判断选择区域在不在已选择Id线圈，如果不在需要提醒设计师
+            var basementWallRegion = GetRegionFromMemoryEleId(doc, CMD.baseMentWallLoopId);
+            //bool isInRegion = _Methods.isCurveArrayInCurveArrayByAllSingleCurves(doc, selCurveLoop, basementWallRegion);
+            //if (!isInRegion)//如果不在区域内
+            //{
+            //    TaskDialog mainDialog = new TaskDialog("Revit2020 警告!");
+            //    mainDialog.MainInstruction = "Revit2020 警告!";
+            //    mainDialog.MainContent =
+            //        "已点选线圈范围不在已记录地库外墙线圈范围内，请问是否继续执行？"
+            //        + "如果执行,选择区域车位排布会更新；但是，已记录地库外墙线圈内的统计数据会出现异常。";
+            //    mainDialog.CommonButtons = TaskDialogCommonButtons.Yes | TaskDialogCommonButtons.No;
+            //    mainDialog.DefaultButton = TaskDialogResult.No;
+
+            //    TaskDialogResult tResult = mainDialog.Show();
+
+            //    if (tResult == TaskDialogResult.Yes)
+            //    {
+            //        //
+            //    }
+            //    else if (tResult == TaskDialogResult.No)
+            //        throw new NotImplementedException("请重新选择计算区域。");
+            //}
+            #endregion
+
+            #region 对一个区域进行车位排布，基于一个点定位车位排布起点
+
+            SubChangeDirectionByPoint(doc, selCurveLoop, selPoint);
+
+            #endregion
+
+            DataStatistics(doc, basementWallRegion);//停车区域点集需要更新
+        }
+        /// <summary>
+        /// 定位一个停车区域 设定起点位置 子方法
+        /// </summary>
+        public void SubChangeDirectionByPoint(Document doc, CurveArray selCurveLoop, XYZ selPoint)
+        {
+            #region 求出所有的线样式 Ids
+            //ElementId redLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_场地控制红线");
+            ElementId obstacleLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_障碍物边界线");
+            //ElementId mainRoadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_主车道中心线");
+            //ElementId baseWallLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_地库外墙线");
+            //ElementId roadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_次车道中心线");
+            //ElementId redLineOffsetStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_红线退距线");
+            #endregion
+
+            #region 对选择区域做准备处理，删除 非固定停车位 柱子 族实例
+
+            RegionAlgorithm regionAlgorithm = new RegionAlgorithm(doc, selCurveLoop);//该实例包含 地库_地库外墙线 内的所有元素Id
+            CurveArrArray beforeCanPlacedRegions = regionAlgorithm.parkingCurveArrArray;
+            List<Element> filledRegions = _Methods.EleIdsToEles(doc, regionAlgorithm.filledRegions);
+            List<Element> allFixedParkingFS = _Methods.EleIdsToEles(doc, regionAlgorithm.fixedParkingFS);
+            List<Element> othersObstalFs = _Methods.EleIdsToEles(doc, regionAlgorithm.othersObstals);
+            List<Curve> allCurves = regionAlgorithm.allCurves;
+
+            using (var deleteTrans = new Transaction(doc, "删除所有未锁定停车位、柱子以及diretShape。"))//启动事务 删除当前地库外墙线区域内的停车位和柱子族实例（未锁定）
+            {
+                deleteTrans.Start();
+                doc.Delete(regionAlgorithm.unfixedParkingFS);
+                //doc.Delete(regionAlgorithm.fixedParkingAndColumnFS);
+                //doc.Delete(regionAlgorithm.directShapes);
+                deleteTrans.Commit();
+            }
+
+            #endregion
+
+            #region 获取与停车计算区域有关的障碍物区域
+
+            CurveArrArray nowObstacleCurveArrArray = new CurveArrArray();
+            filledRegions.ForEach(_p =>
+            {
+                FilledRegion p = _p as FilledRegion;
+                foreach (CurveArray curveArray in _Methods.CurveLoopsToCurveArrArray(p.GetBoundaries().ToList()))
+                    nowObstacleCurveArrArray.Append(curveArray);
+            });
+
+            #endregion
+
+            #region 此处需要判断填充区域 需不需要考虑架空处理 使用transform进行转换
+            CurveArrArray otherObstalLoops = GetOthersObstalRegions(doc, selCurveLoop, othersObstalFs);
+            foreach (CurveArray curveArray1 in otherObstalLoops)
+            {
+                nowObstacleCurveArrArray.Append(curveArray1);
+                #region 将新增属性线添加到allCurves中
+                foreach (Curve curve in curveArray1)
+                {
+                    curve.SetGraphicsStyleId(obstacleLineStyleId);
+                    allCurves.Add(curve);
+                }
+                #endregion
+            }
+            #endregion
+
+            #region 对固定车位进行处理 这里提取 已定位的车位区域，需要考虑 柱子的宽度 车道的宽度 
+
+            Paths_xyz unionParkingSplace = GetParkingSpaceUnion(doc, allFixedParkingFS);
+
+            CurveArrArray allFixedParkingCurveArray = _Methods.ListLinesToCurveArrArray(_Methods.GetListClosedtLineFromListPoints(unionParkingSplace));
+            foreach (CurveArray curveArray in allFixedParkingCurveArray)
+                nowObstacleCurveArrArray.Append(curveArray);
+
+            #endregion
+
+            #region 得到目标区域内的相关属性线条 开启停车sweep算法
+
+            var transactionNow = new TransactionNow(doc);
+            ParkingAlgorithm parkingAlgorithm = new ParkingAlgorithm();
+            List<Point> Max_tar_columnplaceXYZs = new List<Point>();
+
+            List<Point> Max_tar_placeXYZs = new List<Point>();
+
+            if (CMD.isOptimalAlgorithm == true)
+            {
+                #region 此处需要给出指点起点后的最优解
+
+                #endregion
+                Max_tar_placeXYZs = parkingAlgorithm.tarMaxSweepByPointInTarRegion(doc, selPoint, selCurveLoop, nowObstacleCurveArrArray, allCurves, out Max_tar_columnplaceXYZs, CMD.layoutMethod);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+            }
+            else if (CMD.isOptimalAlgorithm == false)
+            {
+                Max_tar_placeXYZs = parkingAlgorithm.tarMaxSweepByPointInTarRegion(doc, selPoint, selCurveLoop, nowObstacleCurveArrArray, allCurves, out Max_tar_columnplaceXYZs, CMD.layoutMethod);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+            }
+
+            transactionNow.LayoutParking(Max_tar_placeXYZs, Max_tar_columnplaceXYZs, CMD.layoutMethod);//开启放置事务 
+            #endregion
+        }
+        /// <summary>
+        /// 定位一个停车区域 通过点选矩形做布尔交集 对单个停车区域的车位排布方向进行更改
+        /// </summary>
+        public void ChangeDirectionByRectange(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            #region 求出所有的线样式 Ids
+            //ElementId redLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_场地控制红线");
+            ElementId obstacleLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_障碍物边界线");
+            //ElementId mainRoadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_主车道中心线");
+            //ElementId baseWallLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_地库外墙线");
+            //ElementId roadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_次车道中心线");
+            //ElementId redLineOffsetStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_红线退距线");
+            #endregion
+
+            #region UI交互 选择一个区域
+            //DirectShape selDs = doc.GetElement(sel.PickObject(ObjectType.Element, new SelPickFilter_FilledRegion())) as DirectShape;
+            //CurveArray selCurveLoop = GetCurveArrayFromDirectshape(selDs);//选择的停车区域
+            FilledRegion selFilledRegion = doc.GetElement(sel.PickObject(ObjectType.Element, new SelPickFilter_FilledRegion())) as FilledRegion;
+            CurveArray selCurveLoop = _Methods.CurveLoopToCurveArray(selFilledRegion.GetBoundaries().First());//选择的停车区域
+
+            XYZ rectanglePoint01 = sel.PickPoint();
+            XYZ rectanglePoint02 = sel.PickPoint();
+            CurveArray rectangle = GetRectangle(rectanglePoint01, rectanglePoint02);// UI交互 指定矩形区域
+            #endregion
+
+            #region 矩形与选择可停车区域 做交集运算
+
+            Paths selPlacedParkingRegionPoints = new Paths() { clipper_methods.Path_xyzToPath(_Methods.GetUniqueXYZFromCurves(selCurveLoop)) };//点选可停车区域
+            Paths rectanglePoints = new Paths() { clipper_methods.Path_xyzToPath(_Methods.GetUniqueXYZFromCurves(rectangle)) };
+
+            Paths_xyz canPlacedRegion = clipper_methods.PathsToPaths_xyz(clipper_methods.RegionCropctIntersection(selPlacedParkingRegionPoints, rectanglePoints));//得到裁剪后的可停车区域
+            CurveArray selIntersectRegion = _Methods.LinesToCurveArray(_Methods.GetClosedLinesFromPoints(canPlacedRegion.First()));
+
+            #endregion
+
+            #region 1.从静态数据线圈Id 提取地库_地库外墙线 2.判断选择区域在不在已选择Id线圈，如果不在需要提醒设计师
+
+            var basementWallRegion = GetRegionFromMemoryEleId(doc, CMD.baseMentWallLoopId);
+
+            //bool isInRegion = _Methods.isCurveArrayInCurveArrayByAllSingleCurves(doc, selCurveLoop, basementWallRegion);
+            //if (!isInRegion)//如果不在区域内
+            //{
+            //    TaskDialog mainDialog = new TaskDialog("Revit2020 警告!");
+            //    mainDialog.MainInstruction = "Revit2020 警告!";
+            //    mainDialog.MainContent =
+            //        "已点选线圈范围不在已记录地库外墙线圈范围内，请问是否继续执行？"
+            //        + "如果执行,选择区域车位排布会更新；但是，已记录地库外墙线圈内的统计数据会出现异常。";
+            //    mainDialog.CommonButtons = TaskDialogCommonButtons.Yes | TaskDialogCommonButtons.No;
+            //    mainDialog.DefaultButton = TaskDialogResult.No;
+
+            //    TaskDialogResult tResult = mainDialog.Show();
+
+            //    if (tResult == TaskDialogResult.Yes)
+            //    {
+            //        //
+            //    }
+            //    else if (tResult == TaskDialogResult.No)
+            //        throw new NotImplementedException("请重新选择计算区域。");
+            //}
+
+            #endregion
+
+            #region 对选择区域做准备处理，删除 非固定停车位 柱子 族实例
+
+            RegionAlgorithm regionAlgorithm = new RegionAlgorithm(doc, selIntersectRegion);//该实例包含 地库_地库外墙线 内的所有元素Id
+            CurveArrArray beforeCanPlacedRegions = regionAlgorithm.parkingCurveArrArray;
+            List<Element> filledRegions = _Methods.EleIdsToEles(doc, regionAlgorithm.filledRegions);
+            List<Element> allFixedParkingFS = _Methods.EleIdsToEles(doc, regionAlgorithm.fixedParkingFS);
+            List<Element> othersObstalFs = _Methods.EleIdsToEles(doc, regionAlgorithm.othersObstals);
+            List<Curve> allCurves = regionAlgorithm.allCurves;
+
+            using (var deleteTrans = new Transaction(doc, "删除所有未锁定停车位、柱子以及diretShape。"))//启动事务 删除当前地库外墙线区域内的停车位和柱子族实例（未锁定）
+            {
+                deleteTrans.Start();
+                doc.Delete(regionAlgorithm.unfixedParkingFS);
+                //doc.Delete(regionAlgorithm.fixedParkingAndColumnFS);
+                //doc.Delete(regionAlgorithm.directShapes);
+                deleteTrans.Commit();
+            }
+
+            #endregion
+
+            #region 获取与停车计算区域有关的障碍物区域
+
+            CurveArrArray nowObstacleCurveArrArray = new CurveArrArray();
+            filledRegions.ForEach(_p =>
+            {
+                FilledRegion p = _p as FilledRegion;
+                foreach (CurveArray curveArray in _Methods.CurveLoopsToCurveArrArray(p.GetBoundaries().ToList()))
+                    nowObstacleCurveArrArray.Append(curveArray);
+            });
+
+            #endregion
+
+            #region 对固定车位进行处理 这里提取 已定位的车位区域，需要考虑 柱子的宽度 车道的宽度 
+
+            Paths_xyz unionParkingSplace = GetParkingSpaceUnion(doc, allFixedParkingFS);
+
+            CurveArrArray allFixedParkingCurveArray = _Methods.ListLinesToCurveArrArray(_Methods.GetListClosedtLineFromListPoints(unionParkingSplace));
+            foreach (CurveArray curveArray in allFixedParkingCurveArray)
+                nowObstacleCurveArrArray.Append(curveArray);
+
+            #endregion
+
+            #region 此处需要判断填充区域 需不需要考虑架空处理 使用transform进行转换
+            CurveArrArray otherObstalLoops = GetOthersObstalRegions(doc, selCurveLoop, othersObstalFs);
+            foreach (CurveArray curveArray1 in otherObstalLoops)
+            {
+                nowObstacleCurveArrArray.Append(curveArray1);
+                #region 将新增属性线添加到allCurves中
+                foreach (Curve curve in curveArray1)
+                {
+                    curve.SetGraphicsStyleId(obstacleLineStyleId);
+                    allCurves.Add(curve);
+                }
+                #endregion
+            }
+            #endregion
+
+            #region 得到目标区域内的相关属性线条 开启停车sweep算法
+
+            var transactionNow = new TransactionNow(doc);
+            ParkingAlgorithm parkingAlgorithm = new ParkingAlgorithm();
+            List<Point> Max_tar_columnplaceXYZs = new List<Point>();
+            List<Point> Max_tar_placeXYZs = new List<Point>();
+            if (CMD.isOptimalAlgorithm == true)
+            {
+                Max_tar_placeXYZs = parkingAlgorithm.tarMaxSweep(doc, selIntersectRegion, nowObstacleCurveArrArray, allCurves, out Max_tar_columnplaceXYZs);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+            }
+            else if (CMD.isOptimalAlgorithm == false)
+            {
+                Max_tar_placeXYZs = parkingAlgorithm.tarSweep(doc, selIntersectRegion, nowObstacleCurveArrArray, allCurves, out Max_tar_columnplaceXYZs);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+            }
+
+            transactionNow.LayoutParking(Max_tar_placeXYZs, Max_tar_columnplaceXYZs, CMD.layoutMethod);//开启放置事务 
+
+            #endregion
+            DataStatistics(doc, basementWallRegion);
+        }
+        /// <summary>
+        /// 基于最新场地条件 刷新停车布局
+        /// </summary>
+        public void IntelligentRefresh(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            #region 求出所有的线样式 Ids
+            //ElementId redLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_场地控制红线");
+            ElementId obstacleLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_障碍物边界线");
+            //ElementId mainRoadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_主车道中心线");
+            //ElementId baseWallLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_地库外墙线");
+            //ElementId roadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_次车道中心线");
+            //ElementId redLineOffsetStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_红线退距线");
+            #endregion
+            #region 求出目标填充样式
+            ElementId _filledRegionTypeId = GetTarFilledRegionTypeId(doc, "地库_单个停车区域");
+            #endregion
+            #region 从静态数据提取线圈Id读取地库外墙线圈的entity 并对组名、线圈是否闭合、线圈线样式是否统一 进行审查
+
+            Paths_xyz firstParkingPlaces = ReadEntityFromBaseWallLoop(doc, _schemaGuid, CMD.baseMentWallLoopId);
+
+            var basementWallRegion = GetRegionFromMemoryEleId(doc, CMD.baseMentWallLoopId);//地库外墙线圈
+            #endregion
+
+            #region 计算最新可停车区域，与entity数据进行对比，得到变化的区域
+
+            RegionAlgorithm regionAlgorithm = new RegionAlgorithm(doc, basementWallRegion);//该实例包含 地库_地库外墙线 内的所有元素Id
+            CurveArrArray nowCanPlacedRegions = regionAlgorithm.parkingCurveArrArray;
+            List<Element> filledRegions = _Methods.EleIdsToEles(doc, regionAlgorithm.filledRegions);
+            List<Element> allFixedParkingFS = _Methods.EleIdsToEles(doc, regionAlgorithm.fixedParkingFS);
+            List<Element> allUnFixedParkingFS = _Methods.EleIdsToEles(doc, regionAlgorithm.unfixedParkingFS);
+            List<Element> allDirectShapes = _Methods.EleIdsToEles(doc, regionAlgorithm.directShapes);
+            List<Element> othersObstalFs = _Methods.EleIdsToEles(doc, regionAlgorithm.othersObstals);
+            List<Curve> allCurves = regionAlgorithm.allCurves;
+
+            Paths_xyz nowChangedRegionPoints = clipper_methods.GetChangedRegion(regionAlgorithm.parkingRegionsPoints, firstParkingPlaces);//变化的新增区域
+            CurveArrArray nowChangedCanPlacedRegion = _Methods.ListLinesToCurveArrArray(_Methods.GetListClosedtLineFromListPoints(nowChangedRegionPoints));
+
+            if (nowChangedRegionPoints.Count < 1)
+                throw new NotImplementedException("未检测到可停车空间变化区域，如果需要重新计算，请点击全局计算。");
+
+            Paths_xyz firstChangedRegionPoints = clipper_methods.GetChangedRegion(firstParkingPlaces, regionAlgorithm.parkingRegionsPoints);//被修改的区域
+            CurveArrArray firstChangedCanPlacedRegion = _Methods.ListLinesToCurveArrArray(_Methods.GetListClosedtLineFromListPoints(firstChangedRegionPoints));
+            #endregion
+
+            #region 删除变化区域的未锁定车位，并重新绘制停车区域边界线 directshape。此处需要注意，删除物体，需要使用生成物体时范围框，勿反。
+
+            using (var deleteTrans = new Transaction(doc, "删除所有未锁定停车位、柱子以及diretShape。"))//启动事务 删除当前地库外墙线区域内的停车位和柱子族实例（未锁定）
+            {
+                deleteTrans.Start();
+                List<ElementId> needDelDsIds = new List<ElementId>();
+                foreach (CurveArray _regionCurves in firstChangedCanPlacedRegion)//针对单个区域进行停车位计算处理
+                {
+                    List<Element> needDelUnFixedParkingFS = _Methods.GetTarlElesByRegion(doc, _regionCurves, allUnFixedParkingFS);
+                    doc.Delete(_Methods.ElesToEleIds(needDelUnFixedParkingFS));
+
+                    #region directshape比较特殊，需要判断线圈与线圈的关系
+                    Path_xyz _regionCurvePoints = _Methods.GetUniqueXYZFromCurves(_regionCurves);
+                    foreach (Element tempEle in allDirectShapes)
+                    {
+                        DirectShape tempDirectShape = tempEle as DirectShape;
+                        CurveArray templCurveLoop = GetCurveArrayFromDirectshape(tempDirectShape);//选择的停车区域
+                        Path_xyz templCurveLooppoints = _Methods.GetUniqueXYZFromCurves(templCurveLoop);
+                        if (clipper_methods.PathXyzIsSame(_regionCurvePoints, templCurveLooppoints)) needDelDsIds.Add(tempEle.Id);
+                    }
+                    #endregion
+                }
+                doc.Delete(needDelDsIds);
+
+                doc.Delete(regionAlgorithm.filledRegions_singleParkignPlace);
+
+                deleteTrans.Commit();
+            }
+
+            #endregion
+
+            #region 将停车区域打印出来
+            //double moveDownDistance = doc.ActiveView.GenLevel.ProjectElevation;
+            foreach (CurveArray _regionCurves in nowCanPlacedRegions)
+            {
+                //_Methods.ShowTempGeometry(doc, _regionCurves, new XYZ(0, 0, moveDownDistance));
+                #region 绘制详图填充区域
+                CreatFilledRegion(doc, _filledRegionTypeId, _regionCurves);
+                #endregion
+            }
+            #endregion
+
+            #region 停车位全局刷新requestHandler，与智能刷新RequestHandlerDocumentChangeEvent，在停车位算法上，使用一个方法
+            using (ParkingAlgorithm parkingAlgorithm = new ParkingAlgorithm())
+            {
+                var transactionNow = new TransactionNow(doc);
+
+                #region 计时器
+                //this.m_progressTracker.StartTracking_TS("Getting Properties / Methods..", 1, nowChangedCanPlacedRegion.Size);
+                #endregion
+
+                foreach (CurveArray _regionCurves in nowChangedCanPlacedRegion)//针对单个区域进行停车位计算处理
+                {
+
+                    #region 1 设定停止计算Flag 2 将当前停车区域打印在当前视图
+                    if (CMD.stopAlgorithm == false) break;
+                    #endregion
+
+                    #region 获取与停车计算区域有关的障碍物区域
+
+                    CurveArrArray nowObstacleCurveArrArray = new CurveArrArray();
+                    List<FilledRegion> needFilledRegions = _Methods.GetTarlElesByRegion(doc, _regionCurves, filledRegions).Cast<FilledRegion>().ToList();
+                    needFilledRegions.ForEach(p =>
+                    {
+                        foreach (CurveArray curveArray in _Methods.CurveLoopsToCurveArrArray(p.GetBoundaries().ToList()))
+                            nowObstacleCurveArrArray.Append(curveArray);
+                    });
+
+                    #endregion
+
+                    #region 此处需要判断填充区域 需不需要考虑架空处理 使用transform进行转换
+                    CurveArrArray otherObstalLoops = GetOthersObstalRegions(doc, _regionCurves, othersObstalFs);
+                    foreach (CurveArray curveArray1 in otherObstalLoops)
+                    {
+                        nowObstacleCurveArrArray.Append(curveArray1);
+                        #region 将新增属性线添加到allCurves中
+                        foreach (Curve curve in curveArray1)
+                        {
+                            curve.SetGraphicsStyleId(obstacleLineStyleId);
+                            allCurves.Add(curve);
+                        }
+                        #endregion
+                    }
+                    #endregion
+
+                    #region 对固定车位进行处理 这里提取 已定位的车位区域，需要考虑 柱子的宽度 车道的宽度 
+
+                    List<Element> needlFixedParkingFS = _Methods.GetTarlElesByRegion(doc, _regionCurves, allFixedParkingFS);
+                    Paths_xyz unionParkingSplace = GetParkingSpaceUnion(doc, needlFixedParkingFS);
+
+                    CurveArrArray allFixedParkingCurveArray = _Methods.ListLinesToCurveArrArray(_Methods.GetListClosedtLineFromListPoints(unionParkingSplace));
+                    foreach (CurveArray curveArray in allFixedParkingCurveArray)
+                        nowObstacleCurveArrArray.Append(curveArray);
+
+                    #endregion
+
+                    #region 用停车位空间进行裁剪 未采用
+                    //Paths subjsPlace = clipper_methods.Paths_xyzToPaths(new Paths_xyz() { _Methods.GetUniqueXYZFromCurves(_regionCurves) });
+                    //Paths clipsFiexedParking = clipper_methods.Paths_xyzToPaths(_Methods.GetUniqueXYZFromCurves(allFixedParkingCurveArray));
+                    //Paths_xyz canPlacedRegion = clipper_methods.PathsToPaths_xyz(RegionAlgorithm.RegionCropctDifference(subjsPlace, clipsFiexedParking));
+
+                    //if (canPlacedRegion.Count < 1)
+                    //    continue;
+                    //_regionCurves = _Methods.LinesToCurveArray(_Methods.GetClosedLinesFromPoints(canPlacedRegion.First()));
+                    #endregion
+
+                    #region 得到目标区域内的相关属性线条 开启停车sweep算法
+                    List<Curve> nowRegionPropertyLines = _Methods.GetCurvesInTarRegion(doc, _regionCurves, allCurves);
+
+                    List<Point> Max_tar_columnplaceXYZs = new List<Point>(); //求出停车位的放置点
+                    List<Point> Max_tar_placeXYZs = new List<Point>();
+                    if (CMD.isOptimalAlgorithm == true)
+                    {
+                        Max_tar_placeXYZs = parkingAlgorithm.tarMaxSweep(doc, _regionCurves, nowObstacleCurveArrArray, nowRegionPropertyLines, out Max_tar_columnplaceXYZs);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+                    }
+                    else if (CMD.isOptimalAlgorithm == false)
+                    {
+                        Max_tar_placeXYZs = parkingAlgorithm.tarSweep(doc, _regionCurves, nowObstacleCurveArrArray, nowRegionPropertyLines, out Max_tar_columnplaceXYZs);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+                    }
+                    transactionNow.LayoutParking(Max_tar_placeXYZs, Max_tar_columnplaceXYZs, CMD.layoutMethod);//开启放置事务  
+
+                    #endregion
+
+                    #region 计时器
+                    //if (this.m_progressTracker.StopTask) break;
+                    //this.m_progressTracker.Current++;
+                    #endregion
+                }
+                //this.m_progressTracker.StopTracking_TS();
+
+                #region GC 垃圾回收 Garbage Collector
+                GC.Collect();
+                #endregion
+            }
+            #endregion
+
+            #region 将可停车region 点集 写入entity 记录数据 设置entity 将上述生成的各个停车区域点集 存入地库外墙线线圈group的entity
+
+            SetEntityToBaseWallLoop(doc, _schemaGuid, CMD.baseMentWallLoopId, regionAlgorithm.parkingRegionsPoints); //Entity赋值
+
+            #endregion
+            DataStatistics(doc, basementWallRegion);
+        }
+        /// <summary>
+        /// 选择地库设计区域 框选红线内外所有物体
+        /// </summary>
+        public void GlobalRefresh(UIApplication uiapp)
+        {
+            #region 计算控制
+            //UserControl1 userControl1 = new UserControl1();
+            //userControl1.Show();
+            #endregion
+
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            #region 求出所有的线样式 Ids
+            //ElementId redLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_场地控制红线");
+            ElementId obstacleLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_障碍物边界线");
+            //ElementId mainRoadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_主车道中心线");
+            //ElementId baseWallLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_地库外墙线");
+            //ElementId roadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_次车道中心线");
+            //ElementId redLineOffsetStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_红线退距线");
+            #endregion
+
+            #region 求出目标填充样式
+            ElementId _filledRegionTypeId = GetTarFilledRegionTypeId(doc, "地库_单个停车区域");
+            #endregion
+
+            #region 从静态数据提取线圈Id  对组名、线圈是否闭合、线圈线样式是否统一 进行审查
+            var basementWallRegion = GetRegionFromMemoryEleId(doc, CMD.baseMentWallLoopId);
+            #endregion
+
+            #region 全局刷新，不需要读取entity，只需要写入entity
+
+            RegionAlgorithm regionAlgorithm = new RegionAlgorithm(doc, basementWallRegion);//该实例包含 地库_地库外墙线 内的所有元素Id
+            CurveArrArray firstCanPlacedRegions = regionAlgorithm.parkingCurveArrArray;
+            List<Element> filledRegions = _Methods.EleIdsToEles(doc, regionAlgorithm.filledRegions);
+            List<Element> allFixedParkingFS = _Methods.EleIdsToEles(doc, regionAlgorithm.fixedParkingFS);
+            List<Element> othersObstalFs = _Methods.EleIdsToEles(doc, regionAlgorithm.othersObstals);
+            List<Curve> allCurves = regionAlgorithm.allCurves;
+
+            using (var deleteTrans = new Transaction(doc, "删除所有未锁定停车位、柱子以及diretShape。"))//启动事务 删除当前地库外墙线区域内的停车位和柱子族实例（未锁定）
+            {
+                deleteTrans.Start();
+                doc.Delete(regionAlgorithm.unfixedParkingFS);
+                //doc.Delete(regionAlgorithm.fixedParkingAndColumnFS);
+                //doc.Delete(regionAlgorithm.directShapes);
+                doc.Delete(regionAlgorithm.filledRegions_singleParkignPlace);
+                deleteTrans.Commit();
+            }
+            #endregion
+
+            #region 将停车区域打印出来
+            //double moveDownDistance = doc.ActiveView.GenLevel.ProjectElevation;
+            //_Methods.ShowTempGeometry(doc, _regionCurves, new XYZ(0, 0, moveDownDistance));
+            foreach (CurveArray _regionCurves in firstCanPlacedRegions)
+            {
+                #region 绘制详图填充区域
+                CreatFilledRegion(doc, _filledRegionTypeId, _regionCurves);
+                #endregion
+            }
+            #endregion
+
+            #region 停车位全局刷新requestHandler，与智能刷新RequestHandlerDocumentChangeEvent，在停车位算法上，使用一个方法
+            using (ParkingAlgorithm parkingAlgorithm = new ParkingAlgorithm())
+            {
+                var transactionNow = new TransactionNow(doc);
+                int i = 0;
+
+                #region 计时器
+                //this.m_progressTracker.StartTracking_TS("Getting Properties / Methods..",1, firstCanPlacedRegions.Size);
+                #endregion
+
+                foreach (CurveArray _regionCurves in firstCanPlacedRegions)//针对单个区域进行停车位计算处理
+                {
+                    if (i == 7)
+                    {
+
+                    }
+                    #region 1 设定停止计算Flag 2 将当前停车区域打印在当前视图
+                    if (CMD.stopAlgorithm == false) break;
+
+                    #endregion
+
+                    #region 获取与停车计算区域有关的障碍物区域
+                    CurveArrArray nowObstacleCurveArrArray = new CurveArrArray();
+                    List<FilledRegion> needFilledRegions = _Methods.GetTarlElesByRegion(doc, _regionCurves, filledRegions).Cast<FilledRegion>().ToList();
+                    needFilledRegions.ForEach(p =>
+                    {
+                        foreach (CurveArray curveArray in _Methods.CurveLoopsToCurveArrArray(p.GetBoundaries().ToList()))
+                            nowObstacleCurveArrArray.Append(curveArray);
+                    });
+                    #endregion
+
+                    #region 此处需要判断填充区域 需不需要考虑架空处理 使用transform进行转换
+                    CurveArrArray otherObstalLoops = GetOthersObstalRegions(doc, _regionCurves, othersObstalFs);
+                    foreach (CurveArray curveArray1 in otherObstalLoops)
+                    {
+                        nowObstacleCurveArrArray.Append(curveArray1);
+                        #region 将新增属性线添加到allCurves中
+                        foreach (Curve curve in curveArray1)
+                        {
+                            curve.SetGraphicsStyleId(obstacleLineStyleId);
+                            allCurves.Add(curve);
+                        }
+                        #endregion
+                    }
+                    #endregion
+
+                    #region 对固定车位进行处理 这里提取 已定位的车位区域，需要考虑 柱子的宽度 车道的宽度 
+
+                    List<Element> needlFixedParkingFS = _Methods.GetTarlElesByRegion(doc, _regionCurves, allFixedParkingFS);
+                    Paths_xyz unionParkingSplace = GetParkingSpaceUnion(doc, needlFixedParkingFS);
+
+                    CurveArrArray allFixedParkingCurveArray = _Methods.ListLinesToCurveArrArray(_Methods.GetListClosedtLineFromListPoints(unionParkingSplace));
+                    foreach (CurveArray curveArray in allFixedParkingCurveArray)
+                        nowObstacleCurveArrArray.Append(curveArray);
+
+                    #endregion
+
+                    #region 用停车位空间进行裁剪 未采用
+                    //Paths subjsPlace = clipper_methods.Paths_xyzToPaths(new Paths_xyz() { _Methods.GetUniqueXYZFromCurves(_regionCurves) });
+                    //Paths clipsFiexedParking = clipper_methods.Paths_xyzToPaths(_Methods.GetUniqueXYZFromCurves(allFixedParkingCurveArray));
+                    //Paths_xyz canPlacedRegion = clipper_methods.PathsToPaths_xyz(RegionAlgorithm.RegionCropctDifference(subjsPlace, clipsFiexedParking));
+
+                    //if (canPlacedRegion.Count < 1)
+                    //    continue;
+                    //_regionCurves = _Methods.LinesToCurveArray(_Methods.GetClosedLinesFromPoints(canPlacedRegion.First()));
+                    #endregion
+
+                    #region 得到目标区域内的相关属性线条 开启停车sweep算法
+                    List<Curve> nowRegionPropertyLines = _Methods.GetCurvesInTarRegion(doc, _regionCurves, allCurves);
+
+                    List<Point> Max_tar_columnplaceXYZs = new List<Point>(); //求出停车位的放置点
+                    List<Point> Max_tar_placeXYZs = new List<Point>();
+                    if (CMD.isOptimalAlgorithm == true)
+                    {
+                        Max_tar_placeXYZs = parkingAlgorithm.tarMaxSweep(doc, _regionCurves, nowObstacleCurveArrArray, nowRegionPropertyLines, out Max_tar_columnplaceXYZs);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+                    }
+                    else if (CMD.isOptimalAlgorithm == false)
+                    {
+                        Max_tar_placeXYZs = parkingAlgorithm.tarSweep(doc, _regionCurves, nowObstacleCurveArrArray, nowRegionPropertyLines, out Max_tar_columnplaceXYZs);//此处需要添加 障碍物过滤，源于 clipper裁剪的结果中 包含空洞的边界,该处偷懒，直接过滤了所有障碍物边界，
+                    }
+                    transactionNow.LayoutParking(Max_tar_placeXYZs, Max_tar_columnplaceXYZs, CMD.layoutMethod);//开启放置事务  
+                    #endregion
+
+                    //}
+                    i++;
+
+                    #region 计时器
+                    //if (this.m_progressTracker.StopTask) break;
+                    //this.m_progressTracker.Current++;
+                    #endregion
+                }
+                //this.m_progressTracker.StopTracking_TS();
+            }
+            #endregion
+
+            #region 将可停车region 点集 写入entity 记录数据 设置entity 将上述生成的各个停车区域点集 存入地库外墙线线圈group的entity
+
+            SetEntityToBaseWallLoop(doc, _schemaGuid, CMD.baseMentWallLoopId, regionAlgorithm.parkingRegionsPoints); //Entity赋值
+
+            #endregion
+            DataStatistics(doc, basementWallRegion);
+
+            #region GC 垃圾回收 Garbage Collector
+            GC.Collect();
+            #endregion
+
+        }
+        /// <summary>
+        /// 选择地库设计区域 组名设置为 地库_地库外墙线
+        /// </summary>
+        public void SetControlRegionBoundary(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            var uidoc = uiapp.ActiveUIDocument;
+            var doc = uidoc.Document;
+            var sel = uidoc.Selection;
+            var acvtiView = doc.ActiveView;
+            #endregion
+
+            #region 点选地库外墙边界线 该处略作调整，需要把线组group组名需要包含字段 “地库_地库外墙线” 判断线圈是否闭合 判断线圈内所有线样式是否为 “地库_地库外墙线”记录数据 1. 记录选择地库_地库外墙线组Id
+            var _filledRegion = doc.GetElement(sel.PickObject(ObjectType.Element, new SelPickFilter_FilledRegion(), "请点选详图区域，地库外墙线线圈（线样式为绿色）")) as FilledRegion;
+            FilledRegionType _filledRegionType = doc.GetElement(_filledRegion.GetTypeId()) as FilledRegionType;
+            if (!_filledRegionType.Name.Contains("地库外墙线")) throw new NotImplementedException("选择的详图区域类型名字不包含字段“地库外墙线”，请确认是否正确设置，或选择错误。");
+            #endregion
+
+
+            #region 求出所有的线样式 Ids
+            //ElementId redLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_场地控制红线");
+            ElementId obstacleLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_障碍物边界线");
+            //ElementId mainRoadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_主车道中心线");
+            ElementId baseWallLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_地库外墙线");
+            //ElementId roadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_次车道中心线");
+            //ElementId redLineOffsetStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_红线退距线");
+            #endregion
+
+            #region 求出组内唯一详图区域，作为地库_地库外墙线线圈
+            //List<ElementId> elementIds = _group.GetMemberIds().ToList();
+            //List<Element> elements = _Methods.EleIdsToEles(doc, elementIds);
+
+            //List<FilledRegion> filledRegions = new List<FilledRegion>();
+
+            //elements.ForEach(p =>
+            //{
+            //    if (p is FilledRegion) filledRegions.Add(p as FilledRegion);
+            //});
+
+            //int fRegions = filledRegions.Count;
+
+            //if (fRegions > 1) throw new NotImplementedException("当前组内地库外墙线详图区域不唯一，请确认。");
+            //else if (fRegions == 0) throw new NotImplementedException("当前组内不存在地库外墙线详图区域，请确认。");
+
+            var basementWallLoop = _filledRegion.GetBoundaries().First();
+            var basementWallCurves = _Methods.CurveLoopToCurveArray(basementWallLoop);
+
+            #region 为地库_地库外墙线赋予线样式
+            foreach (Curve curve in basementWallCurves)
+                curve.SetGraphicsStyleId(baseWallLineStyleId);
+
+            #endregion
+
+            #endregion
+
+            #region 点选地库外墙边界线 该处略作调整，需要把线组group组名需要包含字段 “地库_地库外墙线” 判断线圈是否闭合 判断线圈内所有线样式是否为 “地库_地库外墙线”记录数据 1. 记录选择地库_地库外墙线组Id
+            //var basementWallRegion = _Methods.GetCurvesFromCurveGroup(_group);
+            //var basementWallLoop = new CurveLoop();
+            //bool isLoop = _Methods.IsCurveLoop(basementWallRegion, out basementWallLoop);
+            //if (!isLoop) throw new NotImplementedException("当前线框，组名为" + _group.Name + "，该组内线圈未闭合。");
+
+            //string _GraphicsStyle_frist_name;//得到Group内线样式
+            //bool iSame = _Methods.IsSameAllCurveLineStyleFromGroup(doc, _group, out _GraphicsStyle_frist_name);
+            //if (!iSame) throw new NotImplementedException("当前线框，组名为" + _group.Name + "，该组内所有线条的线样式未统一为 “地库_地库外墙线”。");
+            //else if(_GraphicsStyle_frist_name != "地库_地库外墙线") throw new NotImplementedException("当前线框，组名为" + _group.Name + "，该组内所有线条的线样式未统一为 “地库_地库外墙线”。");
+
+            CMD.baseMentWallLoopId = _filledRegion.Id;//记录选择的 地库_地库外墙线组Id 
+            #endregion
+
+            #region 求出当前可停车区域，以详图填充方式展现
+
+            RegionAlgorithm regionAlgorithm = new RegionAlgorithm(doc, basementWallCurves);
+
+            using (var deleteTrans = new Transaction(doc, "删除所有未锁定停车位、柱子以及diretShape。"))//启动事务 删除当前地库外墙线区域内的停车位和柱子族实例（未锁定）
+            {
+                deleteTrans.Start();
+                doc.Delete(regionAlgorithm.unfixedParkingFS);
+                //doc.Delete(regionAlgorithm.fixedParkingAndColumnFS);
+                //doc.Delete(regionAlgorithm.directShapes);
+                doc.Delete(regionAlgorithm.filledRegions_singleParkignPlace);
+                deleteTrans.Commit();
+            }
+            #region 求出目标填充样式
+            ElementId _filledRegionTypeId = GetTarFilledRegionTypeId(doc, "地库_单个停车区域");
+            #endregion
+
+            CurveArrArray firstCanPlacedRegions = regionAlgorithm.parkingCurveArrArray;//布尔计算后的目标停车区域
+            //double moveDistance = doc.ActiveView.GenLevel.ProjectElevation;
+            foreach (CurveArray curveArray in firstCanPlacedRegions)
+            {
+                //_Methods.ShowTempGeometry(doc, curveArray);//将可停车区域的边界线 打印出来
+                #region 绘制详图填充区域
+                CreatFilledRegion(doc, _filledRegionTypeId, curveArray);
+                #endregion
+            }
+
+            #endregion
+
+            #region 记录数据 2. 设置entity 将上述生成的各个停车区域点集 存入地库外墙线线圈group的entity
+
+            SetEntityToBaseWallLoop(doc, _schemaGuid, CMD.baseMentWallLoopId, regionAlgorithm.parkingRegionsPoints); //Entity赋值
+
+            #endregion
+
+        }
+        /// <summary>
+        /// DocumentChanged事件注册
+        /// </summary>
+        public void DocumentChangedEventRegister(UIApplication uiapp)
+        {
+            uiapp.Application.DocumentChanged += new EventHandler<DocumentChangedEventArgs>(MainRoadChanged);
+        }
+        /// <summary>
+        /// DocumentChanged事件取消注册
+        /// </summary>
+        public void DocumentChangedEventUnRegister(UIApplication uiapp)
+        {
+            uiapp.Application.DocumentChanged -= new EventHandler<DocumentChangedEventArgs>(MainRoadChanged);
+        }
+        /// <summary>
+        /// 1 监控函数 2 进入外部事件，需要首尾取消和重新注册 documentchange 事件 3 经测试 对线条的操作，并不能实时响应监控函数
+        /// </summary>
+        public void MainRoadChanged(Object sender, DocumentChangedEventArgs args)
+        {
+            Document doc = args.GetDocument();
+            RequestHandlerDocumentChangeEvent rquestHandlerDocumentChangeEvent = new RequestHandlerDocumentChangeEvent();
+            ExternalEvent externalEvent = ExternalEvent.Create(rquestHandlerDocumentChangeEvent);
+            externalEvent.Raise();
+        }
+        /// <summary>
+        /// 刷新统计数据
+        /// </summary>
+        public void RefreshDataSatistis(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            #region 点选地库外墙边界线 该处略作调整，需要把线组group组名需要包含字段 “地库_地库外墙线” 判断线圈是否闭合 判断线圈内所有线样式是否为 “地库_地库外墙线”记录数据 1. 记录选择地库_地库外墙线组Id
+            var _group = doc.GetElement(sel.PickObject(ObjectType.Element, new SelPickFilter_Groups(), "请点选详图区域，地库外墙线线圈（线央视为绿色）")) as Group;
+            if (!_group.Name.Contains("地库外墙线")) throw new NotImplementedException("选择的线圈组名不包含字段“地库外墙线”，请确认是否正确设置组名，或选择错误。");
+            #endregion
+
+            #region 求出组内唯一详图区域，作为地库_地库外墙线线圈
+            List<ElementId> elementIds = _group.GetMemberIds().ToList();
+            List<Element> elements = _Methods.EleIdsToEles(doc, elementIds);
+
+            List<FilledRegion> filledRegions = new List<FilledRegion>();
+
+            elements.ForEach(p =>
+            {
+                if (p is FilledRegion) filledRegions.Add(p as FilledRegion);
+            });
+
+            int fRegions = filledRegions.Count;
+
+            if (fRegions > 1) throw new NotImplementedException("当前组内地库外墙线详图区域不唯一，请确认。");
+            else if (fRegions == 0) throw new NotImplementedException("当前组内不存在地库外墙线详图区域，请确认。");
+
+            var basementWallLoop = filledRegions.First().GetBoundaries().First();
+            var basementWallCurves = _Methods.CurveLoopToCurveArray(basementWallLoop);
+
+            #endregion
+
+            DataStatistics(doc, basementWallCurves);
+        }
+        /// <summary>
+        /// 检测地库强排所需线型是否必备
+        /// </summary>
+        public void CheckLineStyles(UIApplication uiapp)
+        {
+            #region 与revit文档交互入口
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            Selection sel = uidoc.Selection;
+            View acvtiView = doc.ActiveView;
+            #endregion
+
+            List<string> AllLineGraphicsStylNames = _Methods.getAllLineGraphicsStylNames(doc);
+            //判断必备线型是否存在
+            if (AllLineGraphicsStylNames.Contains("地库_场地控制红线")
+                && AllLineGraphicsStylNames.Contains("地库_障碍物边界线")
+                && AllLineGraphicsStylNames.Contains("地库_地库外墙线")
+                && AllLineGraphicsStylNames.Contains("地库_主车道中心线")
+                && AllLineGraphicsStylNames.Contains("地库_次车道中心线")
+                && AllLineGraphicsStylNames.Contains("地库_红线退距线"))
+            {
+                //TaskDialog.Show("正确", "地库强排所需线型，均已存在当前文档中");
+            }
+            else//逐个判断，线型是否存在
+            {
+                if (!AllLineGraphicsStylNames.Contains("地库_场地控制红线"))//线型不存在，便创建
+                {
+                    Category _category = _Methods.CreatLineStyle(doc, "地库_场地控制红线", 16, new Color(255, 0, 0));
+                }
+                if (!AllLineGraphicsStylNames.Contains("地库_障碍物边界线"))
+                {
+                    Category _category = _Methods.CreatLineStyle(doc, "地库_障碍物边界线", 2, new Color(0, 0, 0));
+                }
+                if (!AllLineGraphicsStylNames.Contains("地库_地库外墙线"))
+                {
+                    Category _category = _Methods.CreatLineStyle(doc, "地库_地库外墙线", 16, new Color(0, 166, 0));
+                }
+                if (!AllLineGraphicsStylNames.Contains("地库_主车道中心线"))
+                {
+                    Category _category = _Methods.CreatLineStyle(doc, "地库_主车道中心线", 2, new Color(255, 0, 0));
+                }
+                if (!AllLineGraphicsStylNames.Contains("地库_次车道中心线"))
+                {
+                    Category _category = _Methods.CreatLineStyle(doc, "地库_次车道中心线", 2, new Color(204, 153, 102));
+                }
+                if (!AllLineGraphicsStylNames.Contains("地库_红线退距线"))
+                {
+                    Category _category = _Methods.CreatLineStyle(doc, "地库_红线退距线", 16, new Color(255, 127, 0));
+                }
+                //if (!AllLineGraphicsStylNames.Contains("地库_工作框"))
+                //{
+                //    Category _category = _Methods.CreatLineStyle(doc, "地库_工作框", 2, new Color(0, 0, 0));
+                //}
+                //进行二次判断
+                AllLineGraphicsStylNames = _Methods.getAllLineGraphicsStylNames(doc);
+                if (AllLineGraphicsStylNames.Contains("地库_场地控制红线")
+                && AllLineGraphicsStylNames.Contains("地库_障碍物边界线")
+                && AllLineGraphicsStylNames.Contains("地库_地库外墙线")
+                && AllLineGraphicsStylNames.Contains("地库_主车道中心线")
+                && AllLineGraphicsStylNames.Contains("地库_红线退距线"))
+                {
+                    //TaskDialog.Show("正确", "地库强排所需线型，均已存在当前文档中");
+                }
+                else
+                {
+                    //throw new NotImplementedException("地库必备线型，自动创建失败，请手动创建");
+                }
+            }
+        }
+        //以下为各种method—————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
+
+        /// <summary>
+        /// 获取其他障碍物，如直线型坡道架空空间，同时赋予线属性
+        /// </summary>
+        public CurveArrArray GetOthersObstalRegions(Document doc, CurveArray _regionCurves, List<Element> othersObstalFs)
+        {
+            List<FamilyInstance> othersObstalFses = _Methods.GetTarlElesByRegion(doc, _regionCurves, othersObstalFs).Cast<FamilyInstance>().ToList();
+            List<CurveLoop> CurveLoops = new List<CurveLoop>();
+            othersObstalFses.ForEach(p =>
+            {
+                double wight = Methods.MilliMeterToFeet(6000) / 2;
+                double height = Methods.MilliMeterToFeet(12000);
+                Transform transform = (p as FamilyInstance).GetTransform();
+                XYZ leftDownPoint = new XYZ(0, -wight, 0);
+                XYZ leftUpPoint = new XYZ(0, wight, 0);
+                XYZ rightUpPoint = new XYZ(height, wight, 0);
+                XYZ rightDownPoint = new XYZ(height, -wight, 0);
+                XYZ _leftDownPoint = transform.OfPoint(leftDownPoint);
+                XYZ _leftUpPoint = transform.OfPoint(leftUpPoint);
+                XYZ _rightUpPoint = transform.OfPoint(rightUpPoint);
+                XYZ _rightDownPoint = transform.OfPoint(rightDownPoint);
+                CurveLoop curves = new CurveLoop();
+                curves.Append(Line.CreateBound(_leftDownPoint, _leftUpPoint));
+                curves.Append(Line.CreateBound(_leftUpPoint, _rightUpPoint));
+                curves.Append(Line.CreateBound(_rightUpPoint, _rightDownPoint));
+                curves.Append(Line.CreateBound(_rightDownPoint, _leftDownPoint));
+                CurveLoops.Add(curves);
+            });
+
+            CurveArrArray curveArrArray = _Methods.CurveLoopsToCurveArrArray(CurveLoops);
+
+            return curveArrArray;
+        }
+        /// <summary>
+        /// 将curveArray线圈绘制为详图填充区域
+        /// </summary>
+        public void CreatFilledRegion(Document doc, ElementId filledRegionTypeId, CurveArray curveArray)
         {
             View acvtiView = doc.ActiveView;
-            FamilySymbol parkingType = null;
-
-            string parkingTypeName = "停车位_详图线";//设定目标停车位族类型名字
-            string FamilyFilePath = @"W:\BIM_ARCH\03.插件\地库强排\族\停车位_详图线.rfa";//停车位族文件所在位置
-            parkingType = _FindFamilySymbolNeeded(doc, FamilyFilePath, parkingTypeName);
-
-            #region 开展事务组 按照区域内的点，将车位族布置进去
-            using (TransactionGroup transGroupCreateDwellingses = new TransactionGroup(doc, "地库强排"))
+            using (Transaction creatFilledRegion = new Transaction(doc, "creatFilledRegion"))
             {
-                if (transGroupCreateDwellingses.Start() == TransactionStatus.Started)//开启事务组
-                {
-                    modifyParking_H_W(doc, parkingType, CMD.parkingPlaceHeight, CMD.parkingPlaceWight);//调整车位的尺寸
+                creatFilledRegion.Start();
 
-                    List<FamilyInstance> parkingplaceInstances = new List<FamilyInstance>();
-                    if (CMD.layoutMethod == "垂直式_0°")
-                    {
-                        parkingplaceInstances = PlaceParkingPlaces_2D(doc, parkingType, tar_placeXYZs, acvtiView);//开启事务 放置车位
-                    }
-                    else if (CMD.layoutMethod == "垂直式_90°")
-                    {
-                        parkingplaceInstances = PlaceParkingPlaces_2D(doc, parkingType, tar_placeXYZs, acvtiView);
-                        RotateFamilyInstances(doc, parkingplaceInstances, Math.PI / 2);//对所有车位族实例进行旋转
-                    }
-                    else
-                    {
-                        TaskDialog.Show("error", "未选择停车方式");
-                    }
-                    transGroupCreateDwellingses.Assimilate();
-                }
-                else
+                CurveLoop curves = _Methods.CurveArrayToCurveLoop(curveArray);
+                FilledRegion filledRegion = FilledRegion.Create(doc, filledRegionTypeId, acvtiView.Id, new List<CurveLoop>() { curves });
+
+                OverrideGraphicSettings ogs = new OverrideGraphicSettings();//设置投影线、截面线颜色
+                ogs.SetSurfaceTransparency(100);
+                acvtiView.SetElementOverrides(filledRegion.Id, ogs);
+                creatFilledRegion.Commit();
+            }
+        }
+        /// <summary>
+        /// 求出文档中符合目标字段的详图填充样式，如果不存在，则创建
+        /// </summary>
+        public ElementId GetTarFilledRegionTypeId(Document doc, string str)
+        {
+            var filledRegionTypes = (new FilteredElementCollector(doc)).OfCategory(BuiltInCategory.OST_DetailComponents).OfClass(typeof(FilledRegionType)).ToElements();
+            var fillPatternTypes = (new FilteredElementCollector(doc)).OfClass(typeof(FillPatternElement)).ToElements();
+            Element _filledRegionType = filledRegionTypes.First();
+            Element _fillPatternTypes = fillPatternTypes.First(p => p.Name == "<实体填充>");
+            List<string> filledRegionTypeNames = filledRegionTypes.Select(p => p.Name).ToList();
+            if (filledRegionTypeNames.Contains(str))
+            {
+                _filledRegionType = filledRegionTypes.Where(p => p.Name == str).First();
+            }
+            else
+            {
+                using (Transaction creatFilledRegionType = new Transaction(doc, "creatFilledRegionType"))
                 {
-                    transGroupCreateDwellingses.RollBack();
+                    creatFilledRegionType.Start();
+                    FilledRegionType filledRegionType = (_filledRegionType as FilledRegionType).Duplicate(str) as FilledRegionType;
+                    filledRegionType.ForegroundPatternId = _fillPatternTypes.Id;
+                    creatFilledRegionType.Commit();
                 }
+            }
+            return _filledRegionType.Id;
+        }
+        /// <summary>
+        /// 将directShape线圈转化为curveArray
+        /// </summary>
+        public CurveArray GetCurveArrayFromDirectshape(DirectShape selDs)
+        {
+            Options opts = new Options();
+            List<GeometryObject> objs = selDs.get_Geometry(opts).ToList();
+            CurveArray selCurveLoop = new CurveArray();//选择的停车区域
+            foreach (GeometryObject geometryObject in objs)
+            {
+                if (geometryObject is Curve)
+                {
+                    selCurveLoop.Append(geometryObject as Curve);
+                }
+            }
+            return selCurveLoop;
+        }
+        /// <summary>
+        /// 给group中写入entity，本次读取数据为点集列表
+        /// </summary>
+        public Paths_xyz ReadEntityFromBaseWallLoop(Document doc, Guid guid, ElementId elementId)
+        {
+            Schema schema = Schema.Lookup(guid);//guid为固定guid
+            Paths_xyz firstParkingPlaces = new Paths_xyz();
+            Entity _entity = doc.GetElement(elementId).GetEntity(schema);
+            for (int i = 0; i < schema.ListFields().Count; i++)
+            {
+                string _fieldBuilderName = fieldBuilderName + i.ToString();
+                IList<XYZ> xYZs = _entity.Get<IList<XYZ>>(_fieldBuilderName, DisplayUnitType.DUT_MILLIMETERS);
+                if (xYZs.Count > 2)
+                {
+                    firstParkingPlaces.Add(xYZs.ToList());
+                }
+            }
+            return firstParkingPlaces;
+        }
+        /// <summary>
+        /// 给group中写入entity，本次写入数据为点集列表
+        /// </summary>
+        public void SetEntityToBaseWallLoop(Document doc, Guid guid, ElementId elementId, Paths_xyz paths_Xyz)
+        {
+            #region 设置entity 将上述生成的各个停车区域点集 存入地库外墙线线圈group的entity
+
+            Schema schema = Schema.Lookup(guid);//guid为固定guid
+            if (schema == null)
+            {
+                SchemaBuilder schemaBulider = new SchemaBuilder(_schemaGuid);
+                schemaBulider.SetReadAccessLevel(AccessLevel.Public);
+                schemaBulider.SetWriteAccessLevel(AccessLevel.Public);
+                schemaBulider.SetSchemaName("canParkingPlaces");
+                schemaBulider.SetDocumentation("该类架构用于存储各个可停车区域的点集。");
+
+                int i = 0;
+                while (i < 256)
+                {
+                    string _fieldBuilderName = fieldBuilderName + i.ToString();
+                    FieldBuilder fieldBuilder = schemaBulider.AddArrayField(_fieldBuilderName, typeof(XYZ));
+                    fieldBuilder.SetUnitType(UnitType.UT_Length);
+                    i++;
+                }
+                schema = schemaBulider.Finish();
+            }
+            else
+            {
+                //Schema.EraseSchemaAndAllEntities(schema, true);
+                //_Methods.TaskDialogShowMessage(schema.GUID.ToString());
             }
             #endregion
-        } /// <summary>
-          /// 判断组内线样式是否统一
-          /// </summary>
-          /// <param name="doc"></param>
-          /// <param name="_group"></param>
-          /// <param name="_GraphicsStyle_frist_name"></param>
-          /// <returns></returns>
-        public bool IsSameAllDetailCurveLineStyleFromGroup(Document doc, Group _group, out string _GraphicsStyle_frist_name)
-        {
-            bool iSmae = false;
-            ICollection<ElementId> _EleIds = _group.GetMemberIds();
-            int _count = _EleIds.Count;
-            int __count = 0;
 
-            DetailCurve _DetailCurve_frist = doc.GetElement(_EleIds.First()) as DetailCurve;//提取组内首根线 确定组内线样式
-            GraphicsStyle _GraphicsStyle_frist = _DetailCurve_frist.LineStyle as GraphicsStyle;
-            _GraphicsStyle_frist_name = _GraphicsStyle_frist.Name;
-            foreach (ElementId _eleId in _EleIds)
+            #region entity赋值
+
+            Entity entity = new Entity(schema);
+
+            for (int i = 0; i < paths_Xyz.Count; i++)
             {
-                DetailCurve _DetailCurve = doc.GetElement(_eleId) as DetailCurve;
-                GraphicsStyle _GraphicsStyle = _DetailCurve.LineStyle as GraphicsStyle;
-                if (_GraphicsStyle_frist_name == _GraphicsStyle.Name)
-                {
-                    __count += 1;
-                }
+                string _fieldBuilderName = fieldBuilderName + i.ToString();
+                IList<XYZ> xYZs = paths_Xyz[i];
+                entity.Set<IList<XYZ>>(_fieldBuilderName, xYZs, DisplayUnitType.DUT_MILLIMETERS);
             }
-            if (_count == __count)
+            using (var setGroupEntity = new Transaction(doc, "地库_地库外墙线线组 set entity"))//对一个元素 Set相同schema下的Entity，以最新entity的数据为准
             {
-                iSmae = true;
+                setGroupEntity.Start();
+                doc.GetElement(elementId).SetEntity(entity);
+                //Schema.EraseSchemaAndAllEntities(schema, true);
+                setGroupEntity.Commit();
             }
-            return iSmae;
+            #endregion
         }
         /// <summary>
-        /// 旋转族实例
+        /// 从静态数据 读取地库_地库外墙线 对组名、线圈是否闭合、线圈线样式是否统一,进行审查；
         /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="parkingplaceInstances"></param>
-        /// <param name="_angle"></param>
-        public void RotateFamilyInstances(Document doc, List<FamilyInstance> parkingplaceInstances, double _angle)
+        /// <returns></returns>
+        public CurveArray GetRegionFromMemoryEleId(Document doc, ElementId eleId)
         {
-            using (Transaction _rotateTrans = new Transaction(doc))
+            #region 点选地库外墙边界线 该处略作调整，需要把线组group组名需要包含字段 “地库_地库外墙线” 判断线圈是否闭合 判断线圈内所有线样式是否为 “地库_地库外墙线”记录数据 1. 记录选择地库_地库外墙线组Id
+            var _filledRegion = doc.GetElement(eleId) as FilledRegion;
+
+            FilledRegionType _filledRegionType = doc.GetElement(_filledRegion.GetTypeId()) as FilledRegionType;
+            if (!_filledRegionType.Name.Contains("地库外墙线")) throw new NotImplementedException("选择的详图区域类型名字不包含字段“地库外墙线”，请确认是否正确设置，或选择错误。");
+            #endregion
+
+            #region 求出所有的线样式 Ids
+            //ElementId redLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_场地控制红线");
+            ElementId obstacleLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_障碍物边界线");
+            //ElementId mainRoadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_主车道中心线");
+            ElementId baseWallLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_地库外墙线");
+            //ElementId roadLineStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_次车道中心线");
+            //ElementId redLineOffsetStyleId = _Methods.GetTarGraphicsStyleId(doc, "地库_红线退距线");
+            #endregion
+
+            #region 求出组内唯一详图区域，作为地库_地库外墙线线圈
+
+            var basementWallLoop = _filledRegion.GetBoundaries().First();
+            var basementWallCurves = _Methods.CurveLoopToCurveArray(basementWallLoop);
+
+            #region 为地库_地库外墙线赋予线样式
+            foreach (Curve curve in basementWallCurves)
+                curve.SetGraphicsStyleId(baseWallLineStyleId);
+
+            #endregion
+            #endregion
+
+            return basementWallCurves;
+        }
+        /// <summary>
+        /// 输出数据
+        /// </summary>
+        public void DataStatistics(Document doc, CurveArray controlRegion)
+        {
+            #region 计算 地库_地库外墙线 线圈面积
+            CurveLoop baseMentWallLoop = new CurveLoop();
+            bool isLoop = _Methods.IsCurveLoop(controlRegion, out baseMentWallLoop);
+            if (!isLoop) throw new NotImplementedException("当前选择线圈组内，线圈未闭合。");
+            double _Area = ExporterIFCUtils.ComputeAreaOfCurveLoops(new List<CurveLoop>() { baseMentWallLoop }); //计算面积，鞋带法 对数据需要进行小数取位数
+            _Area = UnitUtils.Convert(_Area, DisplayUnitType.DUT_SQUARE_FEET, DisplayUnitType.DUT_SQUARE_METERS);
+            #endregion
+
+            List<FamilyInstance> parkingFses = (new FilteredElementCollector(doc, doc.ActiveView.Id))
+                .OwnedByView(doc.ActiveView.Id)
+                .OfCategory(BuiltInCategory.OST_DetailComponents)
+                .OfClass(typeof(FamilyInstance))
+                .WhereElementIsNotElementType()
+                .Cast<FamilyInstance>()
+                .ToList();
+
+            List<Element> selParkingFses = new List<Element>();
+            parkingFses.ForEach(p =>
             {
-                _rotateTrans.Start("_rotateTrans");
-                foreach (FamilyInstance fs in parkingplaceInstances)
+                Parameter basementFamilyType = p.Symbol.get_Parameter(FirmStandards.FamilyTypeIDForAPI);
+                if (basementFamilyType != null)
                 {
-                    LocationPoint _point = fs.Location as LocationPoint;
-                    if (_point != null)
+                    string basementFamilyTypeStr = basementFamilyType.AsString();
+                    if (basementFamilyTypeStr != null && basementFamilyTypeStr != "")
                     {
-                        XYZ aa = _point.Point;
-                        XYZ cc = new XYZ(aa.X, aa.Y, aa.Z + 10);
-                        Line _axis = Line.CreateBound(aa, cc);
-                        _point.Rotate(_axis, _angle);
-                    }
-                }
-                _rotateTrans.Commit();
-            }
-        }
-        /// <summary>
-        /// 基于线的数组，进行楼板绘制，继而求出区域面积
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="_Lines"></param>
-        /// <returns></returns>
-        public double GetAreafromNewfloor(Document doc, List<Line> _Lines)
-        {
-            double _area = 0;
-            CurveArray linesArray = new CurveArray();
-            foreach (Line _line in _Lines)
-            {
-                Curve _curve = _line as Curve;
-                linesArray.Append(_curve);
-            }
-            Floor _newFloor = null;
-            using (Transaction newFloor = new Transaction(doc))
-            {
-                newFloor.Start("newFloor");
-                _newFloor = doc.Create.NewFloor(linesArray, false);
-                newFloor.Commit();
-            }
-            Parameter _floorArea = _newFloor.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED);
-            _area = _floorArea.AsDouble();
-            return _area;
-        }
-        /// <summary>
-        /// 寻找对应高度数据的标高
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="findElevation"></param>
-        /// <returns></returns>
-        public Level FindLevel(Document doc, double findElevation)
-        {
-            Level level = null;
-            double _elevation = UnitUtils.Convert(findElevation, DisplayUnitType.DUT_MILLIMETERS, DisplayUnitType.DUT_DECIMAL_FEET);
-
-            List<Element> eles = (new FilteredElementCollector(doc)).OfCategory(BuiltInCategory.OST_Levels).OfClass(typeof(Level)).WhereElementIsNotElementType().ToElements().ToList();
-            foreach (Element ele in eles)
-            {
-                Level temp_level = ele as Level;
-                if (temp_level.Elevation == findElevation)
-                {
-                    level = temp_level;
-                    break;
-                }
-            }
-            return level;
-        }
-
-        #region 调整族 类型参数 ， 以及载入处理
-        /// <summary>
-        /// 创建停车位族实例2D
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="placePoint"></param>
-        /// <param name="parkingType"></param>
-        /// <param name="level"></param>
-        /// <returns></returns>
-        public List<FamilyInstance> PlaceParkingPlaces_2D(Document doc, FamilySymbol parkingType, List<XYZ> placeXYZs, View activeview)
-        {
-            List<FamilyInstance> familyInstances = new List<FamilyInstance>();
-            using (Transaction creatNewGroup = new Transaction(doc))
-            {
-                creatNewGroup.Start("placeParkingPlace");
-                if (!parkingType.IsActive)//判断族类型是否被激活
-                {
-                    parkingType.Activate();
-                }
-                foreach (XYZ _xyz in placeXYZs)
-                {
-                    FamilyInstance parkingPlace = doc.Create.NewFamilyInstance(_xyz, parkingType, activeview);
-                    //System.Windows.Forms.Application.DoEvents();
-                    familyInstances.Add(parkingPlace);
-                }
-                creatNewGroup.Commit();
-            }
-            return familyInstances;
-        }
-        /// <summary>
-        /// 创建停车位族实例3D
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="placePoint"></param>
-        /// <param name="parkingType"></param>
-        /// <param name="level"></param>
-        /// <returns></returns>
-        public List<FamilyInstance> PlaceParkingPlaces_3D(Document doc, FamilySymbol parkingType, List<XYZ> placeXYZs, Level level)
-        {
-            List<FamilyInstance> familyInstances = new List<FamilyInstance>();
-            using (Transaction creatNewGroup = new Transaction(doc))
-            {
-                creatNewGroup.Start("placeParkingPlace");
-                if (!parkingType.IsActive)//判断族类型是否被激活
-                {
-                    parkingType.Activate();
-                }
-                foreach (XYZ _xyz in placeXYZs)
-                {
-                    FamilyInstance parkingPlace = doc.Create.NewFamilyInstance(_xyz, parkingType, level, StructuralType.NonStructural);
-                    //System.Windows.Forms.Application.DoEvents();
-                    familyInstances.Add(parkingPlace);
-                }
-                creatNewGroup.Commit();
-            }
-            return familyInstances;
-        }
-        /// <summary>
-        /// 创建停车位族实例2D
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="placePoint"></param>
-        /// <param name="parkingType"></param>
-        /// <param name="level"></param>
-        /// <returns></returns>
-        public FamilyInstance placeParkingPlace_2D(Document doc, XYZ placePoint, FamilySymbol parkingType, View view)
-        {
-            FamilyInstance familyInstance = null;
-
-            using (Transaction creatNewGroup = new Transaction(doc))
-            {
-                creatNewGroup.Start("placeParkingPlace");
-                if (!parkingType.IsActive)//判断族类型是否被激活
-                {
-                    parkingType.Activate();
-                }
-                FamilyInstance parkingPlace = doc.Create.NewFamilyInstance(placePoint, parkingType, view);
-                creatNewGroup.Commit();
-            }
-            return familyInstance;
-        }
-        /// <summary>
-        /// 修改停车位尺寸
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="parkingType"></param>
-        /// <param name="Height"></param>
-        /// <param name="Width"></param>
-        /// <returns></returns>
-        public void modifyParking_H_W(Document doc, FamilySymbol parkingType, double Height, double Width)
-        {
-            using (Transaction modifyParking_H_W = new Transaction(doc))
-            {
-                modifyParking_H_W.Start("modifyParking_H_W");
-                Parameter DWparametericfloor_length = parkingType.LookupParameter("Height");//查找族类型参数
-                Parameter DWparametericfloor_width = parkingType.LookupParameter("Width");
-                DWparametericfloor_length.Set(Height);//修改族类型参数
-                DWparametericfloor_width.Set(Width);
-                modifyParking_H_W.Commit();
-            }
-        }
-        #endregion
-
-        #region 判断 停车位族 是否存在于 当前文档中，不存在，则载入
-        /// <summary>
-        /// 通过两层方法(如果当前文档不存在目标name族，则载入族文件)，确定当前文档，存在停车位族
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="FamilyFilePath"></param>
-        /// <param name="parkingTypeName"></param>
-        /// <returns></returns>
-        public FamilySymbol _FindFamilySymbolNeeded(Document doc, string FamilyFilePath, string parkingTypeName)
-        {
-            FamilySymbol parkingType = null;
-            bool symbolFound = FindFamilySymbolNeeded(doc, parkingTypeName, out parkingType);//寻找目标停车位族类型
-            if (!symbolFound)
-            {
-                Family parkFamily = null;
-                bool loadFamily = reLoadFamily(doc, FamilyFilePath, out parkFamily);
-                ICollection<ElementId> eleIds = parkFamily.GetValidTypes();//目前该函数无效，未查明原因
-                if (loadFamily)
-                {
-                    symbolFound = FindFamilySymbolNeeded(doc, parkingTypeName, out parkingType);
-                }
-                else
-                {
-                    throw new NotImplementedException("基础停车位族载入失败。");
-                    //TaskDialog.Show("error","基础停车位族载入失败。");
-                }
-            }
-            return parkingType;
-        }
-        /// <summary>
-        /// 通过name进行索引需要的族类型
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="TargetSymbolName"></param>
-        /// <param name="targetFamilySymbal"></param>
-        /// <returns></returns>
-        public bool FindFamilySymbolNeeded(Document doc, string TargetSymbolName, out FamilySymbol targetFamilySymbal)
-        {
-            ElementFilter parkingCategoryFilter = new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents);
-            //ElementFilter parkingCategoryFilter = new ElementCategoryFilter(BuiltInCategory.OST_GenericAnnotation);
-            ElementFilter familySymbolFilter = new ElementClassFilter(typeof(FamilySymbol));
-            LogicalAndFilter andFilter = new LogicalAndFilter(parkingCategoryFilter, familySymbolFilter);
-
-            FilteredElementCollector parkingSymbols = new FilteredElementCollector(doc);
-            parkingSymbols.WherePasses(andFilter);
-            bool symbolFound = false;
-            targetFamilySymbal = null;
-            foreach (FamilySymbol element in parkingSymbols)
-            {
-                if (element.Name == TargetSymbolName)
-                {
-                    symbolFound = true;
-                    targetFamilySymbal = element;
-                    break;
-                }
-            }
-            return symbolFound;
-        }
-        /// <summary>
-        /// 通过文件路径字符串，将族载入到当前文档
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="FamilyFilePath"></param>
-        /// <param name="family"></param>
-        /// <returns></returns>
-        public bool reLoadFamily(Document doc, string FamilyFilePath, out Family family)
-        {
-            family = null;
-            bool loadSuccess = false;
-            using (Transaction loadFamily = new Transaction(doc))
-            {
-                loadFamily.Start("loadFamily");
-                projectFamLoadOption pjflo = new projectFamLoadOption();
-                loadSuccess = doc.LoadFamily(FamilyFilePath, pjflo, out family);//经过测试
-                if (loadSuccess)
-                {
-                    foreach (ElementId parkingTypeId in family.GetValidTypes())//该函数无效，获取不出一个family的族类型；
-                    {
-                        FamilySymbol parkingTypeName = doc.GetElement(parkingTypeId) as FamilySymbol;
-                        if (parkingTypeName != null)
+                        if (FirmStandards.BasementFamilytypeID[basementFamilyTypeStr] == BasementFamilyType.ParkingSpace)
                         {
-                            //CMD.TestList.Add(parkingTypeName.Name);
+                            selParkingFses.Add(p as Element);
                         }
                     }
                 }
-                loadFamily.Commit();
-            }
-            return loadSuccess;
+            });
+
+            selParkingFses = _Methods.GetTarlElesByRegion(doc, controlRegion, selParkingFses);
+
+            double _ParkingEfficiency = _Area / selParkingFses.Count;//计算停车效率
+            _Area = _Methods.TakeNumberAfterDecimal(_Area, 2);
+            _ParkingEfficiency = _Methods.TakeNumberAfterDecimal(_ParkingEfficiency, 2);
+
+            string str_Time = @"计算时间：" + DateTime.Now.ToString();
+            string str_Area = @"建筑面积：" + _Area.ToString() + @" ㎡；";
+            string parkingplace_count = @"停车位数辆：" + selParkingFses.Count.ToString() + @" 辆；";
+            string str_ParkingEfficiency = @"停车效率：" + _ParkingEfficiency.ToString() + @" ㎡/车；" + "\n";
+
+            CMD.TestList.Add(str_Time);
+            CMD.TestList.Add(str_Area);
+            CMD.TestList.Add(parkingplace_count);
+            CMD.TestList.Add(str_ParkingEfficiency);
         }
         /// <summary>
-        /// 载入族提示是否要覆盖族参数
+        /// 获取Boundingbox的四个角点
         /// </summary>
-        public class projectFamLoadOption : IFamilyLoadOptions
+        public List<XYZ> GetBoundingBoxFourCornerPoint(BoundingBoxXYZ _boundingBoxXYZ)
         {
-            bool IFamilyLoadOptions.OnFamilyFound(bool familyInUse, out bool overwriteParameterValues)
+            XYZ min = _boundingBoxXYZ.Min;
+            XYZ max = _boundingBoxXYZ.Max;
+
+            return GetRectangeFourCornerPointsFromTwoPoins(min, max);
+        }
+        /// <summary>
+        /// 通过两个点求正交矩形线圈
+        /// </summary>
+        public CurveArray GetRectangle(XYZ point01, XYZ point02)
+        {
+            List<XYZ> controlRegionPoints = GetRectangeFourCornerPointsFromTwoPoins(point01, point02);
+            return _Methods.LinesToCurveArray(_Methods.GetClosedLinesFromPoints(controlRegionPoints));
+        }
+        /// <summary>
+        /// 通过对角线点获取矩形的四个角点
+        /// </summary>
+        public List<XYZ> GetRectangeFourCornerPointsFromTwoPoins(XYZ point01, XYZ point02)
+        {
+            double xPoint01 = point01.X;
+            double yPoint01 = point01.Y;
+            double xPoint02 = point02.X;
+            double yPoint02 = point02.Y;
+            XYZ leftDownPoint = XYZ.Zero;
+            XYZ leftUpPoint = XYZ.Zero;
+            XYZ rightUpPoint = XYZ.Zero;
+            XYZ rightDownPoint = XYZ.Zero;
+            if (xPoint01 < xPoint02 && yPoint01 < yPoint02)
             {
-                overwriteParameterValues = true;
-                throw new NotImplementedException();
+                leftDownPoint = new XYZ(xPoint01, yPoint01, 0);
+                leftUpPoint = new XYZ(xPoint01, yPoint02, 0);
+                rightUpPoint = new XYZ(xPoint02, yPoint02, 0);
+                rightDownPoint = new XYZ(xPoint02, yPoint01, 0);
+            }
+            if (xPoint01 < xPoint02 && yPoint01 > yPoint02)
+            {
+                leftDownPoint = new XYZ(xPoint01, yPoint02, 0);
+                leftUpPoint = new XYZ(xPoint01, yPoint01, 0);
+                rightUpPoint = new XYZ(xPoint02, yPoint01, 0);
+                rightDownPoint = new XYZ(xPoint02, yPoint02, 0);
+            }
+            if (xPoint01 > xPoint02 && yPoint01 > yPoint02)
+            {
+                leftDownPoint = new XYZ(xPoint02, yPoint02, 0);
+                leftUpPoint = new XYZ(xPoint02, yPoint01, 0);
+                rightUpPoint = new XYZ(xPoint01, yPoint01, 0);
+                rightDownPoint = new XYZ(xPoint01, yPoint02, 0);
+            }
+            if (xPoint01 > xPoint02 && yPoint01 < yPoint02)
+            {
+                leftDownPoint = new XYZ(xPoint02, yPoint01, 0);
+                leftUpPoint = new XYZ(xPoint02, yPoint02, 0);
+                rightUpPoint = new XYZ(xPoint01, yPoint02, 0);
+                rightDownPoint = new XYZ(xPoint01, yPoint01, 0);
+            }
+            if (xPoint01 == xPoint02 || yPoint01 == yPoint02)
+            {
+                throw new NotImplementedException("所选定位点，构不成成立矩形的条件");
+            }
+            return new List<XYZ>() { leftDownPoint, leftUpPoint, rightUpPoint, rightDownPoint };
+        }
+
+        #region 将定位车位空间 做clipper union处理
+        /// <summary>
+        /// 获取指定区域内的停车位占据空间
+        /// </summary>
+        /// <returns></returns>
+        public Paths_xyz GetParkingSpaceUnion(Document doc, List<Element> allFixedParkingFS)
+        {
+            List<XYZ> northParkingLocation = GetNorthParkingFSLocationPoint(allFixedParkingFS);
+            List<XYZ> sourthParkingLocation = GetSourthParkingFSLocationPoint(allFixedParkingFS);
+
+            List<XYZ> eastParkingLocation = GetEastParkingFSLocationPoint(allFixedParkingFS);
+            List<XYZ> westthParkingLocation = GetWestParkingFSLocationPoint(allFixedParkingFS);
+
+            Paths northPointsToPaths = clipper_methods.Paths_xyzToPaths(NorthPointsToPaths_xyz(doc, northParkingLocation, CMD.parkingPlaceHeight - _Methods.PRECISION, CMD.parkingPlaceWight - _Methods.PRECISION, CMD.columnWidth - _Methods.PRECISION, CMD.columnBurfferDistance - _Methods.PRECISION));
+            Paths sorthPointsToPaths = clipper_methods.Paths_xyzToPaths(SourthPointsToPaths_xyz(doc, sourthParkingLocation, CMD.parkingPlaceHeight - _Methods.PRECISION, CMD.parkingPlaceWight - _Methods.PRECISION, CMD.columnWidth - _Methods.PRECISION, CMD.columnBurfferDistance - _Methods.PRECISION));
+
+            Paths eastPointsToPaths = clipper_methods.Paths_xyzToPaths(EastPointsToPaths_xyz(doc, eastParkingLocation, CMD.parkingPlaceHeight - _Methods.PRECISION, CMD.parkingPlaceWight - _Methods.PRECISION, CMD.columnWidth - _Methods.PRECISION, CMD.columnBurfferDistance - _Methods.PRECISION));
+            Paths westPointsToPaths = clipper_methods.Paths_xyzToPaths(WestPointsToPaths_xyz(doc, westthParkingLocation, CMD.parkingPlaceHeight - _Methods.PRECISION, CMD.parkingPlaceWight - _Methods.PRECISION, CMD.columnWidth - _Methods.PRECISION, CMD.columnBurfferDistance - _Methods.PRECISION));
+
+            northPointsToPaths.AddRange(sorthPointsToPaths);
+            northPointsToPaths.AddRange(eastPointsToPaths);
+            northPointsToPaths.AddRange(westPointsToPaths);
+
+            if (northPointsToPaths.Count < 1)
+            {
+                return new Paths_xyz();
             }
 
-            bool IFamilyLoadOptions.OnSharedFamilyFound(Family sharedFamily, bool familyInUse, out FamilySource source, out bool overwriteParameterValues)
-            {
-                source = FamilySource.Project;
-                overwriteParameterValues = true;
-                throw new NotImplementedException();
-            }
+            return clipper_methods.PathsToPaths_xyz(clipper_methods.RegionCropctUnion(northPointsToPaths, sorthPointsToPaths));
+        }
+        /// <summary>
+        /// 将北向点集转化为线圈点
+        /// </summary>
+        public Paths_xyz EastPointsToPaths_xyz(Document doc, List<XYZ> northParkingLocation, double height, double width, double columnWidth, double columnBurfferDistance)
+        {
+            Paths_xyz temp = new Paths_xyz();
+            northParkingLocation.ForEach(p => {
+
+                //XYZ leftDown = new XYZ(p.X - height / 2, p.Y - width / 2 - columnWidth - columnBurfferDistance * 2, 0);
+                //XYZ lefyUp = new XYZ(p.X + height / 2 + height, p.Y - width / 2 - columnWidth - columnBurfferDistance * 2, 0);
+                //XYZ rightUp = new XYZ(p.X + height / 2 + height, p.Y + width / 2 + columnWidth + columnBurfferDistance * 2, 0);
+                //XYZ rightDown = new XYZ(p.X - height / 2, p.Y + width / 2 + columnWidth + columnBurfferDistance * 2, 0);
+
+                XYZ leftDown = new XYZ(p.X - height / 2, p.Y - width / 2, 0);
+                XYZ lefyUp = new XYZ(p.X + height / 2 + height, p.Y - width / 2, 0);
+                XYZ rightUp = new XYZ(p.X + height / 2 + height, p.Y + width / 2, 0);
+                XYZ rightDown = new XYZ(p.X - height / 2, p.Y + width / 2, 0);
+
+                temp.Add(new Path_xyz() { leftDown, lefyUp, rightUp, rightDown });
+
+            });
+
+            return temp;
+        }
+        /// <summary>
+        /// 将北向点集转化为线圈点
+        /// </summary>
+        public Paths_xyz NorthPointsToPaths_xyz(Document doc, List<XYZ> northParkingLocation, double height, double width, double columnWidth, double columnBurfferDistance)
+        {
+            Paths_xyz temp = new Paths_xyz();
+            northParkingLocation.ForEach(p => {
+
+                //XYZ leftDown = new XYZ(p.X - width / 2 - columnWidth - columnBurfferDistance * 2, p.Y - height / 2, 0);
+                //XYZ lefyUp = new XYZ(p.X - width / 2 - columnWidth - columnBurfferDistance * 2, p.Y + height / 2 + height, 0);
+                //XYZ rightUp = new XYZ(p.X + width / 2 + columnWidth + columnBurfferDistance * 2, p.Y + height / 2 + height, 0);
+                //XYZ rightDown = new XYZ(p.X + width / 2 + columnWidth + columnBurfferDistance * 2, p.Y - height / 2, 0);
+
+                XYZ leftDown = new XYZ(p.X - width / 2, p.Y - height / 2, 0);
+                XYZ lefyUp = new XYZ(p.X - width / 2, p.Y + height / 2 + height, 0);
+                XYZ rightUp = new XYZ(p.X + width / 2, p.Y + height / 2 + height, 0);
+                XYZ rightDown = new XYZ(p.X + width / 2, p.Y - height / 2, 0);
+                temp.Add(new Path_xyz() { leftDown, lefyUp, rightUp, rightDown });
+
+            });
+
+            return temp;
+        }
+        /// <summary>
+        /// 将南向点集转化为线圈点
+        /// </summary>
+        public Paths_xyz WestPointsToPaths_xyz(Document doc, List<XYZ> northParkingLocation, double height, double width, double columnWidth, double columnBurfferDistance)
+        {
+            Paths_xyz temp = new Paths_xyz();
+            northParkingLocation.ForEach(p => {
+
+                //XYZ leftDown = new XYZ(p.X - height / 2 - height, p.Y - width / 2 - columnWidth - columnBurfferDistance * 2, 0);
+                //XYZ lefyUp = new XYZ(p.X + height / 2, p.Y - width / 2 - columnWidth - columnBurfferDistance * 2, 0);
+                //XYZ rightUp = new XYZ(p.X + height / 2, p.Y + width / 2 + columnWidth + columnBurfferDistance * 2, 0);
+                //XYZ rightDown = new XYZ(p.X - height / 2 - height, p.Y + width / 2 + columnWidth + columnBurfferDistance * 2, 0);
+
+                XYZ leftDown = new XYZ(p.X - height / 2 - height, p.Y - width / 2, 0);
+                XYZ lefyUp = new XYZ(p.X + height / 2, p.Y - width / 2 - columnWidth, 0);
+                XYZ rightUp = new XYZ(p.X + height / 2, p.Y + width / 2 + columnWidth, 0);
+                XYZ rightDown = new XYZ(p.X - height / 2 - height, p.Y + width / 2, 0);
+
+                temp.Add(new Path_xyz() { leftDown, lefyUp, rightUp, rightDown });
+
+            });
+            return temp;
+        }
+        /// <summary>
+        /// 将南向点集转化为线圈点
+        /// </summary>
+        public Paths_xyz SourthPointsToPaths_xyz(Document doc, List<XYZ> northParkingLocation, double height, double width, double columnWidth, double columnBurfferDistance)
+        {
+            Paths_xyz temp = new Paths_xyz();
+            northParkingLocation.ForEach(p => {
+
+                //XYZ leftDown = new XYZ(p.X - width / 2 - columnWidth - columnBurfferDistance * 2, p.Y - height / 2 - height, 0);
+                //XYZ lefyUp = new XYZ(p.X - width / 2 - columnWidth - columnBurfferDistance * 2, p.Y + height / 2, 0);
+                //XYZ rightUp = new XYZ(p.X + width / 2 + columnWidth + columnBurfferDistance * 2, p.Y + height / 2, 0);
+                //XYZ rightDown = new XYZ(p.X + width / 2 + columnWidth + columnBurfferDistance * 2, p.Y - height / 2 - height, 0);
+
+                XYZ leftDown = new XYZ(p.X - width / 2, p.Y - height / 2 - height, 0);
+                XYZ lefyUp = new XYZ(p.X - width / 2, p.Y + height / 2, 0);
+                XYZ rightUp = new XYZ(p.X + width / 2, p.Y + height / 2, 0);
+                XYZ rightDown = new XYZ(p.X + width / 2, p.Y - height / 2 - height, 0);
+
+                temp.Add(new Path_xyz() { leftDown, lefyUp, rightUp, rightDown });
+
+            });
+            return temp;
+        }
+        /// <summary>
+        /// 获取所有东向车位的族实例的中心点
+        /// </summary>
+        /// <param name="allFixedParkingFS"></param>
+        public List<XYZ> GetEastParkingFSLocationPoint(List<Element> allFixedParkingFS)
+        {
+            List<FamilyInstance> northParkingFS = new List<FamilyInstance>();
+
+            allFixedParkingFS.ForEach(p => {
+                FamilyInstance parkingFS = p as FamilyInstance;
+                if (parkingFS.FacingOrientation.Y < _Methods.PRECISION
+                && parkingFS.FacingOrientation.Y > -_Methods.PRECISION
+                && parkingFS.FacingOrientation.X > 1 - _Methods.PRECISION)
+                {
+                    northParkingFS.Add(parkingFS);
+                }
+            });
+
+            List<XYZ> northParkingLocation = new List<XYZ>();
+
+            northParkingFS.ForEach(p => {
+                LocationPoint locationPoint = p.Location as LocationPoint;
+                northParkingLocation.Add(locationPoint.Point);
+            });
+
+            return northParkingLocation;
+        }
+        /// <summary>
+        /// 获取所有西向车位的族实例的中心点
+        /// </summary>
+        /// <param name="allFixedParkingFS"></param>
+        public List<XYZ> GetWestParkingFSLocationPoint(List<Element> allFixedParkingFS)
+        {
+            List<FamilyInstance> northParkingFS = new List<FamilyInstance>();
+
+            allFixedParkingFS.ForEach(p => {
+                FamilyInstance parkingFS = p as FamilyInstance;
+                if (parkingFS.FacingOrientation.Y < _Methods.PRECISION
+                && parkingFS.FacingOrientation.Y > -_Methods.PRECISION
+                && parkingFS.FacingOrientation.X < _Methods.PRECISION - 1)
+                {
+                    northParkingFS.Add(parkingFS);
+                }
+            });
+
+            List<XYZ> northParkingLocation = new List<XYZ>();
+
+            northParkingFS.ForEach(p => {
+                LocationPoint locationPoint = p.Location as LocationPoint;
+                northParkingLocation.Add(locationPoint.Point);
+            });
+
+            return northParkingLocation;
+        }
+        /// <summary>
+        /// 获取所有北向车位的族实例的中心点
+        /// </summary>
+        /// <param name="allFixedParkingFS"></param>
+        public List<XYZ> GetNorthParkingFSLocationPoint(List<Element> allFixedParkingFS)
+        {
+            List<FamilyInstance> northParkingFS = new List<FamilyInstance>();
+
+            allFixedParkingFS.ForEach(p => {
+                FamilyInstance parkingFS = p as FamilyInstance;
+                if (parkingFS.FacingOrientation.X < _Methods.PRECISION
+                && parkingFS.FacingOrientation.X > -_Methods.PRECISION
+                && parkingFS.FacingOrientation.Y > 1 - _Methods.PRECISION)
+                {
+                    northParkingFS.Add(parkingFS);
+                }
+            });
+
+            List<XYZ> northParkingLocation = new List<XYZ>();
+
+            northParkingFS.ForEach(p => {
+                LocationPoint locationPoint = p.Location as LocationPoint;
+                northParkingLocation.Add(locationPoint.Point);
+            });
+
+            return northParkingLocation;
+        }
+        /// <summary>
+        /// 获取所有南向车位的族实例的中心点
+        /// </summary>
+        public List<XYZ> GetSourthParkingFSLocationPoint(List<Element> allFixedParkingFS)
+        {
+            List<FamilyInstance> northParkingFS = new List<FamilyInstance>();
+
+            allFixedParkingFS.ForEach(p => {
+                FamilyInstance parkingFS = p as FamilyInstance;
+                if (parkingFS.FacingOrientation.X < _Methods.PRECISION
+                && parkingFS.FacingOrientation.X > -_Methods.PRECISION
+                && parkingFS.FacingOrientation.Y < _Methods.PRECISION - 1)
+                {
+                    northParkingFS.Add(parkingFS);
+                }
+            });
+
+            List<XYZ> northParkingLocation = new List<XYZ>();
+
+            northParkingFS.ForEach(p => {
+                LocationPoint locationPoint = p.Location as LocationPoint;
+                northParkingLocation.Add(locationPoint.Point);
+            });
+
+            return northParkingLocation;
         }
         #endregion
+
+
     }  // public class RequestHandler : IExternalEventHandler
 } // namespace
-

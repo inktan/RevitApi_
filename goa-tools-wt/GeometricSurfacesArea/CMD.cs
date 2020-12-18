@@ -32,7 +32,7 @@ namespace GeometricSurfacesArea
             }
             double convertFaceArea = UnitUtils.Convert(areas, DisplayUnitType.DUT_SQUARE_FEET, DisplayUnitType.DUT_SQUARE_METERS);
 
-            TaskDialog.Show("Revit 2018", "The area of these selected faces is " + convertFaceArea.ToString() + "㎡.");
+            TaskDialog.Show("Revit 2020", "The area of these selected faces is " + convertFaceArea.ToString() + "㎡.");
             //TaskDialog.Show("revit", DateTime.Now.ToString());
 
             return Result.Succeeded;

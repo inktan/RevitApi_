@@ -10,7 +10,6 @@ using Autodesk.Revit.Exceptions;
 using System.IO;
 using System.Windows.Forms;
 using Autodesk.Revit.UI;
-using ClipperLib;
 
 namespace goa.Common
 {
@@ -121,22 +120,6 @@ namespace goa.Common
         }
         #endregion
 
-        #region Document
-        public static string Identifier(this Document _doc)
-        {
-            return _doc.Title + "|" + _doc.PathName;
-        }
-        #endregion
-
-        #region Design Option
-        public static bool IsInMainModelOrDesignOption(this Element _elem, ElementId _designOptionId)
-        {
-            if (_designOptionId == ElementId.InvalidElementId)
-                return true;
-            return _elem.DesignOption == null || _elem.DesignOption.Id == _designOptionId;
-        }
-        #endregion
-
         #region Element
         public static List<Solid> GetAllSolids(this Element _elem)
         {
@@ -200,26 +183,20 @@ namespace goa.Common
             }
 
         }
-        public static Dictionary<ElementId, List<FamilyInstance>> GetHostDependentMap(Document _doc)
+        public static HashSet<ElementId> GetDependentFamilyInstanceIds(this Element _host)
         {
-            var dic = new Dictionary<ElementId, List<FamilyInstance>>();
-            var allDpnts = new FilteredElementCollector(_doc)
-              .OfClass(typeof(FamilyInstance))
-              .Cast<FamilyInstance>()
-              .Where(x => x.Host != null);
-            foreach (var d in allDpnts)
+            var doc = _host.Document;
+            var allFamilyInstances = new FilteredElementCollector(doc)
+                .OfClass(typeof(FamilyInstance))
+                .Cast<FamilyInstance>()
+                .Where(x => x.Host != null);
+            var set = new HashSet<ElementId>();
+            foreach (var fi in allFamilyInstances)
             {
-                var hostId = d.Host.Id;
-                if (dic.ContainsKey(hostId) == false)
-                {
-                    dic[hostId] = new List<FamilyInstance>() { d };
-                }
-                else
-                {
-                    dic[hostId].Add(d);
-                }
+                if (fi.Host.Id == _host.Id)
+                    set.Add(fi.Id);
             }
-            return dic;
+            return set;
         }
         #endregion
 
@@ -236,47 +213,43 @@ namespace goa.Common
             return instances;
         }
         /// <summary>
-        /// Duplicate Existing family, with given name.
-        /// </summary>
-        public static Family DuplicateFamily(Document _parentDoc, Document _famDoc, string _newFamName)
-        {
-            //save as new family into temp folder
-            var opt = new SaveAsOptions();
-            opt.OverwriteExistingFile = true;
-            var filePath = Path.Combine(Path.GetTempPath(), _newFamName + ".rfa");
-            //rename family type to match new name
-            var mgr = _famDoc.FamilyManager;
-            using (Transaction trans = new Transaction(_famDoc, "rename"))
-            {
-                trans.Start();
-                mgr.RenameCurrentType(_newFamName);
-                trans.Commit();
-            }
-            //save family and close
-            _famDoc.SaveAs(filePath, opt);
-            _famDoc.Close();
-            //load into project doc
-            Family newFam;
-            using (Transaction trans = new Transaction(_parentDoc, "复制族"))
-            {
-                trans.Start();
-                _parentDoc.LoadFamily(filePath, out newFam);
-                trans.Commit();
-            }
-            return newFam;
-        }
-        /// <summary>
         /// Duplicate existing family, with input name.
         /// </summary>
         public static Family DuplicateFamily(Document _parentDoc, Document _famDoc)
         {
+            //pick existing family instance
+            var filter = new FamilyInstanceSelectionFilter();
             try
             {
                 var name = _famDoc.Title;
                 var newName = InputUniqueName(_parentDoc, name);
                 if (newName == "")
                     return null;
-                return DuplicateFamily(_parentDoc, _famDoc, newName);
+
+                //save as new family into temp folder
+                var opt = new SaveAsOptions();
+                opt.OverwriteExistingFile = true;
+                var filePath = Path.Combine(Path.GetTempPath(), newName + ".rfa");
+                //rename family type to match new name
+                var mgr = _famDoc.FamilyManager;
+                using (Transaction trans = new Transaction(_famDoc, "rename"))
+                {
+                    trans.Start();
+                    mgr.RenameCurrentType(newName);
+                    trans.Commit();
+                }
+                //save family and close
+                _famDoc.SaveAs(filePath, opt);
+                _famDoc.Close();
+                //load into project doc
+                Family newFam;
+                using (Transaction trans = new Transaction(_parentDoc, "复制族"))
+                {
+                    trans.Start();
+                    _parentDoc.LoadFamily(filePath, out newFam);
+                    trans.Commit();
+                }
+                return newFam;
             }
             catch (Autodesk.Revit.Exceptions.OperationCanceledException ex)
             {
@@ -290,8 +263,8 @@ namespace goa.Common
                 .OfClass(typeof(Family))
                 .Select(x => x.Name).ToList();
 
-        //input new name,check name
-        open_form:
+            //input new name,check name
+            open_form:
             var form = new Form_SingleLineTextInput("新族名：", _defaultName);
             var result = form.ShowDialog();
             if (result == DialogResult.Cancel) return "";
@@ -300,51 +273,11 @@ namespace goa.Common
                 TaskDialog.Show("信息", "族名与现有族重复。");
                 goto open_form;
             }
-            //check valid file name
-            var invalidChars = Path.GetInvalidFileNameChars();
-            foreach (var c in invalidChars)
-                if (invalidChars.Any(x => form.Input.Any(y => y == x)))
-                {
-                    TaskDialog.Show("消息", "不能使用以下字符：\r\n\r\n" + "\\<>|:*?/");
-                    goto open_form;
-                }
             return form.Input;
         }
         #endregion
 
-        #region Filled Region
-        public static List<ElementId> GetCurveElements(this FilledRegion _fr)
-        {
-            List<ElementId> list = new List<ElementId>();
-            var doc = _fr.Document;
-            int filledRegionId = _fr.Id.IntegerValue;
-            for (int i = filledRegionId - 1; filledRegionId - 50 < i; i--)
-            {
-                ElementId id = new ElementId(i);
-                Sketch boundary = doc.GetElement(id) as Sketch;
-                if (null == boundary) continue;
-                foreach (CurveArray crr in boundary.Profile)
-                {
-                    foreach (Curve curve in crr)
-                    {
-                        list.Add(curve.Reference.ElementId);
-                    }
-                }
-                break;
-            }
-            return list;
-        }
-        #endregion
-
         #region Geometry_Vector
-        public static UV ToUV(this XYZ _xyz)
-        {
-            return new UV(_xyz.X, _xyz.Y);
-        }
-        public static XYZ ToXYZ(UV _uv)
-        {
-            return new XYZ(_uv.U, _uv.V, 0);
-        }
         /// <summary>
         /// Project given 3D XYZ point onto plane.
         /// </summary>
@@ -375,14 +308,6 @@ namespace goa.Common
             p = p + plane.YVec * uv.V;
             return p;
         }
-        /// <summary>
-        /// Return signed distance from plane to a given point.
-        /// </summary>
-        public static double SignedDistanceTo(this Plane plane, XYZ p)
-        {
-            XYZ v = p - plane.Origin;
-            return plane.Normal.DotProduct(v);
-        }
         public static bool IsAlmostEqualTo(this XYZ _this, XYZ _other, double _e)
         {
             if (Math.Abs(_this.X - _other.X) > _e
@@ -390,6 +315,14 @@ namespace goa.Common
                 || Math.Abs(_this.Z - _other.Z) > _e)
                 return false;
             return true;
+        }
+        /// <summary>
+        /// Return signed distance from plane to a given point.
+        /// </summary>
+        public static double SignedDistanceTo(this Plane plane, XYZ p)
+        {
+            XYZ v = p - plane.Origin;
+            return plane.Normal.DotProduct(v);
         }
         public static bool IsParallel(this XYZ _xyz, XYZ _xyz2)
         {
@@ -409,16 +342,9 @@ namespace goa.Common
         /// </summary>
         public static double AngleToInDegree(this UV v1, UV v2)
         {
-            double rad = v1.AngleTo(v2);
-            return RadToDegree(rad);
-        }
-        public static double RadToDegree(double _d)
-        {
-            return _d * 360 / (2 * Math.PI);
-        }
-        public static double DegreeToRad(double _r)
-        {
-            return _r * 2 * Math.PI / 360;
+            double angle = v1.AngleTo(v2);
+            angle = angle * 360 / (2 * Math.PI);
+            return angle;
         }
         public static double SqDist(this XYZ _p0, XYZ _p1)
         {
@@ -471,46 +397,6 @@ namespace goa.Common
             var y = Math.Round(_xyz.Y, _digits).ToString();
             var z = Math.Round(_xyz.Z, _digits).ToString();
             return x + " , " + y + " , " + z;
-        }
-        public static double[] ToArrayD(this XYZ _xyz)
-        {
-            return new double[3] { _xyz.X, _xyz.Y, _xyz.Z };
-        }
-        public static List<XYZ> OrderAlong(this List<XYZ> _inputs, XYZ _dir)
-        {
-            //get starting and end line from far
-            XYZ start = _dir * -9999;
-            XYZ end = _dir * 9999;
-            var line = Line.CreateBound(start, end);
-            //get projected length for each point
-            Dictionary<double, List<XYZ>> distMap = new Dictionary<double, List<XYZ>>();
-            foreach (var p in _inputs)
-            {
-                var closest = p.ClosestPointOnLine(line);
-                var dist = closest.SqDist(start);
-                if (distMap.ContainsKey(dist))
-                {
-                    distMap[dist].Add(p);
-                }
-                else
-                {
-                    distMap[dist] = new List<XYZ>() { p };
-                }
-            }
-            var ordered = distMap.OrderBy(x => x.Key);
-            return ordered.SelectMany(x => x.Value).ToList();
-        }
-        public static XYZ GetMean(IEnumerable<XYZ> _points)
-        {
-            var mean = XYZ.Zero;
-            int count = 0;
-            foreach (var p in _points)
-            {
-                mean += p;
-                count++;
-            }
-            mean /= count;
-            return mean;
         }
         #endregion
 
@@ -610,22 +496,6 @@ namespace goa.Common
                 return false;
             else
                 return true;
-        }
-        public static Line TrimExtend(this Line _line, Plane _plane)
-        {
-            var length = lineIntersection(_plane.Origin, _plane.Normal, _line.Origin, _line.Direction);
-            var p0 = _line.Origin;
-            var p1 = p0 + _line.Direction * length;
-            return Line.CreateBound(p0, p1);
-        }
-        /// <summary>
-        /// return intersection point following, or against, a direction.
-        /// </summary>
-        public static XYZ GetIntersection(this Line _line, Plane _plane)
-        {
-            var length = lineIntersection(_plane.Origin, _plane.Normal, _line.Origin, _line.Direction);
-            var p0 = _line.GetEndPoint(0);
-            return p0 + _line.Direction * length;
         }
         /// <summary>
         /// shortest distance value from point to a list of lines, within line bound.
@@ -805,43 +675,6 @@ namespace goa.Common
             }
             return list;
         }
-        public static List<XYZ> SegmentationByMaxAngle(this Curve _c, double _angleInDeg)
-        {
-            if (_c is Line)
-            {
-                var l = _c as Line;
-                return new List<XYZ>() { l.GetEndPoint(0), l.GetEndPoint(1) };
-            }
-
-            List<XYZ> list = new List<XYZ>();
-            double maxAngle = _angleInDeg / g3.MathUtil.Rad2Deg;
-            int numSteps = 300;
-            double pEpsilon = 1.0d / 300.0d;
-            double p = 0;
-            var startDeri = _c.ComputeDerivatives(p, true);
-            XYZ baseTgt = startDeri.BasisX;
-            XYZ preTgt = baseTgt;
-            XYZ prePoint = startDeri.Origin;
-            list.Add(prePoint);
-            for (int i = 1; i < numSteps; i++)
-            {
-                p += pEpsilon;
-                var derivatives = _c.ComputeDerivatives(p, true);
-                XYZ currTgt = derivatives.BasisX;
-                var currAngle = currTgt.AngleTo(baseTgt);
-                if (currAngle > maxAngle && i > 1)
-                {
-                    list.Add(prePoint);
-                    baseTgt = preTgt;
-                }
-                preTgt = currTgt;
-                prePoint = derivatives.Origin;
-            }
-            var end = _c.GetEndPoint(1);
-            if (list.Last().IsAlmostEqualTo(end) == false)
-                list.Add(end);
-            return list;
-        }
         #endregion
 
         #region Geometry_CurveLoop
@@ -855,11 +688,6 @@ namespace goa.Common
         public static List<Curve> SortCurvesContiguous(this List<Curve> _curves)
         {
             bool open;
-            var cl = _curves.SortCurvesContiguousAsCurveLoop(out open);
-            return cl.ToList();
-        }
-        public static List<Curve> SortCurvesContiguous(this List<Curve> _curves, out bool open)
-        {
             var cl = _curves.SortCurvesContiguousAsCurveLoop(out open);
             return cl.Cast<Curve>().ToList();
         }
@@ -891,9 +719,7 @@ namespace goa.Common
                 string message = "Invalid curve loop.";
                 throw new InvalidCurveLoopException(message);
             }
-            if (!loop.IsOpen() && !loop.IsCounterclockwise(XYZ.Zero))
-                loop.Flip();
-            //orientCurveLoopToClockWise(loop);
+            orientCurveLoopToClockWise(loop);
             return loop;
         }
         public static CurveLoop SortCurveArrayContiguous(this CurveArray _ca, out bool _isOpenLoop)
@@ -1212,7 +1038,6 @@ namespace goa.Common
             else
                 return false;
         }
-        /*
         internal static void orientCurveLoopToClockWise(CurveLoop _loop)
         {
             Curve curve = _loop.First();
@@ -1232,7 +1057,6 @@ namespace goa.Common
             else
                 return false;
         }
-        */
         public static CurveArrArray SortClosedCurveArrArrayContiguous(this CurveArrArray _caa)
         {
             CurveArrArray caa = new CurveArrArray();
@@ -1271,47 +1095,6 @@ namespace goa.Common
         #endregion
 
         #region Geometry_Solid
-        /// <summary>
-        /// Return multiple if any error.
-        /// </summary>
-        public static List<Solid> UnionAll(this List<Solid> _solids)
-        {
-            if (_solids.Count == 0 || _solids.Count == 1)
-                return _solids;
-            List<Solid> list = new List<Solid>();
-            list.Add(_solids[0]);
-            //union each solid against each solid in result list
-            //if succeed, replace result solid with a union solid
-            //if fail, add new solid into result list
-            for (int i = 1; i < _solids.Count; i++)
-            {
-                var s2 = _solids[i]; //solid in input list
-                bool succeeded = false;
-                for (int j = 0; j < list.Count; j++)
-                {
-                    var s1 = list[j]; //solid in result list
-                    try
-                    {
-                        list[j] = BooleanOperationsUtils.ExecuteBooleanOperation
-                        (s1, s2, BooleanOperationsType.Union);
-                        //flag
-                        succeeded = true;
-                    }
-                    //failed to union, continue
-                    catch (Autodesk.Revit.Exceptions.InvalidOperationException ex)
-                    {
-                        continue;
-                    }
-                }
-                //if not found intersection, add new solid to result list
-                if (!succeeded)
-                {
-                    list.Add(s2);
-                }
-            }
-            return list;
-        }
-
         ///https://forums.autodesk.com/t5/revit-api-forum/hot-to-knows-if-a-point-is-inside-a-mass-and-or-solid/td-p/8570689
         ///points on the surface is considered to be inside
         public static bool IsInsideSolid(this XYZ point, Solid solid)
@@ -1462,6 +1245,79 @@ namespace goa.Common
                 (new List<CurveLoop>() { curveLoop },
                 _face.FaceNormal, _distance);
             return solid.Faces.get_Item(0) as PlanarFace;
+        }
+        #endregion
+
+        #region Polygon
+        /// <summary>
+        /// 不包含边界。线圈须为连续线段。
+        /// </summary>
+        public static bool IsInsidePolygon(this XYZ _XYZ, List<Line> _lines)
+        {
+            //投形到XY平面
+            var plane = Plane.CreateByNormalAndOrigin(XYZ.BasisZ, XYZ.Zero);
+            _XYZ = plane.ProjectOnto(_XYZ);
+            _lines = _lines.Select(x => x.ProjectOnto(plane)).ToList();
+
+            bool inOrOn = _XYZ.IsInsideOrOnEdgeOfPolygon(_lines);//第一步，判断点在总多边形内部部还是外部，在为true，不在为false；当前判断无法剔除，点落在多边形边界线上的情况，
+            bool on = _XYZ.OnAnyLine(_lines);//第二步，该函数判断点在不在边界线上，在为true，不在为false；
+            return inOrOn && !on; //双重判断，不在线上，在多边形区域内
+        }
+        /// <summary>
+        /// 包含边界。线圈须为连续线段。
+        /// </summary>
+        public static bool IsInsideOrOnEdgeOfPolygon(this XYZ _XYZ, List<Line> _lines)
+        {
+            bool inOrOn = false;
+            int intersectCount = 0;
+
+            //投形到XY平面
+            var plane = Plane.CreateByNormalAndOrigin(XYZ.BasisZ, XYZ.Zero);
+            _XYZ = plane.ProjectOnto(_XYZ);
+            _lines = _lines.Select(x => x.ProjectOnto(plane)).ToList();
+
+            Line _LInebound = Line.CreateBound(_XYZ, new XYZ(_XYZ.X + 10000000, 0, 0));//求一个点的射线
+            foreach (Line _Line in _lines)
+            {
+                IntersectionResultArray results;
+                SetComparisonResult result = _LInebound.Intersect(_Line, out results);
+                if (result == SetComparisonResult.Overlap)//判断基准线是否与轴网相交
+                {
+                    if (results != null)
+                    {
+                        XYZ _LineendPoint_0 = _Line.GetEndPoint(0);
+                        XYZ _LineendPoint_1 = _Line.GetEndPoint(1);
+
+                        //下一步 判定假设 参看文章 https://blog.csdn.net/u283056051/article/details/53980925
+
+                        if ((_LineendPoint_0.Y < _XYZ.Y && _LineendPoint_1.Y >= _XYZ.Y) || (_LineendPoint_0.Y > _XYZ.Y && _LineendPoint_1.Y <= _XYZ.Y))
+                        {
+                            intersectCount += results.Size;
+                        }
+                    }
+                }
+            }
+            if (intersectCount % 2 != 0)//判断交点的数量是否为奇数或者偶数，奇数为内true，偶数为外false
+            {
+                inOrOn = true;
+            }
+            return inOrOn;
+        }
+        /// <summary>
+        /// 判断一个点是不是与Polygon边界重合。
+        /// </summary>
+        public static bool OnAnyLine(this XYZ _XYZ, IList<Line> _lines)
+        {
+            bool _isOnLine = false;
+            foreach (Line _Line in _lines)
+            {
+                if (_Line.Distance(_XYZ) < 0.003)//该处需要注意 Revit2020版本中 曲线长度的最小极限小值为 0.00256026455729167 Feet 0.7803686370625 MilliMeter
+                {
+                    _isOnLine = true;
+                    break;
+                }
+            }
+            return _isOnLine;
         }
         #endregion
 
@@ -1887,435 +1743,6 @@ namespace goa.Common
         }
         #endregion
 
-        #region Polygon
-        public static double GetArea(this List<XYZ> _points)
-        {
-            var intrPs = _points.Select(x => x.ToClipperPoint()).ToList();
-            var area = Clipper.Area(intrPs);
-            return area / Math.Pow(ClipperConverter._feet_to_mm, 2);
-        }
-        public static IntPoint ToClipperPoint(this XYZ _xyz)
-        {
-            return ClipperConverter.GetIntPoint(_xyz);
-        }
-        public static XYZ ToXYZ(this IntPoint _p)
-        {
-            return ClipperConverter.GetXyzPoint(_p);
-        }
-        public static double GetArea(this List<Curve> _boundary, Document _doc)
-        {
-            var v0 = (_boundary[0].GetEndPoint(1) - _boundary[0].GetEndPoint(0)).Normalize();
-            var c1 = _boundary
-                .First(x => (x.GetEndPoint(1) - x.GetEndPoint(0)).Normalize().IsAlmostEqualTo(v0) == false);
-            var v1 = (c1.GetEndPoint(1) - c1.GetEndPoint(0)).Normalize();
-            var dir = v0.CrossProduct(v1).Normalize();
-            var cls = new List<CurveLoop>() { CurveLoop.Create(_boundary) };
-            var solid = GeometryCreationUtilities.CreateExtrusionGeometry(cls, dir, 1);
-            var face = solid.Faces.get_Item(0);
-            return face.Area;
-        }
-        #endregion
-
-        #region Polygon_insideOutside
-        /// <summary>
-        /// 不包含边界。线圈须为连续线段。
-        /// </summary>
-        public static bool IsInsidePolygon(this XYZ _XYZ, List<Line> _lines)
-        {
-            //投形到XY平面
-            _XYZ = new XYZ(_XYZ.X, _XYZ.Y, 0);
-            _lines = _lines
-                .Select(x => x.ProjectToXY())
-                .ToList();
-
-            bool inOrOn = _XYZ.IsInsideOrOnEdgeOfPolygon(_lines);//第一步，判断点在总多边形内部部还是外部，在为true，不在为false；当前判断无法剔除，点落在多边形边界线上的情况，
-            bool on = _XYZ.OnAnyLine(_lines);//第二步，该函数判断点在不在边界线上，在为true，不在为false；
-            return inOrOn && !on; //双重判断，不在线上，在多边形区域内
-        }
-        public static XYZ ProjectToXY(this XYZ p)
-        {
-            return new XYZ(p.X, p.Y, 0);
-        }
-        public static Line ProjectToXY(this Line l)
-        {
-            var p0 = l.GetEndPoint(0).ProjectToXY();
-            var p1 = l.GetEndPoint(1).ProjectToXY();
-            return Line.CreateBound(p0, p1);
-        }
-        /// <summary>
-        /// 包含边界。线圈须为连续线段。
-        /// </summary>
-        public static bool IsInsideOrOnEdgeOfPolygon(this XYZ _XYZ, List<Line> _lines)
-        {
-            bool inOrOn = false;
-            int intersectCount = 0;
-
-            //投形到XY平面
-            _XYZ = _XYZ.ProjectToXY();
-            _lines = _lines.Select(x => x.ProjectToXY()).ToList();
-
-            Line _LInebound = Line.CreateBound(_XYZ, new XYZ(_XYZ.X + 100000, _XYZ.Y, 0));//求一个点的射线
-            foreach (Line _Line in _lines)
-            {
-                IntersectionResultArray results;
-                SetComparisonResult result = _LInebound.Intersect(_Line, out results);
-                if (result == SetComparisonResult.Overlap)//判断基准线是否与轴网相交
-                {
-                    if (results != null)
-                    {
-                        XYZ _LineendPoint_0 = _Line.GetEndPoint(0);
-                        XYZ _LineendPoint_1 = _Line.GetEndPoint(1);
-
-                        //下一步 判定假设 参看文章 https://blog.csdn.net/u283056051/article/details/53980925
-
-                        if ((_LineendPoint_0.Y < _XYZ.Y && _LineendPoint_1.Y >= _XYZ.Y) || (_LineendPoint_0.Y > _XYZ.Y && _LineendPoint_1.Y <= _XYZ.Y))
-                        {
-                            intersectCount += results.Size;
-                        }
-                    }
-                }
-            }
-            if (intersectCount % 2 != 0)//判断交点的数量是否为奇数或者偶数，奇数为内true，偶数为外false
-            {
-                inOrOn = true;
-            }
-            return inOrOn;
-        }
-        /// <summary>
-        /// 判断一个点是不是与Polygon边界重合。
-        /// </summary>
-        public static bool OnAnyLine(this XYZ _XYZ, IList<Line> _lines)
-        {
-            bool _isOnLine = false;
-            foreach (Line _Line in _lines)
-            {
-                if (_Line.Distance(_XYZ) < 0.003)//该处需要注意 Revit2020版本中 曲线长度的最小极限小值为 0.00256026455729167 Feet 0.7803686370625 MilliMeter
-                {
-                    _isOnLine = true;
-                    break;
-                }
-            }
-            return _isOnLine;
-        }
-        #endregion
-
-        #region Polygon_booleanWithClipper
-        public static List<CurveLoop> UnionAll(this List<CurveLoop> _loops)
-        {
-            var paths = _loops.Select(x => GetPathFromCurveLoop(x)).ToList();
-            Clipper clipper = new Clipper();
-            clipper.AddPaths(paths, PolyType.ptSubject, true);
-            PolyTree resultTree = new PolyTree();
-            clipper.Execute(ClipType.ctUnion, resultTree, PolyFillType.pftNonZero);
-            var caa = CurveArrArrayFromPolyTree(resultTree, true);
-
-            List<CurveLoop> result = new List<CurveLoop>();
-            foreach (CurveArray ca in caa)
-            {
-                var loop = new CurveLoop();
-                foreach (Curve c in ca)
-                {
-
-                    try { loop.Append(c); }
-                    catch (Autodesk.Revit.Exceptions.ArgumentException ex) { }
-                }
-                result.Add(loop);
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Extension method for CurveLoop class. clip operation on two curve loops,
-        /// using clipper library. Input loops needs to be contiguous.
-        /// </summary>
-        public static List<CurveLoop> ClipBy(this CurveLoop _subLoop, CurveLoop _cutLoop, ClipType _clipType)
-        {
-            List<CurveLoop> result = new List<CurveLoop>();
-
-            var clipPath = GetPathFromCurveLoop(_cutLoop);
-            var subPath = GetPathFromCurveLoop(_subLoop);
-            if (!_subLoop.IsOpen())
-                subPath.Add(subPath.First());
-
-            Clipper clipper = new Clipper();
-            clipper.AddPath(subPath, PolyType.ptSubject, false); //sub path needs to be set as open to excute as curve, not polygon
-            clipper.AddPath(clipPath, PolyType.ptClip, true);
-
-            PolyTree resultTree = new PolyTree();
-            clipper.Execute(_clipType, resultTree, PolyFillType.pftEvenOdd);
-            var caa = CurveArrArrayFromPolyTree(resultTree, false);
-
-            //sort each curve array to be contiguous
-            foreach (CurveArray ca in caa)
-            {
-                var curves = ca.ToList();
-                bool isOpen;
-                var loop = curves.SortCurvesContiguousAsCurveLoop(out isOpen);
-                result.Add(loop);
-            }
-
-            return result;
-        }
-
-        public static List<CurveLoop> ClipBy(this IList<CurveLoop> _subLoops, CurveLoop _cutLoop, ClipType _clipType)
-        {
-            List<CurveLoop> result = new List<CurveLoop>();
-            foreach (CurveLoop cl in _subLoops)
-            {
-                result.AddRange(cl.ClipBy(_cutLoop, _clipType));
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Cut a set of open/closed curveloops by a another set of closed curveloops. 
-        /// Return a list of list of curveloops of the same structure of the input 
-        /// subject curveloops.
-        /// </summary>
-        public static List<List<CurveLoop>> ClipBy
-            (this IList<CurveLoop> _subLoops, IList<CurveLoop> _cutLoops, ClipType _clipType)
-        {
-            List<List<CurveLoop>> result = new List<List<CurveLoop>>();
-
-            var clipPaths = new List<List<IntPoint>>();
-            foreach (var cl in _cutLoops)
-            {
-                clipPaths.Add(GetPathFromCurveLoop(cl));
-            }
-            var subPaths = new List<List<IntPoint>>();
-            foreach (var cl in _subLoops)
-            {
-                subPaths.Add(GetPathFromCurveLoop(cl));
-                if (!cl.IsOpen()) //if subject loop is closed loop, add the starting point at the end 
-                    subPaths.Last().Add(subPaths.Last().First());
-            }
-
-            foreach (var subPath in subPaths)
-            {
-                Clipper clipper = new Clipper();
-                //bool subClosed = !_subLoops.First().IsOpen();
-                bool cutClosed = !_cutLoops.First().IsOpen();
-                clipper.AddPath(subPath, PolyType.ptSubject, false); //sub path needs to be set as open to excute as curve, not polygon
-                clipper.AddPaths(clipPaths, PolyType.ptClip, cutClosed);
-
-                PolyTree resultTree = new PolyTree();
-                clipper.Execute(_clipType, resultTree, PolyFillType.pftEvenOdd);
-
-                var caa = CurveArrArrayFromPolyTree(resultTree, false);
-                var loopList = caa.ToLoopList();
-                result.Add(loopList);
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// clip a list of lists of curveloops with a list of curveloops
-        /// return a list of lists of curveloops that maintain the structure of first dimension
-        /// </summary>
-        public static List<List<CurveLoop>> ClipBy
-            (this IList<List<CurveLoop>> _subListsOfLoops,
-            IList<CurveLoop> _cutLoops,
-            ClipperLib.ClipType _clipType)
-        {
-            List<List<CurveLoop>> result = new List<List<CurveLoop>>();
-            foreach (var curveLoopList in _subListsOfLoops)
-            {
-                var clipResult = curveLoopList.ClipBy(_cutLoops, _clipType);
-                //flatten result to one-dimension list
-                var newCurveLoopList = new List<CurveLoop>();
-                foreach (var list in clipResult)
-                {
-                    foreach (var cl in list)
-                        newCurveLoopList.Add(cl);
-                }
-                //add this row's baselines to level
-                result.Add(newCurveLoopList);
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Extension method for CurveLoop class.
-        /// </summary>
-        /// <param name="_loop"></param>
-        /// <returns></returns>
-        private static List<IntPoint> GetPathFromCurveLoop(this CurveLoop _loop)
-        {
-            List<IntPoint> list = new List<IntPoint>();
-            List<XYZ> vertices = GetVerticesFromCurveLoop(_loop);
-            foreach (XYZ p in vertices)
-            {
-                IntPoint ip = ClipperConverter.GetIntPoint(p);
-                list.Add(ip);
-            }
-            return list;
-        }
-
-        private static List<XYZ> GetVerticesFromCurveLoop(CurveLoop _loop)
-        {
-            List<XYZ> list = new List<XYZ>();
-            foreach (var curve in _loop)
-            {
-                list.Add(curve.GetEndPoint(0));
-            }
-            if (_loop.IsOpen())
-            {
-                list.Add(_loop.Last().GetEndPoint(1));
-            }
-            return list;
-        }
-
-        private static CurveArrArray CurveArrArrayFromPolyTree(PolyTree _tree, bool _closed)
-        {
-            CurveArrArray caa = new CurveArrArray();
-            PolyNode polynode = _tree.GetFirst();
-            while (null != polynode)
-            {
-                List<XYZ> list = new List<XYZ>();
-                foreach (var ip in polynode.Contour)
-                {
-                    XYZ p = ClipperConverter.GetXyzPoint(ip);
-                    list.Add(p);
-                }
-                list = cleanUpOverlaps(list);
-                CurveArray ca = CurveArrayFromListOfPoints(list, _closed);
-                if (ca.Size > 0)
-                    caa.Append(ca);
-                polynode = polynode.GetNext();
-            }
-            return caa;
-        }
-
-        private static CurveArray CurveArrayFromListOfPoints(List<XYZ> _points, bool _closed)
-        {
-            CurveArray ca = new CurveArray();
-            int n = _points.Count;
-            for (int i = 0; i < n - 1; i++)
-            {
-                XYZ p0 = _points[i];
-                XYZ p1 = _points[i + 1];
-                try
-                {
-                    Line line = Line.CreateBound(p0, p1);
-                    ca.Append(line);
-                }
-                catch (ArgumentsInconsistentException ex)
-                {
-                    continue;
-                }
-            }
-            if (_closed && _points.Last().IsAlmostEqualTo(_points.First()) == false)
-            {
-                Line line = null;
-                try
-                {
-                    line = Line.CreateBound(_points.Last(), _points.First());
-                    ca.Append(line);
-                }
-                catch { }
-            }
-            return ca;
-        }
-
-        private static List<XYZ> cleanUpOverlaps(List<XYZ> _input)
-        {
-            List<XYZ> output = new List<XYZ>();
-            if (_input.Count == 0)
-                return output;
-            output.Add(_input[0]);
-            for (int i = 1; i < _input.Count - 1; i++)
-            {
-                var p0 = _input[i - 1];
-                var p1 = _input[i];
-                var p2 = _input[i + 1];
-                var dir0 = (p0 - p1).Normalize();
-                var dir1 = (p2 - p1).Normalize();
-                if (dir0.IsAlmostEqualTo(dir1) == false)
-                    output.Add(p1);
-            }
-            output.Add(_input.Last());
-            return output;
-        }
-
-        public static class ClipperConverter
-        {
-            /// <summary>
-            /// Consider a Revit length zero 
-            /// if is smaller than this.
-            /// </summary>
-            public const double _eps = 1.0e-4;
-
-            /// <summary>
-            /// Conversion factor from feet to millimetres.
-            /// </summary>
-            public const double _feet_to_mm = 25.4 * 12 * 10; //multiplier should not be too big
-
-            /// <summary>
-            /// Conversion a given length value 
-            /// from feet to millimetres.
-            /// </summary>
-            public static long ConvertFeetToMillimetres(double d)
-            {
-                return (long)(_feet_to_mm * d);
-
-                if (0 < d)
-                {
-                    return _eps > d
-                      ? 0
-                      : (long)(_feet_to_mm * d + 0.5);
-
-                }
-                else
-                {
-                    return _eps > -d
-                      ? 0
-                      : (long)(_feet_to_mm * d - 0.5);
-
-                }
-
-            }
-
-            /// <summary>
-            /// Conversion a given length value 
-            /// from millimetres to feet.
-            /// </summary>
-            static double ConvertMillimetresToFeet(long d)
-            {
-                return d / _feet_to_mm;
-            }
-
-            /// <summary>
-            /// Return a clipper integer point 
-            /// from a Revit model space one.
-            /// Do so by dropping the Z coordinate
-            /// and converting from imperial feet 
-            /// to millimetres.
-            /// </summary>
-            public static IntPoint GetIntPoint(XYZ p)
-            {
-                return new IntPoint(
-                  ConvertFeetToMillimetres(p.X),
-                  ConvertFeetToMillimetres(p.Y));
-            }
-
-            /// <summary>
-            /// Return a Revit model space point 
-            /// from a clipper integer one.
-            /// Do so by adding a zero Z coordinate
-            /// and converting from millimetres to
-            /// imperial feet.
-            /// </summary>
-            public static XYZ GetXyzPoint(IntPoint p)
-            {
-                return new XYZ(
-                  ConvertMillimetresToFeet(p.X),
-                  ConvertMillimetresToFeet(p.Y),
-                  0.0);
-            }
-        }
-        #endregion
-
         #region Test
         public static void ShowOrigin(Document _doc)
         {
@@ -2329,25 +1756,11 @@ namespace goa.Common
                 trans.Commit();
             }
         }
-        /// <summary>
-        /// need open transaction.
-        /// </summary>
-        public static void CreateDirectShape(Document _doc, List<GeometryObject> _geometry, ref DirectShape _ds)
-        {
-            _ds = DirectShape.CreateElement(_doc, new ElementId(BuiltInCategory.OST_GenericModel));
-            _ds.SetShape(_geometry);
-        }
-        /// <summary>
-        /// need open transaction.
-        /// </summary>
         public static void CreateDirectShape(Document _doc, List<GeometryObject> _geometry)
         {
             DirectShape ds = DirectShape.CreateElement(_doc, new ElementId(BuiltInCategory.OST_GenericModel));
             ds.SetShape(_geometry);
         }
-        /// <summary>
-        /// need open transaction.
-        /// </summary>
         public static void CreateDirectShape(Document _doc, List<GeometryObject> _geometry, XYZ _translation)
         {
             DirectShape ds = DirectShape.CreateElement(_doc, new ElementId(BuiltInCategory.OST_GenericModel));
@@ -2437,55 +1850,6 @@ namespace goa.Common
         }
         public static Transform GetTransform(Wall _wall)
         {
-            if (_wall.WallType.Kind == WallKind.Basic)
-            {
-                Line l = (_wall.Location as LocationCurve).Curve as Line;
-                if (l != null)
-                {
-                    var Y = _wall.Orientation;
-                    var Z = XYZ.BasisZ;
-                    var X = l.Direction;
-
-                    var t = Transform.Identity;
-                    t.BasisX = X;
-                    t.BasisY = Y;
-                    t.BasisZ = Z;
-                    t.Origin = l.Origin;
-                    return t;
-                }
-                else return null;
-            }
-            //叠层墙或curtain
-            else
-            {
-                var Y = _wall.Orientation;
-                if (_wall.WallType.Kind != WallKind.Basic && _wall.Flipped)
-                    Y *= -1;
-                var Z = XYZ.BasisZ;
-                var X = _wall.Orientation.CrossProduct(Z);
-
-                var t = Transform.Identity;
-                t.BasisX = X;
-                t.BasisY = Y;
-                t.BasisZ = Z;
-                if (_wall.WallType.Kind == WallKind.Curtain)
-                {
-                    t.Origin = ((LocationCurve)_wall.Location).Curve.GetEndPoint(0);
-                }
-                else
-                {
-                    Line l = (_wall.Location as LocationCurve).Curve as Line;
-                    if (l != null)
-                        t.Origin = l.Origin;
-                    else return null;
-                }
-                return t;
-            }
-
-        }
-        /*
-        public static Transform GetTransform(Wall _wall)
-        {
             var Y = _wall.Orientation;
             if (_wall.Flipped)
                 Y *= -1;
@@ -2499,7 +1863,6 @@ namespace goa.Common
             t.Origin = ((LocationCurve)_wall.Location).Curve.GetEndPoint(0);
             return t;
         }
-        */
         public static Transform GetTransform(FamilyInstance _refInstance, FamilyInstance _targetInstance)
         {
             var refT = GetTransform(_refInstance);
@@ -2555,6 +1918,10 @@ namespace goa.Common
         {
             return UnitUtils.ConvertFromInternalUnits(_feet, DisplayUnitType.DUT_MILLIMETERS);
         }
+        #endregion
+
+        #region UserMessage
+
         #endregion
 
         #region View
@@ -2693,6 +2060,47 @@ namespace goa.Common
         }
         #endregion
     }
+
+    public static class UserMessages
+    {
+        public static string DefaultMessageCaption = "消息";
+        public static string ErrorMessageTechnical(Exception ex)
+        {
+            string s = "--- Error Type ---\r\n" + ex.GetType().ToString()
+                        + "\r\n--- Error Message ---\r\n" + ex.Message
+                        + "\r\n--- Source ---\r\n" + ex.Source
+                        + "\r\n--- TargetSite ---\r\n" + ex.TargetSite
+                        + "\r\n--- StackTrace ---\r\n" + ex.StackTrace;
+            return s;
+        }
+        public static void ShowErrorMessage(Exception ex, System.Windows.Forms.Form _parent)
+        {
+            var emt = ErrorMessageTechnical(ex);
+            var form = new Form_Error(emt);
+            form.TopMost = true;
+            if (_parent != null)
+                form.ShowDialog(_parent);
+            else
+                form.ShowDialog();
+        }
+        public static void ShowErrorMessage(string _errorMessage, string _mainInstruction, System.Windows.Forms.Form _parent)
+        {
+            var form = new Form_Error(_mainInstruction, _errorMessage);
+            form.TopMost = true;
+            form.ShowDialog(_parent);
+        }
+        public static DialogResult ShowYesNoDialog(string message)
+        {
+            using (var form = new System.Windows.Forms.Form())
+            {
+                form.TopMost = true;
+                var result = MessageBox.Show(message, DefaultMessageCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                form.Dispose();
+                return result;
+            }
+        }
+    }
+
 
     public enum CurveLoopType
     {

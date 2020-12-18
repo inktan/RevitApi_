@@ -8,7 +8,7 @@
     <AssemblyName>Install</AssemblyName>
     <OutputType>WinExe</OutputType>
     <RootNamespace>FolderDeployer</RootNamespace>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFrameworkProfile />
   </PropertyGroup>

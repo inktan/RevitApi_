@@ -73,6 +73,10 @@ namespace GRID_Number
             this.textBox1.Text = "空（选填）";
             this.textBox2.Text = "1";
 
+
+
+            //this.comboBox2.Items.Add();
+
         }
 
         private void Button_first_Click(object sender, EventArgs e)

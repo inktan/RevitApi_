@@ -17,11 +17,6 @@ namespace goa.Common
     public static partial class Methods
     {
         #region Dictionary
-        public static void AddRange<T>(this IList<T> list, IEnumerable<T> listToAdd)
-        {
-            foreach (var v in listToAdd)
-                list.Add(v);
-        }
         public static void TryAddValue<T1, T2>(this Dictionary<T1, List<T2>> dic, T1 key, T2 value)
         {
             if (dic.ContainsKey(key))
@@ -61,16 +56,6 @@ namespace goa.Common
             else
                 return true;
         }
-        public static bool IsAlmostEqualByDifference
-    (this float _thisFloat, float _float, float _epsilon)
-        {
-            double difference = Math.Abs(_thisFloat - _float);
-            if (difference > _epsilon)
-                return false;
-            else
-                return true;
-        }
-
         /// <summary>
         /// Compare two double values, using
         /// 0.0001 as difference threshold.
@@ -80,11 +65,7 @@ namespace goa.Common
         /// <returns></returns>
         public static bool IsAlmostEqualByDifference(this double _thisDouble, double _double)
         {
-            return _thisDouble.IsAlmostEqualByDifference(_double, 0.0001);
-        }
-        public static bool IsAlmostEqualByDifference(this float _thisFloat, float _float)
-        {
-            return _thisFloat.IsAlmostEqualByDifference(_float, 0.0001f);
+            return IsAlmostEqualByDifference(_thisDouble, _double, 0.0001);
         }
         /// <summary>
         /// Compare two double values, using
@@ -201,50 +182,6 @@ namespace goa.Common
         }
         #endregion
 
-        #region Enumerables
-        public static List<List<T>> DivideList<T>(this List<T> _input, int _targetNum)
-        {
-            int count = _input.Count;
-            int num;
-            if (count < _targetNum)
-                num = count;
-            else
-                num = _targetNum;
-            int size = (int)Math.Ceiling((double)count / num);
-            int index = 0;
-            List<List<T>> lists = new List<List<T>>();
-            while (index + size < count)
-            {
-                lists.Add(_input.GetRange(index, size));
-                index += size;
-            }
-            int numLeft = count - index;
-            lists.Add(_input.GetRange(index, numLeft));
-            return lists;
-        }
-        public static List<Dictionary<T1, T2>> DivideDictionay<T1, T2>(this Dictionary<T1, T2> _input, int _targetNum)
-        {
-            int count = _input.Count;
-            int num;
-            if (count < _targetNum)
-                num = count;
-            else
-                num = _targetNum;
-            int size = (int)Math.Ceiling((double)count / num);
-            int index = 0;
-            var pairList = _input.ToList();
-            var divided = new List<Dictionary<T1, T2>>();
-            while (index + size < count)
-            {
-                divided.Add(pairList.GetRange(index, size).ToDictionary(x => x.Key, x => x.Value));
-                index += size;
-            }
-            int numLeft = count - index;
-            divided.Add(pairList.GetRange(index, numLeft).ToDictionary(x => x.Key, x => x.Value));
-            return divided;
-        }
-        #endregion
-
         #region String
         public static bool ToBoolean(this string _string)
         {
@@ -268,8 +205,7 @@ namespace goa.Common
         }
         public static string[] SplitBy(this string _s, string _spliter)
         {
-            var sep = new string[1] { _spliter };
-            var array = _s.Split(sep, StringSplitOptions.RemoveEmptyEntries);
+            var array = _s.Split(_spliter.ToArray(), StringSplitOptions.RemoveEmptyEntries);
             return array;
         }
         #endregion

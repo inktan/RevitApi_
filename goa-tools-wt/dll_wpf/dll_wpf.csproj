@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>dll_wpf</RootNamespace>
     <AssemblyName>dll_wpf</AssemblyName>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,26 +32,20 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ExcelDataReader">
-      <HintPath>..\packages\ExcelDataReader.3.6.0\lib\net45\ExcelDataReader.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="ExcelDataReader.DataSet">
-      <HintPath>..\packages\ExcelDataReader.DataSet.3.6.0\lib\net35\ExcelDataReader.DataSet.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="ExcelNumberFormat">
-      <HintPath>..\packages\ExcelNumberFormat.1.0.7\lib\net20\ExcelNumberFormat.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="LibG.Interface">
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\Revit 2020\AddIns\DynamoForRevit\LibG.Interface.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
+    <Reference Include="ProtoGeometry">
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\Revit 2020\AddIns\DynamoForRevit\ProtoGeometry.dll</HintPath>
+    </Reference>
     <Reference Include="RevitAPI">
-      <HintPath>..\REVIT_API\2020\RevitAPI.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\Revit 2020\RevitAPI.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="RevitAPIUI">
-      <HintPath>..\REVIT_API\2020\RevitAPIUI.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files\Autodesk\Revit 2020\RevitAPIUI.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -81,13 +76,6 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\goa-tools-common\goa.Common\goa.Common.csproj">
-      <Project>{3b63163d-ce10-43a5-86c5-d5fb43e65ee9}</Project>
-      <Name>goa.Common</Name>
-      <Private>False</Private>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -7,7 +7,6 @@ using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
 using Autodesk.Revit.Attributes;
 
-using goa.Common;
 using System.Collections.ObjectModel;
 
 namespace dll_wpf

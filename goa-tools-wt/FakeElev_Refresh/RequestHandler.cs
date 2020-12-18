@@ -154,6 +154,18 @@ namespace FakeElev_Refresh
                                         parameter.Set(str_height);//进行标高数值修改
                                     }
                                 }
+                                else if (parameter.Definition.Name == "标高数值")
+                                {
+                                    if (!parameter.IsReadOnly)
+                                    {
+                                        LocationPoint locationPoint = element.Location as LocationPoint;
+                                        XYZ xYZ = locationPoint.Point;
+                                        double height = xYZ.Z - selevelelevation;//判断元素与零零标高的Z轴高差
+                                                                                 //对标高文字进行格式标准化处理
+                                        string str_height = standardDoubleToString(height);
+                                        parameter.Set(str_height);//进行标高数值修改
+                                    }
+                                }
                             }
                         }
                     }

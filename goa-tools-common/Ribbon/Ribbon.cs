@@ -55,7 +55,6 @@ namespace Ribbon
             //tab
             application.CreateRibbonTab("goa tools 模型");
             application.CreateRibbonTab("goa tools 制图");
-            application.CreateRibbonTab("goa tools 组");
 
             //var stopwatch = new Stopwatch();
             //stopwatch.Start();
@@ -87,9 +86,15 @@ namespace Ribbon
             PushButton pb_datm_onoff = rp_grid.AddItem(new PushButtonData("DATM_ON_OFF", "开/关", projectAssemblyFullPath("DATM_ON_OFF.dll"), "DATM_ON_OFF.CMD")) as PushButton;
             pb_datm_onoff.LargeImage = new BitmapImage(new Uri(iconFullPath("DATM_ON_OFF_96.png")));
             //GRID_RNAM button
-            PushButton pb_grid_rnam = rp_grid.AddItem(new PushButtonData("GRID_Number", "重命名", projectAssemblyFullPath("GRID_Number.dll"), "GRID_Number.CMD")) as PushButton;
-            pb_grid_rnam.LargeImage = new BitmapImage(new Uri(iconFullPath("GRID_RNAM_96.png")));
-
+            PushButtonData pdb_grid_rnam_true = new PushButtonData("GRID_Number", "真轴号", projectAssemblyFullPath("GRID_Number.dll"), "GRID_Number.CMD");
+            PushButtonData pdb_grid_rnam_falseC = new PushButtonData("FakeGRID_NumberCreat", "假轴号创建", projectAssemblyFullPath("FakeGRID_NumberCreat.dll"), "FakeGRID_NumberCreat.CMD");
+            PushButtonData pdb_grid_rnam_falseR = new PushButtonData("replaeFakeGridNum", "假轴号替换", projectAssemblyFullPath("replaeFakeGridNum.dll"), "replaeFakeGridNum.CMD");
+            PulldownButtonData pdbd_grid_rnam = new PulldownButtonData("GridNumber", "重命名");
+            PulldownButton pdb_GridName = rp_grid.AddItem(pdbd_grid_rnam) as PulldownButton;
+            pdb_GridName.AddPushButton(pdb_grid_rnam_true);
+            pdb_GridName.AddPushButton(pdb_grid_rnam_falseC);
+            pdb_GridName.AddPushButton(pdb_grid_rnam_falseR);
+            pdb_GridName.LargeImage = new BitmapImage(new Uri(iconFullPath("GRID_RNAM_96.png")));
 
             //ANNO panel
             RibbonPanel rp_anno = application.CreateRibbonPanel("goa tools 制图", "快捷标注");
@@ -155,13 +160,12 @@ namespace Ribbon
             pdb_prof_edit.AddPushButton(pbd_prof_edit_facade);
             pdb_prof_edit.AddPushButton(pbd_prof_edit_sitePlan);
             pdb_prof_edit.LargeImage = new BitmapImage(new Uri(iconFullPath("PROF_EDIT_96.png")));
-
             //LEVL_EDIT
             //PushButton pb_levl_edit = rp_model.AddItem(new PushButtonData("LEVL_EDIT", "修改层高", projectAssemblyFullPath("LEVL_EDIT.dll"), "LEVL_EDIT.CMD")) as PushButton;
-            // need icon
+            //pb_levl_edit.LargeImage = new BitmapImage(new Uri(iconFullPath("LEVL_EDIT_96.png")));
             //PLAN_EDIT
             //PushButton pb_plan_edit = rp_model.AddItem(new PushButtonData("PLAN_EDIT", "修改平面", projectAssemblyFullPath("PLAN_EDIT.dll"), "PLAN_EDIT.CMD")) as PushButton;
-            // need icon
+            //pb_plan_edit.LargeImage = new BitmapImage(new Uri(iconFullPath("PLAN_EDIT_96.png")));
 
             //DRAW panel
             RibbonPanel rp_draw = application.CreateRibbonPanel("goa tools 制图", "制图工具");
@@ -178,8 +182,13 @@ namespace Ribbon
             PushButton pb_colr_swit = rp_draw.AddItem(new PushButtonData("COLR_SWIT", "颜色切换", projectAssemblyFullPath("COLR_SWIT.dll"), "COLR_SWIT.CMD")) as PushButton;
             pb_colr_swit.LargeImage = new BitmapImage(new Uri(iconFullPath("COLR_SWIT_96.png")));
             //WIND_NUMB
-            PushButton pb_wind_numb = rp_draw.AddItem(new PushButtonData("WIND_NUMB", "门窗编号", projectAssemblyFullPath("WIND_NUMB.dll"), "WIND_NUMB.CMD")) as PushButton;
-            pb_wind_numb.LargeImage = new BitmapImage(new Uri(iconFullPath("WIND_NUMB_96.png")));
+            PushButtonData pdb_wind_numb_old = new PushButtonData("WIND_NUMB", "门窗编号(旧版墙身族)", projectAssemblyFullPath("WIND_NUMB.dll"), "WIND_NUMB.CMD");
+            PushButtonData pdb_wind_numb_new = new PushButtonData("WIND_NUMB_new", "门窗编号(新版墙身族)", projectAssemblyFullPath("WIND_NUMB_new.dll"), "WIND_NUMB_new.CMD");
+            PulldownButtonData pdbd_wind_numb = new PulldownButtonData("WindNumb", "门窗编号");
+            PulldownButton pdb_WindNumb = rp_draw.AddItem(pdbd_wind_numb) as PulldownButton;
+            pdb_WindNumb.AddPushButton(pdb_wind_numb_old);
+            pdb_WindNumb.AddPushButton(pdb_wind_numb_new);
+            pdb_WindNumb.LargeImage = new BitmapImage(new Uri(iconFullPath("WIND_NUMB_96.png")));
 
             //VIEW panel
             RibbonPanel rp_view = application.CreateRibbonPanel("goa tools 制图", "视图工具");

@@ -37,14 +37,17 @@
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.textBox3 = new System.Windows.Forms.TextBox();
+            this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.comboBox2 = new System.Windows.Forms.ComboBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
+            this.groupBox4.SuspendLayout();
             this.SuspendLayout();
             // 
             // button_first
             // 
-            this.button_first.Location = new System.Drawing.Point(6, 151);
+            this.button_first.Location = new System.Drawing.Point(7, 215);
             this.button_first.Name = "button_first";
             this.button_first.Size = new System.Drawing.Size(183, 23);
             this.button_first.TabIndex = 7;
@@ -55,7 +58,7 @@
             // groupBox1
             // 
             this.groupBox1.Controls.Add(this.comboBox1);
-            this.groupBox1.Location = new System.Drawing.Point(6, 8);
+            this.groupBox1.Location = new System.Drawing.Point(7, 72);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(183, 50);
             this.groupBox1.TabIndex = 7;
@@ -76,7 +79,7 @@
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.textBox1);
-            this.groupBox2.Location = new System.Drawing.Point(6, 65);
+            this.groupBox2.Location = new System.Drawing.Point(6, 129);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(80, 50);
             this.groupBox2.TabIndex = 9;
@@ -93,7 +96,7 @@
             // groupBox3
             // 
             this.groupBox3.Controls.Add(this.textBox2);
-            this.groupBox3.Location = new System.Drawing.Point(113, 65);
+            this.groupBox3.Location = new System.Drawing.Point(113, 129);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(76, 50);
             this.groupBox3.TabIndex = 10;
@@ -109,18 +112,40 @@
             // 
             // textBox3
             // 
-            this.textBox3.Location = new System.Drawing.Point(12, 123);
+            this.textBox3.Location = new System.Drawing.Point(13, 187);
             this.textBox3.Name = "textBox3";
             this.textBox3.ReadOnly = true;
             this.textBox3.Size = new System.Drawing.Size(171, 21);
             this.textBox3.TabIndex = 10;
             this.textBox3.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
+            // groupBox4
+            // 
+            this.groupBox4.Controls.Add(this.comboBox2);
+            this.groupBox4.Location = new System.Drawing.Point(7, 10);
+            this.groupBox4.Name = "groupBox4";
+            this.groupBox4.Size = new System.Drawing.Size(183, 50);
+            this.groupBox4.TabIndex = 8;
+            this.groupBox4.TabStop = false;
+            this.groupBox4.Text = "轴网类型";
+            // 
+            // comboBox2
+            // 
+            this.comboBox2.BackColor = System.Drawing.SystemColors.Window;
+            this.comboBox2.Cursor = System.Windows.Forms.Cursors.Default;
+            this.comboBox2.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBox2.FormattingEnabled = true;
+            this.comboBox2.Location = new System.Drawing.Point(6, 20);
+            this.comboBox2.Name = "comboBox2";
+            this.comboBox2.Size = new System.Drawing.Size(171, 20);
+            this.comboBox2.TabIndex = 0;
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(198, 183);
+            this.ClientSize = new System.Drawing.Size(198, 254);
+            this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.textBox3);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
@@ -138,6 +163,7 @@
             this.groupBox2.PerformLayout();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
+            this.groupBox4.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -152,5 +178,7 @@
         private System.Windows.Forms.GroupBox groupBox3;
         private System.Windows.Forms.TextBox textBox2;
         public System.Windows.Forms.TextBox textBox3;
+        private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.ComboBox comboBox2;
     }
 }

@@ -11,9 +11,14 @@ namespace 工时计算
         static void Main(string[] args)
         {
             // 工时计算
-            double result = 12 + 41 / 60 + 12 + 50 / 60 + 12 + 28 / 60 + 13 + 21 / 60 + 12 + 39 / 60;// 所有工作量
-            result -= 8.5 * 5;// 所有工时减去日要求工时
-            result /= 5;// 得到平均每日加班工时数量
+            int dayCount = 4;
+            double result = 11 + 52 / 60 ;// 所有工作量
+             result += 13 + 20 / 60; ;// 所有工作量
+             result += 8 + 44 / 60; ;// 所有工作量
+             result += 8 + 44 / 60; ;// 所有工作量
+             result += 0 + 0 / 60; ;// 所有工作量
+            result -= 8.5 * dayCount;// 所有工时减去日要求工时
+            result /= dayCount;// 得到平均每日加班工时数量
             Console.WriteLine(result);
 
         }

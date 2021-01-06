@@ -47,10 +47,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NewCommand_addin", "NewComm
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelessFormExternalEvent", "ModelessFormExternalEvent\ModelessFormExternalEvent.csproj", "{175583C3-F38D-4552-A68B-4D560EBC8667}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "geometry3Sharp", "..\geometry3Sharp\geometry3Sharp.csproj", "{0C518DDA-28FE-44CA-9AB0-F9773974F13A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clipper_library", "..\clipper_ver6.4.2\C#\clipper_library\clipper_library.csproj", "{9B062971-A88E-4A3D-B3C9-12B78D15FA66}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console_Test", "Console_Test\Console_Test.csproj", "{E2948068-A783-4CC3-8707-9CA3AB294913}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "工时计算", "工时计算\工时计算.csproj", "{42107C2C-1D37-4621-8357-BA5E000CE4EA}"
@@ -82,6 +78,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Install", "..\..\..\..\07-BIMBOX\知识店铺\黑夜de骑士\程序\SoftInstall21\Install\Install.csproj", "{32F98B45-CA27-4D93-8F30-85E806A4A1AE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InspectVersion", "..\..\..\..\07-BIMBOX\知识店铺\黑夜de骑士\程序\SoftInstall21\InspectVersion\InspectVersion.csproj", "{13A42698-34A2-4FC0-98F0-EDCE606CDFEE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "clipper_library", "..\..\clipper\C#\clipper_library\clipper_library.csproj", "{9B062971-A88E-4A3D-B3C9-12B78D15FA66}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "geometry3Sharp", "..\..\geometry3Sharp\geometry3Sharp.csproj", "{0C518DDA-28FE-44CA-9AB0-F9773974F13A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -177,14 +177,6 @@ Global
 		{175583C3-F38D-4552-A68B-4D560EBC8667}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{175583C3-F38D-4552-A68B-4D560EBC8667}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{175583C3-F38D-4552-A68B-4D560EBC8667}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0C518DDA-28FE-44CA-9AB0-F9773974F13A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0C518DDA-28FE-44CA-9AB0-F9773974F13A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0C518DDA-28FE-44CA-9AB0-F9773974F13A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0C518DDA-28FE-44CA-9AB0-F9773974F13A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9B062971-A88E-4A3D-B3C9-12B78D15FA66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9B062971-A88E-4A3D-B3C9-12B78D15FA66}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9B062971-A88E-4A3D-B3C9-12B78D15FA66}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9B062971-A88E-4A3D-B3C9-12B78D15FA66}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E2948068-A783-4CC3-8707-9CA3AB294913}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E2948068-A783-4CC3-8707-9CA3AB294913}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E2948068-A783-4CC3-8707-9CA3AB294913}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -245,6 +237,14 @@ Global
 		{13A42698-34A2-4FC0-98F0-EDCE606CDFEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{13A42698-34A2-4FC0-98F0-EDCE606CDFEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{13A42698-34A2-4FC0-98F0-EDCE606CDFEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B062971-A88E-4A3D-B3C9-12B78D15FA66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B062971-A88E-4A3D-B3C9-12B78D15FA66}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B062971-A88E-4A3D-B3C9-12B78D15FA66}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B062971-A88E-4A3D-B3C9-12B78D15FA66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C518DDA-28FE-44CA-9AB0-F9773974F13A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C518DDA-28FE-44CA-9AB0-F9773974F13A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C518DDA-28FE-44CA-9AB0-F9773974F13A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C518DDA-28FE-44CA-9AB0-F9773974F13A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

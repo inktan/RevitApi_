@@ -72,11 +72,5 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\geometry3Sharp\geometry3Sharp.csproj">
-      <Project>{0c518dda-28fe-44ca-9ab0-f9773974f13a}</Project>
-      <Name>geometry3Sharp</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

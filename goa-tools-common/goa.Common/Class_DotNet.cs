@@ -31,15 +31,36 @@ namespace goa.Common
             }
         }
     }
-    public sealed class MyBinaryFormatterBinder
-        : System.Runtime.Serialization.SerializationBinder
+    public class RealNumDomain
     {
-        public override System.Type BindToType(
-          string assemblyName,
-          string typeName)
+        public double Min, Max;
+        public RealNumDomain(double _d1, double _d2)
         {
-            return Type.GetType(string.Format("{0}, {1}",
-              typeName, assemblyName));
+            this.Min = Math.Min(_d1, _d2);
+            this.Max = Math.Max(_d1, _d2);
+        }
+        public bool Contains(double _d)
+        {
+            return this.Min <= _d && this.Max >= _d;
+        }
+        public override string ToString()
+        {
+            return this.Min.ToStringDigits(6) + "|" + this.Max.ToStringDigits(6);
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj is RealNumDomain == false)
+                return false;
+            else
+            {
+                var other = obj as RealNumDomain;
+                return this.ToString() == other.ToString();
+            }
+        }
+        public override int GetHashCode()
+        {
+            return this.ToString().GetHashCode();
         }
     }
 }
+s

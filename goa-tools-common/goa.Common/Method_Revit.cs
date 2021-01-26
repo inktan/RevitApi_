@@ -3,13 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
+using System.Windows.Forms;
 
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
+using Autodesk.Revit.UI.Selection;
 using Autodesk.Revit.Exceptions;
-using System.IO;
-using System.Windows.Forms;
 using Autodesk.Revit.UI;
+using Autodesk.Revit.DB.ExtensibleStorage;
+
+using goa.Common.Exceptions;
+using g3;
+using ClipperLib;
+using NetTopologySuite.Geometries;
+using Autodesk.Revit.Attributes;
 
 namespace goa.Common
 {
@@ -70,6 +78,25 @@ namespace goa.Common
             var array = new XYZ[8] { p0, p1, p2, p3, p4, p5, p6, p7 };
             return array;
         }
+        public static List<Line> GetBoundaryLines(this BoundingBoxXYZ _bb)
+        {
+            var a = _bb.GetVertices();
+            return new List<Line>()
+            {
+                Line.CreateBound(a[0], a[1]),
+                Line.CreateBound(a[1], a[2]),
+                Line.CreateBound(a[2], a[3]),
+                Line.CreateBound(a[3], a[0]),
+                Line.CreateBound(a[4], a[5]),
+                Line.CreateBound(a[5], a[6]),
+                Line.CreateBound(a[6], a[7]),
+                Line.CreateBound(a[7], a[4]),
+                Line.CreateBound(a[0], a[4]),
+                Line.CreateBound(a[1], a[5]),
+                Line.CreateBound(a[2], a[6]),
+                Line.CreateBound(a[3], a[7]),
+            };
+        }
         public static List<Line> GetBoundaryLines(this BoundingBoxUV _boxUV, Plane _plane)
         {
             var uvs = _boxUV.GetVertices();
@@ -118,14 +145,295 @@ namespace goa.Common
         {
             return (_box.Max.U - _box.Min.U) * (_box.Max.V - _box.Min.V);
         }
+        /// <summary>
+        /// All all solids of an element and calculate bounding box.
+        /// Element.get_boundingBox considers none-solid geoemtry.
+        /// </summary>
+        public static BoundingBoxXYZ GetBoundingBoxForSolidGeometries(this Element _elem)
+        {
+            var solids = _elem.GetAllSolids();
+            if (solids.Count == 0)
+                return null;
+            var bbs = solids
+                .Select(x => x.GetBoundingBox());
+            var bb = bbs.GetBoundingBox();
+            return bb;
+        }
+        /// <summary>
+        /// input boxes could have their own transform.
+        /// this methods will apply transfrom, return one
+        /// that's in model space coordinates.
+        /// </summary>
+        public static BoundingBoxXYZ GetBoundingBox(this IEnumerable<BoundingBoxXYZ> _boxes)
+        {
+            if (_boxes.FirstOrDefault() == null)
+                return null;
+            double minX = double.MaxValue,
+                minY = double.MaxValue,
+                minZ = double.MaxValue,
+                maxX = double.MinValue,
+                maxY = double.MinValue,
+                maxZ = double.MinValue; ;
+            foreach (var bb in _boxes)
+            {
+                var tf = bb.Transform;
+                minX = Math.Min(minX, tf.OfPoint(bb.Min).X);
+                minY = Math.Min(minY, tf.OfPoint(bb.Min).Y);
+                minZ = Math.Min(minZ, tf.OfPoint(bb.Min).Z);
+                maxX = Math.Max(maxX, tf.OfPoint(bb.Max).X);
+                maxY = Math.Max(maxY, tf.OfPoint(bb.Max).Y);
+                maxZ = Math.Max(maxZ, tf.OfPoint(bb.Max).Z);
+            }
+            var box = new BoundingBoxXYZ();
+            box.Min = new XYZ(minX, minY, minZ);
+            box.Max = new XYZ(maxX, maxY, maxZ);
+            return box;
+        }
+        /// <summary>
+        /// get min and max of list of points.
+        /// </summary>
+        public static BoundingBoxXYZ GetBoundingBox(this IEnumerable<XYZ> _points)
+        {
+            double minX = double.MaxValue, minY = double.MaxValue, minZ = double.MaxValue;
+            double maxX = double.MinValue, maxY = double.MinValue, maxZ = double.MinValue;
+            foreach (var p in _points)
+            {
+                if (p.X < minX)
+                    minX = p.X;
+                if (p.X > maxX)
+                    maxX = p.X;
+                if (p.Y < minY)
+                    minY = p.Y;
+                if (p.Y > maxY)
+                    maxY = p.Y;
+                if (p.Z < minZ)
+                    minZ = p.Z;
+                if (p.Z > maxZ)
+                    maxZ = p.Z;
+            }
+            var bb = new BoundingBoxXYZ();
+            bb.Min = new XYZ(minX, minY, minZ);
+            bb.Max = new XYZ(maxX, maxY, maxZ);
+            return bb;
+        }
+        public static BoundingBoxUV GetBoundingBox(this IEnumerable<UV> _points)
+        {
+            double minU = double.MaxValue,
+                minV = double.MaxValue,
+                maxU = double.MinValue,
+                maxV = double.MinValue;
+            foreach (var p in _points)
+            {
+                if (p.U < minU)
+                    minU = p.U;
+                if (p.U > maxU)
+                    maxU = p.U;
+                if (p.V < minV)
+                    minV = p.V;
+                if (p.V > maxV)
+                    maxV = p.V;
+            }
+            return new BoundingBoxUV(minU, minV, maxU, maxV);
+        }
+        public static BoundingBoxXYZ GetBoundingBox
+            (this IEnumerable<Element> _elems,
+            Transform _tf = null,
+            Autodesk.Revit.DB.View _view = null)
+        {
+            var bbs = _elems
+                .Select(x => x.GetBoundingBoxInModelCS(null))
+                .Where(x => x != null);
+            var bb = bbs.GetBoundingBox();
+            if (_tf != null && _tf.IsIdentity == false)
+                bb = bb.GetTransformed(_tf);
+            return bb;
+        }
+        public static BoundingBoxXYZ GetBoundingBoxInModelCS(this Element _elem, Autodesk.Revit.DB.View _view)
+        {
+            var bb = _elem.get_BoundingBox(_view);
+            if (bb.Transform.IsIdentity == false)
+                bb = bb.GetTransformed(bb.Transform);
+            return bb;
+        }
+        public static BoundingBoxXYZ GetTransformed(this BoundingBoxXYZ _bb, Transform _tf)
+        {
+            var vertices = _bb.GetVertices();
+            var tfVers = vertices.Select(x => _tf.OfPoint(x));
+            return tfVers.GetBoundingBox();
+        }
+        #endregion
+
+        #region Color
+        public static Color GetRandomColor()
+        {
+            var rnd = new Random();
+            var rgb = new byte[3];
+            rnd.NextBytes(rgb);
+            return new Color(rgb[0], rgb[1], rgb[2]);
+        }
+        #endregion
+
+        #region Document
+        /// <summary>
+        /// try to find external storage element with document guid.
+        /// If not found, return title + path.
+        /// </summary>
+        public static string Identifier(this Document _doc)
+        {
+            var ds = _doc.getDocGuidDS();
+            if (ds != null)
+            {
+                var en = ds.GetEntity(SchemaTypes.DocumentId);
+                var guid = en.Get<Guid>("GUID");
+                return guid.ToString();
+            }
+            else
+            {
+                return _doc.Title + "|" + _doc.PathName;
+            }
+        }
+        public static void InitializeDocGuid(this Document _doc, bool _forceReset = false)
+        {
+            var ds = _doc.getDocGuidDS();
+            if (ds != null && !_forceReset)
+                return;
+            else
+                _doc.CreateDocGuidDataStorage();
+        }
+        public static void CreateDocGuidDataStorage(this Document _doc)
+        {
+            var existingDS = _doc.getDocGuidDS();
+            using (Transaction trans = new Transaction(_doc, "设置模型ID"))
+            {
+                trans.Start();
+                if (existingDS != null)
+                    _doc.Delete(existingDS.Id);
+                Entity en = new Entity(SchemaTypes.Guid_DocumentId);
+                var guid = Guid.NewGuid();
+                en.Set("GUID", guid);
+                DataStorage ds = DataStorage.Create(_doc);
+                ds.SetEntity(en);
+                trans.Commit();
+            }
+        }
+        private static Element getDocGuidDS(this Document _doc)
+        {
+            SchemaTypes.InitializeTypes();
+            var filter = new ExtensibleStorageFilter(SchemaTypes.Guid_DocumentId);
+            var ds = new FilteredElementCollector(_doc)
+                .WherePasses(filter)
+                .FirstOrDefault();
+            return ds;
+        }
+        public static bool AreSame(this Document _thisDoc, Document _other)
+        {
+            return _thisDoc.Identifier() == _other.Identifier();
+        }
+        #endregion
+
+        #region Design Option
+        public static bool IsInMainModelOrDesignOption(this Element _elem, ElementId _designOptionId)
+        {
+            if (_designOptionId == ElementId.InvalidElementId)
+                return true;
+            return _elem.DesignOption == null || _elem.DesignOption.Id == _designOptionId;
+        }
+        public static bool SameDesignOption(this Element _elem, Element _other)
+        {
+            var d1 = _elem.DesignOption;
+            var d2 = _other.DesignOption;
+            if (d1 != null && d2 != null)
+                return _elem.DesignOption.Id == _other.DesignOption.Id;
+            else
+                return d1 == null && d2 == null;
+        }
         #endregion
 
         #region Element
-        public static List<Solid> GetAllSolids(this Element _elem)
+        public static XYZ LocationPoint(this Element _elem)
+        {
+            if (_elem.Location is LocationPoint == false)
+                return null;
+            else
+                return ((LocationPoint)_elem.Location).Point;
+        }
+        public static Curve LocationCurve(this Element _elem)
+        {
+            if (_elem.Location is LocationCurve == false)
+                return null;
+            else
+                return ((LocationCurve)_elem.Location).Curve;
+        }
+        public static Line LocationLine(this Element _elem)
+        {
+            return ((LocationCurve)_elem.Location)?.Curve as Line;
+        }
+        /// <summary>
+        /// Get one XYZ point as location point, 
+        /// regardless of location type.
+        /// Return null if location is null.
+        /// Return bottom-left end point if location is location curve.
+        /// </summary>        
+        public static XYZ GetPos(this Element _elem)
+        {
+            if (_elem.Location is LocationPoint)
+            {
+                return ((LocationPoint)_elem.Location).Point;
+            }
+            else if (_elem.Location is LocationCurve)
+            {
+                //return bottom left end of curve
+                var c = ((LocationCurve)_elem.Location).Curve;
+                var p0 = c.GetEndPoint(0);
+                var p1 = c.GetEndPoint(1);
+                if (p0.Z.IsAlmostEqualByDifference(p1.Z) == false)
+                {
+                    return p0.Z < p1.Z ? p0 : p1;
+                }
+                else if (p0.X.IsAlmostEqualByDifference(p1.X) == false)
+                {
+                    return p0.X < p1.X ? p0 : p1;
+                }
+                else if (p0.Y.IsAlmostEqualByDifference(p1.Y) == false)
+                {
+                    return p0.Y < p1.Y ? p0 : p1;
+                }
+                else
+                {
+                    return p0;
+                }
+            }
+            else
+            {
+                return null;
+            }
+        }
+        public static List<Solid> GetAllSolids
+            (this Element _elem,
+            Autodesk.Revit.DB.View _view = null,
+            ViewDetailLevel _detailLevel = ViewDetailLevel.Fine)
         {
             List<Solid> list = new List<Solid>();
             var opt = new Options();
+            if (_view != null)
+                opt.View = _view;
             opt.ComputeReferences = true;
+            opt.IncludeNonVisibleObjects = true;
+            if (_view == null)
+                opt.DetailLevel = _detailLevel;
+            if (_elem is Wall)
+            {
+                var wall = _elem as Wall;
+                if (wall.IsStackedWall)
+                {
+                    var doc = _elem.Document;
+                    var members = wall.GetStackedWallMemberIds()
+                        .Select(x => doc.GetElement(x));
+                    return members
+                        .SelectMany(x => x.GetAllSolids(_view, _detailLevel))
+                        .ToList();
+                }
+            }
             var geomElem = _elem.get_Geometry(opt);
             return getAllSolids(geomElem);
         }
@@ -153,15 +461,13 @@ namespace goa.Common
             }
             return list;
         }
-        public static List<Solid> GetAllSolids(this Element _elem, Autodesk.Revit.DB.View _view)
+        public static List<Face> GetAllFaces(this Element _elem,
+            Autodesk.Revit.DB.View _view = null,
+            ViewDetailLevel _detailLevel = ViewDetailLevel.Fine)
         {
-            List<Solid> list = new List<Solid>();
-            var opt = new Options();
-            opt.View = _view;
-            opt.IncludeNonVisibleObjects = false;
-            opt.ComputeReferences = true;
-            var geomElem = _elem.get_Geometry(opt);
-            return getAllSolids(geomElem);
+            var solids = _elem.GetAllSolids(_view, _detailLevel);
+            var faces = solids.SelectMany(x => x.Faces.Cast<Face>()).ToList();
+            return faces;
         }
         public static void CopyParameterValuesFrom(this Element _elem, Element _source)
         {
@@ -183,20 +489,126 @@ namespace goa.Common
             }
 
         }
-        public static HashSet<ElementId> GetDependentFamilyInstanceIds(this Element _host)
+        public static Dictionary<ElementId, List<FamilyInstance>> GetHostDependentMap(Document _doc)
+        {
+            var dic = new Dictionary<ElementId, List<FamilyInstance>>();
+            var allDpnts = new FilteredElementCollector(_doc)
+              .OfClass(typeof(FamilyInstance))
+              .Cast<FamilyInstance>()
+              .Where(x => x.Host != null);
+            foreach (var d in allDpnts)
+            {
+                var hostId = d.Host.Id;
+                if (dic.ContainsKey(hostId) == false)
+                {
+                    dic[hostId] = new List<FamilyInstance>() { d };
+                }
+                else
+                {
+                    dic[hostId].Add(d);
+                }
+            }
+            return dic;
+        }
+        /// <summary>
+        /// WARNING: DO NOT CALL THIS INSIDE LONG LOOP.
+        /// Element filtered collector inside.
+        /// </summary>
+        public static List<FamilyInstance> GetAllDependents(this Element _host)
         {
             var doc = _host.Document;
-            var allFamilyInstances = new FilteredElementCollector(doc)
+            var allDpnts = new FilteredElementCollector(doc)
+                .WhereElementIsNotElementType()
                 .OfClass(typeof(FamilyInstance))
                 .Cast<FamilyInstance>()
-                .Where(x => x.Host != null);
-            var set = new HashSet<ElementId>();
-            foreach (var fi in allFamilyInstances)
+                .Where(x => x.Host != null && x.Host.Id == _host.Id)
+                .ToList();
+            return allDpnts;
+        }
+        public static void GetCutsAndJoins(Element _elem, out List<ElementId> _cuts, out List<ElementId> _cutBy, out List<ElementId> _joins)
+        {
+            var doc = _elem.Document;
+            _cuts = InstanceVoidCutUtils.GetElementsBeingCut(_elem).ToList();
+            if (_cuts == null)
+                _cuts = new List<ElementId>();
+            _cutBy = InstanceVoidCutUtils.GetCuttingVoidInstances(_elem).ToList();
+            if (_cutBy == null)
+                _cutBy = new List<ElementId>();
+            _joins = JoinGeometryUtils.GetJoinedElements(doc, _elem).ToList();
+            if (_joins == null)
+                _joins = new List<ElementId>();
+        }
+        public static void SyncJoinCut(Element _elem, List<ElementId> _cuts, List<ElementId> _cutBy, List<ElementId> _joins)
+        {
+            var doc = _elem.Document;
+            if (_joins != null)
             {
-                if (fi.Host.Id == _host.Id)
-                    set.Add(fi.Id);
+                foreach (var id in _joins)
+                {
+                    var other = doc.GetElement(id);
+                    if (other != null
+                        && other.IsValidObject
+                        && JoinGeometryUtils.AreElementsJoined(doc, other, _elem) == false)
+                    {
+                        try
+                        {
+                            JoinGeometryUtils.JoinGeometry(doc, other, _elem);
+                        }
+                        catch { }
+                    }
+                }
             }
-            return set;
+            if (_cuts != null)
+            {
+                foreach (var id in _cuts)
+                {
+                    var subject = doc.GetElement(id);
+                    if (subject != null
+                        && subject.IsValidObject
+                        && InstanceVoidCutUtils.InstanceVoidCutExists(subject, _elem) == false)
+                    {
+                        try
+                        {
+                            InstanceVoidCutUtils.AddInstanceVoidCut(doc, subject, _elem);
+                        }
+                        catch { }
+                    }
+                }
+            }
+            if (_cutBy != null)
+            {
+                foreach (var id in _cutBy)
+                {
+                    var cutter = doc.GetElement(id);
+                    if (cutter != null
+                        && cutter.IsValidObject
+                        && InstanceVoidCutUtils.InstanceVoidCutExists(_elem, cutter) == false)
+                    {
+                        try
+                        {
+                            InstanceVoidCutUtils.AddInstanceVoidCut(doc, _elem, cutter);
+                        }
+                        catch { };
+                    }
+                }
+            }
+        }
+        #endregion
+
+        #region Element Filter
+        public static BoundingBoxIntersectsFilter GetBBIntersectFilter(BoundingBoxXYZ _targetSpace, double _expansion)
+        {
+            var outline = new Outline
+                (_targetSpace.Min + new XYZ(-1.0, -1.0, -1.0) * _expansion,
+                _targetSpace.Max + new XYZ(1.0, 1.0, 1.0) * _expansion);
+            return new BoundingBoxIntersectsFilter(outline);
+        }
+        public static BoundingBoxIntersectsFilter GetBBIntersectFilter(BoundingBoxXYZ _targetSpace, double _expandXY, double _expandZ)
+        {
+            var outline = new Outline
+                (_targetSpace.Min + new XYZ(-_expandXY, -_expandXY, -_expandZ),
+                _targetSpace.Max + new XYZ(_expandXY, _expandXY, _expandZ));
+            return new BoundingBoxIntersectsFilter(outline);
         }
         #endregion
 
@@ -207,65 +619,74 @@ namespace goa.Common
             var instances = new FilteredElementCollector(doc)
                 .WhereElementIsNotElementType()
                 .OfClass(typeof(FamilyInstance))
+                .OfCategoryId(_fs.Category.Id)
                 .Cast<FamilyInstance>()
                 .Where(x => x.Symbol.Id == _fs.Id)
                 .ToList();
             return instances;
         }
         /// <summary>
-        /// Duplicate existing family, with input name.
+        /// Duplicate Existing family, with given name.
         /// </summary>
-        public static Family DuplicateFamily(Document _parentDoc, Document _famDoc)
+        public static Family DuplicateFamily(Document _parentDoc, Document _famDoc, string _newFamName, bool _renameType = false)
         {
-            //pick existing family instance
-            var filter = new FamilyInstanceSelectionFilter();
-            try
+            //save as new family into temp folder
+            var opt = new SaveAsOptions();
+            opt.OverwriteExistingFile = true;
+            var filePath = Path.Combine(Path.GetTempPath(), _newFamName + ".rfa");
+            //rename family type to match new name
+            if (_renameType)
             {
-                var name = _famDoc.Title;
-                var newName = InputUniqueName(_parentDoc, name);
-                if (newName == "")
-                    return null;
-
-                //save as new family into temp folder
-                var opt = new SaveAsOptions();
-                opt.OverwriteExistingFile = true;
-                var filePath = Path.Combine(Path.GetTempPath(), newName + ".rfa");
-                //rename family type to match new name
                 var mgr = _famDoc.FamilyManager;
                 using (Transaction trans = new Transaction(_famDoc, "rename"))
                 {
                     trans.Start();
-                    mgr.RenameCurrentType(newName);
+                    mgr.RenameCurrentType(_newFamName);
                     trans.Commit();
                 }
-                //save family and close
-                _famDoc.SaveAs(filePath, opt);
-                _famDoc.Close();
-                //load into project doc
-                Family newFam;
-                using (Transaction trans = new Transaction(_parentDoc, "复制族"))
-                {
-                    trans.Start();
-                    _parentDoc.LoadFamily(filePath, out newFam);
-                    trans.Commit();
-                }
-                return newFam;
             }
-            catch (Autodesk.Revit.Exceptions.OperationCanceledException ex)
+            //save family and close
+            try
             {
-                return null;
+                _famDoc.SaveAs(filePath, opt);
             }
+            catch
+            {
+                throw new CommonUserExceptions("名称包含特殊字符，重命名失败：\r\n\r\n" + _newFamName);
+            }
+            _famDoc.Close();
+            //load into project doc
+            Family newFam;
+            using (Transaction trans = new Transaction(_parentDoc, "复制族"))
+            {
+                trans.Start();
+                _parentDoc.LoadFamily(filePath, out newFam);
+                trans.Commit();
+            }
+            return newFam;
         }
-        public static string InputUniqueName(Document _parentDoc, string _defaultName)
+        /// <summary>
+        /// Duplicate existing family, with input name.
+        /// </summary>
+        public static Family DuplicateFamily(Document _parentDoc, Document _famDoc, bool _renameType = false)
+        {
+            var name = _famDoc.Title.RemoveAll(".rfa");
+            var newName = InputUniqueFamilyName(_parentDoc, name);
+            if (newName == "")
+                return null;
+            return DuplicateFamily(_parentDoc, _famDoc, newName, _renameType);
+        }
+        public static string InputUniqueFamilyName(Document _parentDoc, string _defaultName)
         {
             //get all existing family's names
             var names = new FilteredElementCollector(_parentDoc)
                 .OfClass(typeof(Family))
                 .Select(x => x.Name).ToList();
 
-            //input new name,check name
-            open_form:
+        //input new name,check name
+        open_form:
             var form = new Form_SingleLineTextInput("新族名：", _defaultName);
+            form.TopMost = true;
             var result = form.ShowDialog();
             if (result == DialogResult.Cancel) return "";
             if (names.Contains(form.Input))
@@ -273,11 +694,80 @@ namespace goa.Common
                 TaskDialog.Show("信息", "族名与现有族重复。");
                 goto open_form;
             }
+            //check valid file name
+            var invalidChars = Path.GetInvalidFileNameChars();
+            foreach (var c in invalidChars)
+                if (invalidChars.Any(x => form.Input.Any(y => y == x)))
+                {
+                    TaskDialog.Show("消息", "不能使用以下字符：\r\n\r\n" + "\\<>|:*?/");
+                    goto open_form;
+                }
             return form.Input;
+        }
+        /// <summary>
+        /// get base plane from hand and facing orientation. 
+        /// consider flipping.
+        /// </summary>
+        public static Plane GetPlane(this FamilyInstance _fi)
+        {
+            var hand = _fi.HandOrientation;
+            if (_fi.HandFlipped)
+                hand *= -1.0;
+            var facing = _fi.FacingOrientation;
+            if (_fi.FacingFlipped)
+                facing *= -1.0;
+            return Plane.CreateByOriginAndBasis(_fi.GetPos(), hand, facing);
+        }
+        public static Transform GetLCS(this FamilyInstance _fi)
+        {
+            Transform tf = Transform.Identity;
+            tf.Origin = _fi.GetPos();
+            tf.BasisX = _fi.HandOrientation;
+            tf.BasisY = _fi.FacingOrientation;
+            tf.BasisZ = tf.BasisX.CrossProduct(tf.BasisY);
+            if (_fi.HandFlipped)
+                tf.BasisZ *= -1.0;
+            if (_fi.FacingFlipped)
+                tf.BasisZ *= -1.0;
+            //if (_fi.IsWorkPlaneFlipped)
+            //tf.BasisZ *= -1.0;
+            return tf;
+        }
+        #endregion
+
+        #region Filled Region
+        public static List<ElementId> GetCurveElements(this FilledRegion _fr)
+        {
+            List<ElementId> list = new List<ElementId>();
+            var doc = _fr.Document;
+            int filledRegionId = _fr.Id.IntegerValue;
+            for (int i = filledRegionId - 1; filledRegionId - 50 < i; i--)
+            {
+                ElementId id = new ElementId(i);
+                Sketch boundary = doc.GetElement(id) as Sketch;
+                if (null == boundary) continue;
+                foreach (CurveArray crr in boundary.Profile)
+                {
+                    foreach (Curve curve in crr)
+                    {
+                        list.Add(curve.Reference.ElementId);
+                    }
+                }
+                break;
+            }
+            return list;
         }
         #endregion
 
         #region Geometry_Vector
+        public static UV ToUV(this XYZ _xyz)
+        {
+            return new UV(_xyz.X, _xyz.Y);
+        }
+        public static XYZ ToXYZ(UV _uv)
+        {
+            return new XYZ(_uv.U, _uv.V, 0);
+        }
         /// <summary>
         /// Project given 3D XYZ point onto plane.
         /// </summary>
@@ -286,6 +776,14 @@ namespace goa.Common
             double d = plane.SignedDistanceTo(p);
             XYZ q = p - d * plane.Normal;
             return q;
+        }
+        /// <summary>
+        /// flatten vector so it is perpandicular to plane's normal.
+        /// </summary>
+        public static XYZ ProjectVector(this Plane plane, XYZ _v)
+        {
+            var dot = _v.DotProduct(plane.Normal);
+            return _v + plane.Normal * dot * -1;
         }
         /// <summary>
         /// Project given 3D XYZ point into plane, 
@@ -308,14 +806,6 @@ namespace goa.Common
             p = p + plane.YVec * uv.V;
             return p;
         }
-        public static bool IsAlmostEqualTo(this XYZ _this, XYZ _other, double _e)
-        {
-            if (Math.Abs(_this.X - _other.X) > _e
-                || Math.Abs(_this.Y - _other.Y) > _e
-                || Math.Abs(_this.Z - _other.Z) > _e)
-                return false;
-            return true;
-        }
         /// <summary>
         /// Return signed distance from plane to a given point.
         /// </summary>
@@ -324,9 +814,18 @@ namespace goa.Common
             XYZ v = p - plane.Origin;
             return plane.Normal.DotProduct(v);
         }
+        public static bool IsAlmostEqualToByDifference(this XYZ _this, XYZ _other, double _e = 0.0000001)
+        {
+            if (Math.Abs(_this.X - _other.X) > _e
+                || Math.Abs(_this.Y - _other.Y) > _e
+                || Math.Abs(_this.Z - _other.Z) > _e)
+                return false;
+            return true;
+        }
         public static bool IsParallel(this XYZ _xyz, XYZ _xyz2)
         {
-            return _xyz.CrossProduct(_xyz2).GetLength().IsAlmostEqualByDifference(0);
+            var dot = _xyz.Normalize().DotProduct(_xyz2.Normalize());
+            return Math.Abs(dot).IsAlmostEqualByDifference(1.0);
         }
         private static double lineIntersection(XYZ planePoint, XYZ planeNormal, XYZ linePoint, XYZ lineDirection)
         {
@@ -342,9 +841,16 @@ namespace goa.Common
         /// </summary>
         public static double AngleToInDegree(this UV v1, UV v2)
         {
-            double angle = v1.AngleTo(v2);
-            angle = angle * 360 / (2 * Math.PI);
-            return angle;
+            double rad = v1.AngleTo(v2);
+            return RadToDegree(rad);
+        }
+        public static double RadToDegree(double _d)
+        {
+            return _d * 360 / (2 * Math.PI);
+        }
+        public static double DegreeToRad(double _r)
+        {
+            return _r * 2 * Math.PI / 360;
         }
         public static double SqDist(this XYZ _p0, XYZ _p1)
         {
@@ -385,6 +891,19 @@ namespace goa.Common
             double angle = Math.Atan2(_v0.X, _v0.Y) - Math.Atan2(_v1.X, _v1.Y);
             return angle;
         }
+        public static XYZ RoundToDigits(this XYZ _xyz, int _digits)
+        {
+            var x = Math.Round(_xyz.X, _digits);
+            var y = Math.Round(_xyz.Y, _digits);
+            var z = Math.Round(_xyz.Z, _digits);
+            return new XYZ(x, y, z);
+        }
+        public static UV RoundToDigits(this UV _uv, int _digits)
+        {
+            var u = Math.Round(_uv.U, _digits);
+            var v = Math.Round(_uv.V, _digits);
+            return new UV(u, v);
+        }
         public static string ToStringDigits(this UV _uv, int _digits)
         {
             var u = Math.Round(_uv.U, _digits).ToString();
@@ -398,14 +917,58 @@ namespace goa.Common
             var z = Math.Round(_xyz.Z, _digits).ToString();
             return x + " , " + y + " , " + z;
         }
+        public static double[] ToArrayD(this XYZ _xyz)
+        {
+            return new double[3] { _xyz.X, _xyz.Y, _xyz.Z };
+        }
+        public static List<XYZ> OrderAlong(this List<XYZ> _inputs, XYZ _dir)
+        {
+            //get starting and end line from far
+            XYZ start = _dir * -9999;
+            XYZ end = _dir * 9999;
+            var line = Line.CreateBound(start, end);
+            //get projected length for each point
+            Dictionary<double, List<XYZ>> distMap = new Dictionary<double, List<XYZ>>();
+            foreach (var p in _inputs)
+            {
+                var closest = p.ClosestPointOnLine(line);
+                var dist = closest.SqDist(start);
+                if (distMap.ContainsKey(dist))
+                {
+                    distMap[dist].Add(p);
+                }
+                else
+                {
+                    distMap[dist] = new List<XYZ>() { p };
+                }
+            }
+            var ordered = distMap.OrderBy(x => x.Key);
+            return ordered.SelectMany(x => x.Value).ToList();
+        }
+        public static XYZ GetMean(IEnumerable<XYZ> _points)
+        {
+            var mean = XYZ.Zero;
+            int count = 0;
+            foreach (var p in _points)
+            {
+                mean += p;
+                count++;
+            }
+            mean /= count;
+            return mean;
+        }
+        public static bool IsInside(this XYZ _p, Curve _c)
+        {
+            return _c.Project(_p).Distance.IsAlmostEqualByDifference(0);
+        }
         #endregion
 
         #region Geometry_Line
-        public static Line ProjectOnto(this Line _line, Plane _plane)
+        public static Line ProjectOntoPlane(this Line _line, Plane _plane)
         {
             var p0 = _plane.ProjectOnto(_line.GetEndPoint(0));
             var p1 = _plane.ProjectOnto(_line.GetEndPoint(1));
-            if (p0.IsAlmostEqualTo(p1))
+            if (p0.IsAlmostEqualToByDifference(p1, 0.0001))
             {
                 return null;
             }
@@ -442,11 +1005,12 @@ namespace goa.Common
                 points.Add(end);
             return points;
         }
-        public static bool IsAlmostIdentical(this Line _line, Line _other, double _e)
+        public static List<Line> EliminateIdentical(this List<Line> _lines, double _epsilon)
         {
-            return
-                _line.GetEndPoint(0).IsAlmostEqualTo(_other.GetEndPoint(0), _e)
-               && _line.GetEndPoint(1).IsAlmostEqualTo(_other.GetEndPoint(1), _e);
+            var map = new Dictionary<string, Line>();
+            foreach (var l in _lines)
+                map[l.ToStringCenterLength(3)] = l;
+            return map.Values.ToList();
         }
         public static bool IsOnExtensionOf(this Line _baseLine, Line _line)
         {
@@ -484,10 +1048,45 @@ namespace goa.Common
 
             return true;
         }
+        public static bool HasOverlap(this Line _line, Line _testLine)
+        {
+            //end points both on test line
+            var p0 = _line.GetEndPoint(0);
+            var p1 = _line.GetEndPoint(1);
+            var proj0 = p0.ClosestPointOnLineOrOnExtension(_testLine);
+            var proj1 = p1.ClosestPointOnLineOrOnExtension(_testLine);
+            if (proj0.SqDist(p0) > 0.0001
+                || proj1.SqDist(p1) > 0.0001)
+                return false;
+            //any end point within the other's bound
+            var f0 = getProjectionParamNormalized(p0, _testLine);
+            var f1 = getProjectionParamNormalized(p1, _testLine);
+            var f2 = getProjectionParamNormalized(_testLine.GetEndPoint(0), _line);
+            var f3 = getProjectionParamNormalized(_testLine.GetEndPoint(1), _line);
+            return (f0 > 0.0 && f0 < 1.0)
+                || (f1 > 0.0 && f1 < 1.0)
+                || (f2 > 0.0 && f2 < 1.0)
+                || (f3 > 0.0 && f3 < 1.0);
+        }
         public static Line ExtendBy(this Line _line, double _length)
         {
             var newEnd = _line.GetEndPoint(1) + _line.Direction * _length;
             return Line.CreateBound(_line.GetEndPoint(0), newEnd);
+        }
+        public static Line ExtendBothEndsBy(this Line _line, double _length)
+        {
+            var newEnd0 = _line.GetEndPoint(0) + _line.Direction * -1.0 * _length;
+            var newEnd1 = _line.GetEndPoint(1) + _line.Direction * _length;
+            return Line.CreateBound(newEnd0, newEnd1);
+        }
+        public static Line ExtendOneEndByDist(this Line _baseLine, double _distAlongDir, int _endIndex)
+        {
+            var dir = _baseLine.Direction;
+            var newEnd = _baseLine.GetEndPoint(_endIndex) + dir * _distAlongDir;
+            var end2 = _endIndex == 1 ? _baseLine.GetEndPoint(0) : _baseLine.GetEndPoint(1);
+            var start = _endIndex == 1 ? end2 : newEnd;
+            var end = _endIndex == 1 ? newEnd : end2;
+            return Line.CreateBound(start, end);
         }
         public static bool Intersects(this Line _line, Plane _plane)
         {
@@ -496,6 +1095,22 @@ namespace goa.Common
                 return false;
             else
                 return true;
+        }
+        public static Line TrimExtend(this Line _line, Plane _plane)
+        {
+            var length = lineIntersection(_plane.Origin, _plane.Normal, _line.Origin, _line.Direction);
+            var p0 = _line.Origin;
+            var p1 = p0 + _line.Direction * length;
+            return Line.CreateBound(p0, p1);
+        }
+        /// <summary>
+        /// return intersection point following, or against, a direction.
+        /// </summary>
+        public static XYZ GetIntersection(this Line _line, Plane _plane)
+        {
+            var length = lineIntersection(_plane.Origin, _plane.Normal, _line.Origin, _line.Direction);
+            var p0 = _line.GetEndPoint(0);
+            return p0 + _line.Direction * length;
         }
         /// <summary>
         /// shortest distance value from point to a list of lines, within line bound.
@@ -517,10 +1132,15 @@ namespace goa.Common
             XYZ closest = _p.ClosestPointOnLine(_line);
             return _p.DistanceTo(closest);
         }
-        public static double MinDistanceToLine(this UV _p, UVLine _line)
+        public static double MinDistanceToLine(this XYZ _p, Line _line, out XYZ _closest)
         {
-            UV closest = _p.ClosestPointOnLine(_line);
-            return _p.DistanceTo(closest);
+            _closest = _p.ClosestPointOnLine(_line);
+            return _p.DistanceTo(_closest);
+        }
+        public static double MinDistanceToLine(this Vector2d _p, Segment2d _line)
+        {
+            var closest = _p.ClosestPointOnLine(_line);
+            return _p.Distance(closest);
         }
         /// <summary>
         /// find closest point on line, within line bound.
@@ -532,52 +1152,57 @@ namespace goa.Common
             else if (f > 1) f = 1;
             return _line.Evaluate(f, true);
         }
+        public static XYZ ClosestPointOnLineOrOnExtension(this XYZ _p, Line _line)
+        {
+            var f = getProjectionParamNormalized(_p, _line);
+            var fr = _line.ComputeRawParameter(f);
+            return _line.Evaluate(fr, false);
+        }
         private static double getProjectionParamNormalized(XYZ _p, Line _line)
         {
             XYZ p1 = _line.GetEndPoint(0);
             XYZ p2 = _line.GetEndPoint(1);
             XYZ p0 = _p;
-            //https://www.codeproject.com/Questions/184403/How-to-determine-the-shortest-distance-from-a-poin
-            //f = [(q-p1).(p2-p1)]÷|p2-p1|²
             double f =
                 ((p0 - p1).DotProduct(p2 - p1)) / Math.Pow((p2 - p1).GetLength(), 2);
             return f;
         }
-        private static double getProjectionParamNormalized(UV _uv, UVLine _line)
+        private static double getProjectionParamNormalized(Vector2d _v2d, Segment2d _line)
         {
-            UV p1 = _line.p0;
-            UV p2 = _line.p1;
-            UV p0 = _uv;
-            //https://www.codeproject.com/Questions/184403/How-to-determine-the-shortest-distance-from-a-poin
-            //f = [(q-p1).(p2-p1)]÷|p2-p1|²
+            Vector2d p1 = _line.P0;
+            Vector2d p2 = _line.P1;
+            Vector2d p0 = _v2d;
             double f =
-                ((p0 - p1).DotProduct(p2 - p1)) / Math.Pow((p2 - p1).GetLength(), 2);
+                ((p0 - p1).Dot(p2 - p1)) / Math.Pow((p2 - p1).Length, 2);
             return f;
         }
         /// <summary>
         /// projection point on line, could be outside line bound.
         /// </summary>
-        public static UV ProjectOnLine(this UV _uv, UVLine _line)
+        public static Vector2d ProjectOntoLine(this Vector2d _v2d, Segment2d _line)
         {
-            var f = getProjectionParamNormalized(_uv, _line);
-            return _line.Evaluate(f);
+            var f = getProjectionParamNormalized(_v2d, _line);
+            return _line.PointAt(f);
         }
         /// <summary>
         /// closest point on line, within line bound.
         /// </summary>
-        public static UV ClosestPointOnLine(this UV _uv, UVLine _line)
+        public static Vector2d ClosestPointOnLine(this Vector2d _v2d, Segment2d _line)
         {
-            var f = getProjectionParamNormalized(_uv, _line);
-            if (f <= 0) return _line.p0;
-            if (f >= 1) return _line.p1;
-            else return _line.Evaluate(f);
+            var f = getProjectionParamNormalized(_v2d, _line);
+            if (f <= 0) return _line.P0;
+            if (f >= 1) return _line.P1;
+            else return _line.PointAt(f);
         }
-        public static Line ProjectOnto(this Line _line, Line _lineOnto)
+        /// <summary>
+        /// get projection line within the domain of line onto.
+        /// </summary>
+        public static Line ProjectOntoLine(this Line _line, Line _lineOnto)
         {
             var p1 = _line.GetEndPoint(0).ClosestPointOnLine(_lineOnto);
             var p2 = _line.GetEndPoint(1).ClosestPointOnLine(_lineOnto);
             //check length
-            if (p1.IsAlmostEqualTo(p2))
+            if (p1.IsAlmostEqualToByDifference(p2, 0.0001))
                 return null;
             //can still throw "segment too small" exception
             try
@@ -589,15 +1214,11 @@ namespace goa.Common
                 return null;
             }
         }
-        public static UVLine ProjectOnto(this UVLine _line, UVLine _lineOnto)
+        public static Segment2d ProjectOnto(this Segment2d _line, Segment2d _lineOnto)
         {
-            var p1 = _line.p0.ClosestPointOnLine(_lineOnto);
-            var p2 = _line.p1.ClosestPointOnLine(_lineOnto);
-            //check length
-            if (p1.IsAlmostEqualTo(p2))
-                return null;
-            else
-                return new UVLine(p1, p2);
+            var p1 = _line.P0.ClosestPointOnLine(_lineOnto);
+            var p2 = _line.P1.ClosestPointOnLine(_lineOnto);
+            return new Segment2d(p1, p2);
         }
         public static double MinDistanceToLine(this Line _line, Line _otherLine)
         {
@@ -608,25 +1229,77 @@ namespace goa.Common
             dists.Add(_otherLine.GetEndPoint(1).MinDistanceToLine(_line));
             return dists.Min();
         }
-        public static double MinDistanceToLine(this UVLine _line, UVLine _otherLine)
+        public static double MinDistanceToLine(this Line _line, Line _otherLine, out XYZ _closestPoint)
+        {
+            var dists = new Dictionary<double, XYZ>();
+            XYZ p0, p1, p2, p3;
+            var dist0 = _line.GetEndPoint(0).MinDistanceToLine(_otherLine, out p0);
+            dists[dist0] = p0;
+            var dist1 = _line.GetEndPoint(1).MinDistanceToLine(_otherLine, out p1);
+            dists[dist1] = p1;
+            var dist2 = _otherLine.GetEndPoint(0).MinDistanceToLine(_line, out p2);
+            dists[dist2] = p2;
+            var dist3 = _otherLine.GetEndPoint(1).MinDistanceToLine(_line, out p3);
+            dists[dist3] = p3;
+            var min = dists.Keys.Min();
+            _closestPoint = dists[min];
+            return min;
+        }
+        public static double MinDistanceToLine(this Segment2d _line, Segment2d _otherLine)
         {
             var dists = new List<double>();
-            dists.Add(_line.p0.MinDistanceToLine(_otherLine));
-            dists.Add(_line.p1.MinDistanceToLine(_otherLine));
-            dists.Add(_otherLine.p0.MinDistanceToLine(_line));
-            dists.Add(_otherLine.p1.MinDistanceToLine(_line));
+            dists.Add(_line.P0.MinDistanceToLine(_otherLine));
+            dists.Add(_line.P1.MinDistanceToLine(_otherLine));
+            dists.Add(_otherLine.P0.MinDistanceToLine(_line));
+            dists.Add(_otherLine.P1.MinDistanceToLine(_line));
             return dists.Min();
         }
-        public static string ToStringDigits(this Line _line, int _digits)
+        public static bool IsInsidePlane(this Line _line, Plane _plane)
+        {
+            var dot1 = _line.Direction.DotProduct(_plane.Normal);
+            var dot2 = (_line.GetEndPoint(0) - _plane.Origin).DotProduct(_plane.Normal);
+            return dot1.IsAlmostEqualByDifference(0)
+                && dot2.IsAlmostEqualByDifference(0);
+        }
+        public static string ToStringEnds(this Line _line, int _digits)
         {
             return
                 _line.GetEndPoint(0).ToStringDigits(_digits)
                 + "||"
                 + _line.GetEndPoint(1).ToStringDigits(_digits);
         }
+        public static string ToStringCenterLength(this Line _line, int _digits)
+        {
+            var center = (_line.GetEndPoint(0) + _line.GetEndPoint(1)) / 2.0;
+            return center.ToStringDigits(_digits) + "||" + _line.Length.ToStringDigits(_digits);
+        }
+        public static string ToStringCenterLength(this Line _line)
+        {
+            return _line.ToStringCenterLength(5);
+        }
+        public static Line RoundToDigits(this Line _line, int _digits)
+        {
+            var p0 = _line.GetEndPoint(0).RoundToDigits(_digits);
+            var p1 = _line.GetEndPoint(1).RoundToDigits(_digits);
+            return Line.CreateBound(p0, p1);
+        }
         #endregion
 
         #region Geometry_Curve
+        public static bool SameCurve(this Curve _c1, Curve _c2)
+        {
+            return _c1.Length.IsAlmostEqualByDifference(_c2.Length)
+                && _c1.GetEndPoint(0).IsAlmostEqualToByDifference(_c2.GetEndPoint(0), 0.0001)
+                && _c1.GetEndPoint(1).IsAlmostEqualToByDifference(_c2.GetEndPoint(1), 0.0001)
+                && _c1.Evaluate(0.5, true).IsAlmostEqualToByDifference(_c2.Evaluate(0.5, true), 0.0001);
+        }
+        public static bool Translational(this Curve _c1, Curve _c2, ref XYZ _translation)
+        {
+            _translation = _c1.GetEndPoint(0) - _c2.GetEndPoint(0);
+            var tf = Transform.CreateTranslation(_translation);
+            var newC2 = _c2.CreateTransformed(tf);
+            return newC2.SameCurve(_c1);
+        }
         public static XYZ ClosestPointOnCurve(this XYZ _p, Curve _curveOnto)
         {
             var result1 = _curveOnto.Project(_p);
@@ -651,7 +1324,7 @@ namespace goa.Common
             double inc = 1 / steps;
             double param = 0;
             double segment = 0;
-            for (int i = 0; i < 9999; i++)
+            for (int i = 0; i < 999999; i++)
             {
                 if (segment < _dist)
                 {
@@ -675,6 +1348,43 @@ namespace goa.Common
             }
             return list;
         }
+        public static List<XYZ> SegmentationByMaxAngle(this Curve _c, double _angleInDeg)
+        {
+            if (_c is Line)
+            {
+                var l = _c as Line;
+                return new List<XYZ>() { l.GetEndPoint(0), l.GetEndPoint(1) };
+            }
+
+            List<XYZ> list = new List<XYZ>();
+            double maxAngle = _angleInDeg / g3.MathUtil.Rad2Deg;
+            int numSteps = 300;
+            double pEpsilon = 1.0d / 300.0d;
+            double p = 0;
+            var startDeri = _c.ComputeDerivatives(p, true);
+            XYZ baseTgt = startDeri.BasisX;
+            XYZ preTgt = baseTgt;
+            XYZ prePoint = startDeri.Origin;
+            list.Add(prePoint);
+            for (int i = 1; i < numSteps; i++)
+            {
+                p += pEpsilon;
+                var derivatives = _c.ComputeDerivatives(p, true);
+                XYZ currTgt = derivatives.BasisX;
+                var currAngle = currTgt.AngleTo(baseTgt);
+                if (currAngle > maxAngle && i > 1)
+                {
+                    list.Add(prePoint);
+                    baseTgt = preTgt;
+                }
+                preTgt = currTgt;
+                prePoint = derivatives.Origin;
+            }
+            var end = _c.GetEndPoint(1);
+            if (list.Last().IsAlmostEqualToByDifference(end, 0.0001) == false)
+                list.Add(end);
+            return list;
+        }
         #endregion
 
         #region Geometry_CurveLoop
@@ -688,6 +1398,11 @@ namespace goa.Common
         public static List<Curve> SortCurvesContiguous(this List<Curve> _curves)
         {
             bool open;
+            var cl = _curves.SortCurvesContiguousAsCurveLoop(out open);
+            return cl.ToList();
+        }
+        public static List<Curve> SortCurvesContiguous(this List<Curve> _curves, out bool open)
+        {
             var cl = _curves.SortCurvesContiguousAsCurveLoop(out open);
             return cl.Cast<Curve>().ToList();
         }
@@ -719,13 +1434,20 @@ namespace goa.Common
                 string message = "Invalid curve loop.";
                 throw new InvalidCurveLoopException(message);
             }
-            orientCurveLoopToClockWise(loop);
+            if (!loop.IsOpen() && !loop.IsCounterclockwise(XYZ.Zero))
+                loop.Flip();
+            //orientCurveLoopToClockWise(loop);
             return loop;
         }
         public static CurveLoop SortCurveArrayContiguous(this CurveArray _ca, out bool _isOpenLoop)
         {
             List<Curve> list = _ca.ToList();
             return SortCurvesContiguousAsCurveLoop(list, out _isOpenLoop);
+        }
+        public static CurveLoop SortCurveArrayContiguous(this CurveArray _ca)
+        {
+            bool open;
+            return _ca.SortCurveArrayContiguous(out open);
         }
         /// <summary>
         /// Curves need to be valid closed loop
@@ -881,13 +1603,13 @@ namespace goa.Common
                         || CurvesAreReversed(thisCurve, nextCurve))
                         continue;
 
-                    if (thisCurve.GetEndPoint(0).IsAlmostEqualTo(nextCurve.GetEndPoint(0))
-                        || thisCurve.GetEndPoint(0).IsAlmostEqualTo(nextCurve.GetEndPoint(1)))
+                    if (thisCurve.GetEndPoint(0).IsAlmostEqualToByDifference(nextCurve.GetEndPoint(0))
+                        || thisCurve.GetEndPoint(0).IsAlmostEqualToByDifference(nextCurve.GetEndPoint(1)))
                     {
                         startMatchCurve = nextCurve;
                     }
-                    else if (thisCurve.GetEndPoint(1).IsAlmostEqualTo(nextCurve.GetEndPoint(0))
-                        || thisCurve.GetEndPoint(1).IsAlmostEqualTo(nextCurve.GetEndPoint(1)))
+                    else if (thisCurve.GetEndPoint(1).IsAlmostEqualToByDifference(nextCurve.GetEndPoint(0))
+                        || thisCurve.GetEndPoint(1).IsAlmostEqualToByDifference(nextCurve.GetEndPoint(1)))
                     {
                         endMatchCurve = nextCurve;
                     }
@@ -945,7 +1667,7 @@ namespace goa.Common
 
                     XYZ start2 = c.GetEndPoint(0);
                     XYZ end2 = c.GetEndPoint(1);
-                    if (end1.IsAlmostEqualTo(start2))
+                    if (end1.IsAlmostEqualToByDifference(start2))
                     {
                         //if already found, throw exception
                         if (found)
@@ -954,7 +1676,7 @@ namespace goa.Common
                         resultLoop.Append(c);
                         found = true;
                     }
-                    else if (end1.IsAlmostEqualTo(end2))
+                    else if (end1.IsAlmostEqualToByDifference(end2))
                     {
                         //if already found, throw exception
                         if (found)
@@ -975,7 +1697,7 @@ namespace goa.Common
                         XYZ start2 = c.GetEndPoint(0);
                         XYZ end2 = c.GetEndPoint(1);
 
-                        if (start1.IsAlmostEqualTo(start2))
+                        if (start1.IsAlmostEqualToByDifference(start2))
                         {
                             //revert this curve, replace start curve in result loop
                             var reversedThisCurve = thisCurve.CreateReversed();
@@ -985,7 +1707,7 @@ namespace goa.Common
                             resultLoop.Append(c);
                             found = true;
                         }
-                        else if (start1.IsAlmostEqualTo(end2))
+                        else if (start1.IsAlmostEqualToByDifference(end2, 0.0001))
                         {
                             //revert this curve, replace start curve in result loop
                             var reversedThisCurve = thisCurve.CreateReversed();
@@ -1016,8 +1738,8 @@ namespace goa.Common
             XYZ end1 = _curve1.GetEndPoint(1);
             XYZ start2 = _curve2.GetEndPoint(0);
             XYZ end2 = _curve2.GetEndPoint(1);
-            if (start1.IsAlmostEqualTo(start2)
-                && end1.IsAlmostEqualTo(end2))
+            if (start1.IsAlmostEqualToByDifference(start2)
+                && end1.IsAlmostEqualToByDifference(end2))
             {
                 return true;
             }
@@ -1030,14 +1752,15 @@ namespace goa.Common
             XYZ end1 = _curve1.GetEndPoint(1);
             XYZ start2 = _curve2.GetEndPoint(0);
             XYZ end2 = _curve2.GetEndPoint(1);
-            if (start1.IsAlmostEqualTo(end2)
-                && end1.IsAlmostEqualTo(start2))
+            if (start1.IsAlmostEqualToByDifference(end2)
+                && end1.IsAlmostEqualToByDifference(start2, 0.0001))
             {
                 return true;
             }
             else
                 return false;
         }
+        /*
         internal static void orientCurveLoopToClockWise(CurveLoop _loop)
         {
             Curve curve = _loop.First();
@@ -1057,6 +1780,7 @@ namespace goa.Common
             else
                 return false;
         }
+        */
         public static CurveArrArray SortClosedCurveArrArrayContiguous(this CurveArrArray _caa)
         {
             CurveArrArray caa = new CurveArrArray();
@@ -1095,6 +1819,47 @@ namespace goa.Common
         #endregion
 
         #region Geometry_Solid
+        /// <summary>
+        /// Return multiple if any error.
+        /// </summary>
+        public static List<Solid> UnionAll(this List<Solid> _solids)
+        {
+            if (_solids.Count == 0 || _solids.Count == 1)
+                return _solids;
+            List<Solid> list = new List<Solid>();
+            list.Add(_solids[0]);
+            //union each solid against each solid in result list
+            //if succeed, replace result solid with a union solid
+            //if fail, add new solid into result list
+            for (int i = 1; i < _solids.Count; i++)
+            {
+                var s2 = _solids[i]; //solid in input list
+                bool succeeded = false;
+                for (int j = 0; j < list.Count; j++)
+                {
+                    var s1 = list[j]; //solid in result list
+                    try
+                    {
+                        list[j] = BooleanOperationsUtils.ExecuteBooleanOperation
+                        (s1, s2, BooleanOperationsType.Union);
+                        //flag
+                        succeeded = true;
+                    }
+                    //failed to union, continue
+                    catch (Autodesk.Revit.Exceptions.InvalidOperationException ex)
+                    {
+                        continue;
+                    }
+                }
+                //if not found intersection, add new solid to result list
+                if (!succeeded)
+                {
+                    list.Add(s2);
+                }
+            }
+            return list;
+        }
+
         ///https://forums.autodesk.com/t5/revit-api-forum/hot-to-knows-if-a-point-is-inside-a-mass-and-or-solid/td-p/8570689
         ///points on the surface is considered to be inside
         public static bool IsInsideSolid(this XYZ point, Solid solid)
@@ -1107,7 +1872,7 @@ namespace goa.Common
             Line line1 = Line.CreateBound(point, point.Add(new XYZ(1, 0, 0)));
             Line line2 = Line.CreateBound(point, point.Add(new XYZ(-1, 0, 0)));
 
-            double tolerance = 0.000001;
+            double tolerance = 0.0001;
 
             SolidCurveIntersection sci1 = solid.IntersectWithCurve(line1, sco);
             SolidCurveIntersection sci2 = solid.IntersectWithCurve(line2, sco);
@@ -1119,7 +1884,8 @@ namespace goa.Common
             {
                 Curve c = sci1.GetCurveSegment(i);
 
-                if (point.IsAlmostEqualTo(c.GetEndPoint(0), tolerance) || point.IsAlmostEqualTo(c.GetEndPoint(1), tolerance))
+                if (point.IsAlmostEqualToByDifference(c.GetEndPoint(0), tolerance)
+                    || point.IsAlmostEqualToByDifference(c.GetEndPoint(1), tolerance))
                 {
                     inside1 = true;
                 }
@@ -1129,7 +1895,8 @@ namespace goa.Common
             {
                 Curve c = sci2.GetCurveSegment(i);
 
-                if (point.IsAlmostEqualTo(c.GetEndPoint(0), tolerance) || point.IsAlmostEqualTo(c.GetEndPoint(1), tolerance))
+                if (point.IsAlmostEqualToByDifference(c.GetEndPoint(0), tolerance)
+                    || point.IsAlmostEqualToByDifference(c.GetEndPoint(1), tolerance))
                 {
                     inside2 = true;
                 }
@@ -1165,7 +1932,8 @@ namespace goa.Common
             {
                 Curve c = sci1.GetCurveSegment(i);
 
-                if (point.IsAlmostEqualTo(c.GetEndPoint(0), tolerance) || point.IsAlmostEqualTo(c.GetEndPoint(1), tolerance))
+                if (point.IsAlmostEqualToByDifference(c.GetEndPoint(0), tolerance)
+                    || point.IsAlmostEqualToByDifference(c.GetEndPoint(1), tolerance))
                 {
                     outside1 = true;
                 }
@@ -1175,7 +1943,8 @@ namespace goa.Common
             {
                 Curve c = sci2.GetCurveSegment(i);
 
-                if (point.IsAlmostEqualTo(c.GetEndPoint(0), tolerance) || point.IsAlmostEqualTo(c.GetEndPoint(1), tolerance))
+                if (point.IsAlmostEqualToByDifference(c.GetEndPoint(0), tolerance)
+                    || point.IsAlmostEqualToByDifference(c.GetEndPoint(1), tolerance))
                 {
                     outside2 = true;
                 }
@@ -1186,9 +1955,122 @@ namespace goa.Common
             else
                 return false;
         }
+
+        /// <summary>
+        /// draw a square on base plane, extrude opposite to plane normal.
+        /// Use this for geometry creation of line-based family, 
+        /// or other things that require a host face.
+        /// </summary>
+        public static Solid GetSolidFromBasePlane(this Plane _basePlane)
+        {
+            var origin = _basePlane.Origin;
+            var x = _basePlane.XVec;
+            var y = _basePlane.YVec;
+            var pts = new XYZ[4]
+            {
+                origin,
+                origin + x,
+                origin + x + y,
+                origin + y,
+            };
+            var lines = new List<Curve>()
+            {
+                Line.CreateBound(pts[0], pts[1]),
+                Line.CreateBound(pts[1], pts[2]),
+                Line.CreateBound(pts[2], pts[3]),
+                Line.CreateBound(pts[3], pts[0])
+            };
+            var cl = CurveLoop.Create(lines);
+            var solid = GeometryCreationUtilities.CreateExtrusionGeometry
+                (new List<CurveLoop>() { cl },
+                _basePlane.Normal * -1.0,
+                1.0);
+            return solid;
+        }
         #endregion
 
         #region Geometry_Face
+        public static List<Line> GetPlanarFaceCornerAndBasis(Document doc, Reference planarFaceRef, bool _alongLongEdge, bool _lowerLeft = false)
+        {
+            var elem = doc.GetElement(planarFaceRef);
+            var pf = elem.GetGeometryObjectFromReference(planarFaceRef) as PlanarFace;
+            Transform tf = Transform.Identity;
+            if (planarFaceRef.ConvertToStableRepresentation(doc).Contains("INSTANCE"))
+            {
+                var ins = elem as Instance;
+                tf = ins.GetTotalTransform();
+            }
+            return GetPlanarFaceCornerAndBasis(doc, pf, tf, _alongLongEdge, _lowerLeft);
+        }
+        public static List<Line> GetPlanarFaceCornerAndBasis
+            (Document doc, PlanarFace _pf, Transform _tf,
+            bool _alongLongEdge, bool _lowerLeft = false)
+        {
+            //apply instance transform
+            var xVec = _pf.XVector;
+            var yVec = _pf.YVector;
+            var vertices = _pf.GetVertices();
+            xVec = _tf.OfVector(xVec);
+            yVec = _tf.OfVector(yVec);
+            vertices = vertices.Select(x => _tf.OfPoint(x)).ToList();
+            //swap x y
+            if (Math.Abs(xVec.Z) > Math.Abs(yVec.Z))
+            {
+                var oldX = xVec;
+                var oldY = yVec;
+                xVec = oldY * -1.0;
+                yVec = oldX;
+            }
+            //make yAxis positive along elevation
+            if (xVec.Z.IsAlmostEqualByDifference(0) == false
+                && xVec.Z < 0)
+            {
+                xVec *= -1.0;
+                yVec *= -1.0;
+            }
+            if (yVec.Z.IsAlmostEqualByDifference(0) == false
+                && yVec.Z < 0)
+            {
+                xVec *= -1.0;
+                yVec *= -1.0;
+            }
+            //flip x
+            if (_pf.OrientationMatchesSurfaceOrientation == false)
+            {
+                xVec *= -1.0;
+            }
+            var plane = Plane.CreateByOriginAndBasis(_pf.GetCentroid(), xVec, yVec);
+            var verticesUV = vertices.Select(x => plane.ProjectInto(x));
+            double minU = double.MaxValue, minV = double.MaxValue, maxU = double.MinValue, maxV = double.MinValue;
+            foreach (var uv in verticesUV)
+            {
+                if (uv.U < minU)
+                    minU = uv.U;
+                if (uv.V < minV)
+                    minV = uv.V;
+                if (uv.U > maxU)
+                    maxU = uv.U;
+                if (uv.V > maxV)
+                    maxV = uv.V;
+            }
+            var bb = new BoundingBoxUV(minU, minV, maxU, maxV);
+            var lines = bb.GetBoundaryLines(plane);
+            if (_lowerLeft)
+            {
+                return lines;
+            }
+            //swap x y again, to be along long/short edge
+            else if ((_alongLongEdge && lines[1].Length > lines[0].Length)
+                || (!_alongLongEdge && lines[1].Length < lines[0].Length))
+            {
+                var oldLines = lines.ToList();
+                lines[0] = oldLines[1];
+                lines[1] = oldLines[2];
+                lines[2] = oldLines[3];
+                lines[3] = oldLines[0];
+            }
+            return lines;
+        }
         public static XYZ ClosestPointOnFace(this XYZ _p0, Face _face)
         {
             var result = _face.Project(_p0);
@@ -1246,78 +2128,125 @@ namespace goa.Common
                 _face.FaceNormal, _distance);
             return solid.Faces.get_Item(0) as PlanarFace;
         }
-        #endregion
-
-        #region Polygon
-        /// <summary>
-        /// 不包含边界。线圈须为连续线段。
-        /// </summary>
-        public static bool IsInsidePolygon(this XYZ _XYZ, List<Line> _lines)
+        public static List<XYZ> GetVertices(this Face _face)
         {
-            //投形到XY平面
-            var plane = Plane.CreateByNormalAndOrigin(XYZ.BasisZ, XYZ.Zero);
-            _XYZ = plane.ProjectOnto(_XYZ);
-            _lines = _lines.Select(x => x.ProjectOnto(plane)).ToList();
-
-            bool inOrOn = _XYZ.IsInsideOrOnEdgeOfPolygon(_lines);//第一步，判断点在总多边形内部部还是外部，在为true，不在为false；当前判断无法剔除，点落在多边形边界线上的情况，
-            bool on = _XYZ.OnAnyLine(_lines);//第二步，该函数判断点在不在边界线上，在为true，不在为false；
-            return inOrOn && !on; //双重判断，不在线上，在多边形区域内
+            var list = _face.GetEdgesAsCurveLoops()
+                .SelectMany(x => x.Select(c => c.GetEndPoint(0)))
+                .ToList();
+            return list;
+        }
+        public static List<Curve> GetEdgeCurves(this Face _face)
+        {
+            var list = _face.GetEdgesAsCurveLoops()
+                .SelectMany(x => x)
+                .ToList();
+            return list;
+        }
+        public static Plane GetPlane(this PlanarFace _pf)
+        {
+            return Plane.CreateByOriginAndBasis(_pf.Origin, _pf.XVector, _pf.YVector);
         }
         /// <summary>
-        /// 包含边界。线圈须为连续线段。
+        /// get UV distance on face correspond to a XYZ distance
         /// </summary>
-        public static bool IsInsideOrOnEdgeOfPolygon(this XYZ _XYZ, List<Line> _lines)
+        /// <param name="_cellSize">in millimeter</param>
+        /// <returns></returns>
+        public static Dictionary<UV, XYZ> GetUVMatrixOnFace(this Face _face, double _cellSize)
         {
-            bool inOrOn = false;
-            int intersectCount = 0;
-
-            //投形到XY平面
-            var plane = Plane.CreateByNormalAndOrigin(XYZ.BasisZ, XYZ.Zero);
-            _XYZ = plane.ProjectOnto(_XYZ);
-            _lines = _lines.Select(x => x.ProjectOnto(plane)).ToList();
-
-            Line _LInebound = Line.CreateBound(_XYZ, new XYZ(_XYZ.X + 10000000, 0, 0));//求一个点的射线
-            foreach (Line _Line in _lines)
-            {
-                IntersectionResultArray results;
-                SetComparisonResult result = _LInebound.Intersect(_Line, out results);
-                if (result == SetComparisonResult.Overlap)//判断基准线是否与轴网相交
-                {
-                    if (results != null)
-                    {
-                        XYZ _LineendPoint_0 = _Line.GetEndPoint(0);
-                        XYZ _LineendPoint_1 = _Line.GetEndPoint(1);
-
-                        //下一步 判定假设 参看文章 https://blog.csdn.net/u283056051/article/details/53980925
-
-                        if ((_LineendPoint_0.Y < _XYZ.Y && _LineendPoint_1.Y >= _XYZ.Y) || (_LineendPoint_0.Y > _XYZ.Y && _LineendPoint_1.Y <= _XYZ.Y))
-                        {
-                            intersectCount += results.Size;
-                        }
-                    }
-                }
-            }
-            if (intersectCount % 2 != 0)//判断交点的数量是否为奇数或者偶数，奇数为内true，偶数为外false
-            {
-                inOrOn = true;
-            }
-            return inOrOn;
+            var bb = _face.GetBoundingBox();
+            var origin = (bb.Max - bb.Min) / 2 + bb.Min;
+            var derivatives = _face.ComputeDerivatives(origin);
+            var ptU = derivatives.Origin + derivatives.BasisX;
+            var ptV = derivatives.Origin + derivatives.BasisY;
+            var ptUPro = _face.Project(ptU)?.UVPoint ?? null;
+            var ptVPro = _face.Project(ptV)?.UVPoint ?? null;
+            if (ptUPro == null || ptVPro == null)
+                return getUVMatrixOnFace(_face, 1, 1);
+            var unitUV = new UV(ptUPro.U - origin.U, ptVPro.V - origin.V);
+            var cellUV = unitUV * _cellSize;
+            var numU = (int)Math.Round((bb.Max.U - bb.Min.U) / cellUV.U, 1);
+            var numV = (int)Math.Round((bb.Max.V - bb.Min.V) / cellUV.V, 1);
+            numU = numU <= 0 ? 1 : numU;
+            numV = numV <= 0 ? 1 : numV;
+            return getUVMatrixOnFace(_face, numU, numV);
         }
-        /// <summary>
-        /// 判断一个点是不是与Polygon边界重合。
-        /// </summary>
-        public static bool OnAnyLine(this XYZ _XYZ, IList<Line> _lines)
+        public static Dictionary<XYZ, XYZ> GetXYZMatrixOnFace(this Face _face, double _cellSize)
         {
-            bool _isOnLine = false;
-            foreach (Line _Line in _lines)
+            var uvs = GetUVMatrixOnFace(_face, _cellSize);
+            var points = new Dictionary<XYZ, XYZ>();
+            foreach (var pair in uvs)
             {
-                if (_Line.Distance(_XYZ) < 0.003)//该处需要注意 Revit2020版本中 曲线长度的最小极限小值为 0.00256026455729167 Feet 0.7803686370625 MilliMeter
+                var p = _face.Evaluate(pair.Key);
+                points[p] = pair.Value;
+            }
+            return points;
+        }
+        private static Dictionary<UV, XYZ> getUVMatrixOnFace(Face _face, int _numU, int _numV)
+        {
+            Dictionary<UV, XYZ> output = new Dictionary<UV, XYZ>();
+            var bound = _face.GetBoundingBox();
+            double incrementU = (bound.Max.U - bound.Min.U) / _numU;
+            double incrementV = (bound.Max.V - bound.Min.V) / _numV;
+            double baseU = bound.Min.U + incrementU / 2;
+            double baseV = bound.Min.V + incrementV / 2;
+            for (int i = 0; i < _numU; i++)
+            {
+                for (int j = 0; j < _numV; j++)
                 {
-                    _isOnLine = true;
-                    break;
+                    var currentUV = new UV
+                        (baseU + incrementU * i, baseV + incrementV * j);
+                    output.Add(currentUV, _face.ComputeNormal(currentUV));
                 }
             }
-            return _isOnLine;
+            return output;
+        }
+        public static bool GetPlanarFaceInfo(this Reference _ref, Document _doc, out XYZ _norm, out XYZ _origin)
+        {
+            _norm = null; _origin = null;
+            var elem = _doc.GetElement(_ref);
+            var geom = elem.GetGeometryObjectFromReference(_ref);
+            if (geom is PlanarFace == false)
+                return false;
+            var pf = geom as PlanarFace;
+            _norm = pf.FaceNormal;
+            _origin = pf.Origin;
+            if (_ref.ConvertToStableRepresentation(_doc).Contains("INSTANCE"))
+            {
+                var ins = elem as Instance;
+                var tf = ins.GetTotalTransform();
+                _norm = tf.OfVector(_norm);
+                _origin = tf.OfPoint(_origin);
+            }
+            return true;
+        }
+        public static XYZ GetPlanarFaceNormal(this Reference _ref, Document _doc)
+        {
+            XYZ norm, origin;
+            bool b = _ref.GetPlanarFaceInfo(_doc, out norm, out origin);
+            if (!b)
+                return null;
+            else
+                return norm;
+        }
+        public static XYZ GetPlanarFaceOrigin(this Reference _ref, Document _doc)
+        {
+            XYZ norm, origin;
+            bool b = _ref.GetPlanarFaceInfo(_doc, out norm, out origin);
+            if (!b)
+                return null;
+            else
+                return origin;
+        }
+        public static PlanarFace SearchPlanarFaceByPointAndNorm(this Element _elem, XYZ _p, XYZ _norm)
+        {
+            var faces = _elem
+                    .GetAllSolids()
+                    .SelectMany(x => x.Faces.Cast<PlanarFace>().Where(f => f != null))
+                    .ToList();
+            var refPlanarFace = faces.FirstOrDefault(x =>
+            x.FaceNormal.IsAlmostEqualToByDifference(_norm, 0.0001)
+            && (_p - x.Origin).DotProduct(_norm).IsAlmostEqualByDifference(0));
+            return refPlanarFace;
         }
         #endregion
 
@@ -1432,6 +2361,69 @@ namespace goa.Common
             TaskDialog.Show("消息", "未发现模型组异常， 可以正常使用插件。");
             return true;
         }
+        public static List<ElementId> GetAllDirectAndNestedMembers(this Group _g)
+        {
+            var doc = _g.Document;
+            var list = new List<ElementId>();
+            foreach (var id in _g.GetMemberIds())
+            {
+                var member = doc.GetElement(id);
+                if (member is Group)
+                {
+                    var nestedGroup = member as Group;
+                    list.AddRange(nestedGroup.GetAllDirectAndNestedMembers()); //recursion
+                }
+                else
+                    list.Add(id);
+            }
+            return list;
+        }
+        #endregion
+
+        #region Level
+        public static Plane GetPlane(this Level _level)
+        {
+            return Plane.CreateByNormalAndOrigin(XYZ.BasisZ, new XYZ(0, 0, _level.ProjectElevation));
+        }
+        /// <summary>
+        /// Get closest level using .GetPos() as ref point. 
+        /// </summary>
+        public static Level GetClosestLevel(this Element _elem, IEnumerable<Level> _allLevels)
+        {
+
+            XYZ pos = _elem.GetPos();
+            return GetClosestLevel(pos, _allLevels);
+        }
+        public static Level GetClosestLevel(this XYZ _p, IEnumerable<Level> _allLevels)
+        {
+            double minDist = double.MaxValue;
+            Level closest = null;
+            foreach (var level in _allLevels)
+            {
+                double dist = Math.Abs(level.ProjectElevation - _p.Z);
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    closest = level;
+                }
+            }
+            return closest;
+        }
+        #endregion
+
+        #region Line Style
+        public static List<GraphicsStyle> GetAllUsableLineStyles(this Document _doc)
+        {
+            var allLineTypes = new FilteredElementCollector(_doc)
+                .OfClass(typeof(GraphicsStyle))
+                .Cast<GraphicsStyle>()
+                .Where(x => x.GraphicsStyleCategory != null
+                && x.GraphicsStyleCategory.Id.IntegerValue > 0
+                && x.GraphicsStyleCategory.Parent != null
+                && x.GraphicsStyleCategory.Parent.Id.IntegerValue == (int)BuiltInCategory.OST_Lines)
+                .ToList();
+            return allLineTypes;
+        }
         #endregion
 
         #region Material
@@ -1477,7 +2469,8 @@ namespace goa.Common
         /// </summary>
         public static object GetValue(this Parameter _p)
         {
-            if (_p == null || !_p.HasValue)
+            if (_p == null ||
+                (!_p.HasValue && _p.Definition.ParameterType != ParameterType.YesNo))
             {
                 //family type parameter could return -1 id and Not has value
                 if (_p.StorageType == StorageType.ElementId)
@@ -1691,6 +2684,20 @@ namespace goa.Common
                 return null;
         }
         /// <summary>
+        /// best used for cross-document parameter operation.
+        /// </summary>
+        public static string GetUniqueIdOrName(this Parameter p)
+        {
+            var key = p.GetUniqueId();
+            if (key == null)
+                key = p.Definition.Name;
+            return key;
+        }
+        public static string GetId(this BuiltInParameter bip)
+        {
+            return ((int)bip).ToString();
+        }
+        /// <summary>
         /// family parameter, the same as parameter.
         /// </summary>
         public static string GetUniqueId(this FamilyParameter p)
@@ -1706,22 +2713,17 @@ namespace goa.Common
             else
                 return null;
         }
-        public static Parameter GetParameter(this Element _elem, string _id)
+        /// <summary>
+        /// Try to get parameter by its builtin id, GUID, or element id,
+        /// depending on the type of the parameter.
+        /// Return null if not found.
+        /// </summary>
+        public static Parameter GetParameterById(this Element _elem, string _id)
         {
-            //try built_in parameter
-            BuiltInParameter bip;
-            var tryBip = Enum.TryParse<BuiltInParameter>(_id, out bip);
-            if (tryBip)
-            {
-                return _elem.get_Parameter(bip);
-            }
-            //try shared parameter
-            Guid guid;
-            var tryGuid = Guid.TryParse(_id, out guid);
-            if (tryGuid)
-            {
-                return _elem.get_Parameter(guid);
-            }
+            var puid = _elem.GetParameterByUniqueId(_id);
+            if (puid != null)
+                return puid;
+
             //loop through parameters, find the correct id number
             foreach (Parameter p in _elem.Parameters)
             {
@@ -1732,6 +2734,32 @@ namespace goa.Common
             }
             return null;
         }
+        public static Parameter GetParameterByUniqueId(this Element _elem, string _uid)
+        {
+            //try built_in parameter
+            BuiltInParameter bip;
+            var tryBip = Enum.TryParse<BuiltInParameter>(_uid, out bip);
+            if (tryBip)
+            {
+                return _elem.get_Parameter(bip);
+            }
+            //try shared parameter
+            Guid guid;
+            var tryGuid = Guid.TryParse(_uid, out guid);
+            if (tryGuid)
+            {
+                return _elem.get_Parameter(guid);
+            }
+            return null;
+        }
+        /// <summary>
+        /// Loop through all parameters to find the first one
+        /// with the correct name. Potentially wrong result if 
+        /// multiply parameters with the same name exists. 
+        /// Potentially slow search. 
+        /// /// Should use .GetParameter instead of
+        /// this method whenever appropriate.
+        /// </summary>
         public static Parameter GetParameterByName(this Element _elem, string _name)
         {
             foreach (Parameter p in _elem.Parameters)
@@ -1740,6 +2768,566 @@ namespace goa.Common
                     return p;
             }
             return null;
+        }
+        /// <summary>
+        /// best used for cross-document parameter operation.
+        /// </summary>
+        public static Parameter GetParameterByUniqueIdOrByName(this Element _elem, string _key)
+        {
+            var p = _elem.GetParameterByUniqueId(_key);
+            if (p == null)
+                p = _elem.GetParameterByName(_key);
+            return p;
+        }
+        /// <summary>
+        /// Need open transaction.
+        /// Match all instance parameter values.
+        /// </summary>
+        public static void MatchParamValues(this Element _elem, Element _refElem)
+        {
+            foreach (Parameter p in _elem.Parameters)
+            {
+                if (p.IsReadOnly)
+                    continue;
+                var uid = p.GetUniqueId();
+                if (uid == null)
+                {
+                    var refP = _refElem.GetParameterByName(p.Definition.Name);
+                    if (refP != null && refP.StorageType == p.StorageType)
+                    {
+                        p.SetValue(refP.GetValue());
+                    }
+                }
+                else
+                {
+                    var refP = _refElem.GetParameterById(uid);
+                    p.SetValue(refP.GetValue());
+                }
+            }
+        }
+        public static List<Parameter> GetSiftedParameters(this Element _elem)
+        {
+            var collection = new List<Parameter>();
+            foreach (Parameter p in _elem.Parameters)
+            {
+                //skip UI invisible parameters
+                if (p.IsShared != true)
+                {
+                    var iDef = p.Definition as InternalDefinition;
+                    if (iDef.Visible == false)
+                        continue;
+                    else if (p.Id.IntegerValue < 0
+                        && ParameterToSkip.Contains(p.Definition.Name))
+                        continue;
+                    else
+                        collection.Add(p);
+                }
+                else
+                    collection.Add(p);
+            }
+            return collection;
+        }
+        private readonly static HashSet<string> ParameterToSkip
+            = new HashSet<string>()
+        {
+            "Type Id",
+            "Type Name",
+            "Category",
+            "Family Name",
+            "Visibility/Graphics Overrides",
+            "Rendering Settings",
+        };
+        #endregion
+
+        #region pickedbox
+        public static BoundingBoxXYZ ToBoundingBox(this PickedBox _pbox)
+        {
+            //picked box's min and max is not guanranteed
+            var minX = Math.Min(_pbox.Min.X, _pbox.Max.X);
+            var minY = Math.Min(_pbox.Min.Y, _pbox.Max.Y);
+            var minZ = Math.Min(_pbox.Min.Z, _pbox.Max.Z);
+            var maxX = Math.Max(_pbox.Min.X, _pbox.Max.X);
+            var maxY = Math.Max(_pbox.Min.Y, _pbox.Max.Y);
+            var maxZ = Math.Max(_pbox.Min.Z, _pbox.Max.Z);
+            var bb = new BoundingBoxXYZ();
+            bb.Min = new XYZ(minX, minY, minZ);
+            bb.Max = new XYZ(maxX, maxY, maxZ);
+            return bb;
+        }
+        public static BoundingBoxUV ToBoundingBoxUV(this PickedBox _pbox)
+        {
+            var bb = _pbox.ToBoundingBox();
+            return new BoundingBoxUV(bb.Min.X, bb.Min.Y, bb.Max.X, bb.Max.Y);
+        }
+        #endregion
+
+        #region pick geometry
+        public static Plane PickPlaneFromPlanarFace(UIDocument _uidoc, ISelectionFilter _filter = null)
+        {
+            var doc = _uidoc.Document;
+            var sel = _uidoc.Selection;
+            Reference pickFaceRef;
+            string m = "选择一个面";
+            if (_filter != null)
+                pickFaceRef = sel.PickObject(ObjectType.Face, _filter, m);
+            else
+                pickFaceRef = sel.PickObject(ObjectType.Face, m);
+            var elem = doc.GetElement(pickFaceRef);
+            var pf = elem.GetGeometryObjectFromReference(pickFaceRef) as PlanarFace;
+            XYZ origin = pickFaceRef.GlobalPoint;
+            var norm = pf.FaceNormal;
+            if (pickFaceRef.ConvertToStableRepresentation(doc).Contains("INSTANCE"))
+            {
+                norm = (elem as Instance).GetTotalTransform().OfVector(norm);
+            }
+            return Plane.CreateByNormalAndOrigin(norm, origin);
+        }
+        public static Curve PickCurveFromEdge(UIDocument _uidoc, ISelectionFilter _filter = null, string _message = "")
+        {
+            var doc = _uidoc.Document;
+            var sel = _uidoc.Selection;
+            Reference pickEdgeRef;
+            if (_filter != null)
+                pickEdgeRef = sel.PickObject(ObjectType.Edge, _filter, _message);
+            else
+                pickEdgeRef = sel.PickObject(ObjectType.Edge, _message);
+            var elem = doc.GetElement(pickEdgeRef);
+            var edge = elem.GetGeometryObjectFromReference(pickEdgeRef) as Edge;
+            var curve = edge.AsCurve();
+            if (pickEdgeRef.ConvertToStableRepresentation(doc).Contains("INSTANCE"))
+            {
+                curve = curve.CreateTransformed((elem as Instance).GetTotalTransform());
+            }
+            return curve;
+        }
+        #endregion
+
+        #region Polygon
+        public static double GetArea(this List<XYZ> _points)
+        {
+            var intrPs = _points.Select(x => x.ToClipperPoint()).ToList();
+            var area = Clipper.Area(intrPs);
+            return area / Math.Pow(ClipperConverter._feet_to_mm, 2);
+        }
+        public static IntPoint ToClipperPoint(this XYZ _xyz)
+        {
+            return ClipperConverter.GetIntPoint(_xyz);
+        }
+        public static XYZ ToXYZ(this IntPoint _p)
+        {
+            return ClipperConverter.GetXyzPoint(_p);
+        }
+        public static double GetArea(this List<Curve> _boundary, Document _doc)
+        {
+            var v0 = (_boundary[0].GetEndPoint(1) - _boundary[0].GetEndPoint(0)).Normalize();
+            var c1 = _boundary
+                .First(x => (x.GetEndPoint(1) - x.GetEndPoint(0)).Normalize().IsAlmostEqualToByDifference(v0, 0.0001) == false);
+            var v1 = (c1.GetEndPoint(1) - c1.GetEndPoint(0)).Normalize();
+            var dir = v0.CrossProduct(v1).Normalize();
+            var cls = new List<CurveLoop>() { CurveLoop.Create(_boundary) };
+            var solid = GeometryCreationUtilities.CreateExtrusionGeometry(cls, dir, 1);
+            var face = solid.Faces.get_Item(0);
+            return face.Area;
+        }
+        #endregion
+
+        #region Polygon_insideOutside
+        /// <summary>
+        /// 不包含边界。线圈须为连续线段。
+        /// </summary>
+        public static bool IsInsidePolygon(this XYZ _XYZ, List<Line> _lines)
+        {
+            //投形到XY平面
+            _XYZ = new XYZ(_XYZ.X, _XYZ.Y, 0);
+            _lines = _lines
+                .Select(x => x.ProjectToXY())
+                .ToList();
+
+            bool inOrOn = _XYZ.IsInsideOrOnEdgeOfPolygon(_lines);//第一步，判断点在总多边形内部部还是外部，在为true，不在为false；当前判断无法剔除，点落在多边形边界线上的情况，
+            bool on = _XYZ.OnAnyLine(_lines);//第二步，该函数判断点在不在边界线上，在为true，不在为false；
+            return inOrOn && !on; //双重判断，不在线上，在多边形区域内
+        }
+        public static XYZ ProjectToXY(this XYZ p)
+        {
+            return new XYZ(p.X, p.Y, 0);
+        }
+        public static Line ProjectToXY(this Line l)
+        {
+            var p0 = l.GetEndPoint(0).ProjectToXY();
+            var p1 = l.GetEndPoint(1).ProjectToXY();
+            return Line.CreateBound(p0, p1);
+        }
+        /// <summary>
+        /// 包含边界。线圈须为连续线段。
+        /// </summary>
+        public static bool IsInsideOrOnEdgeOfPolygon(this XYZ _XYZ, List<Line> _lines)
+        {
+            bool inOrOn = false;
+            int intersectCount = 0;
+
+            //投形到XY平面
+            _XYZ = _XYZ.ProjectToXY();
+            _lines = _lines.Select(x => x.ProjectToXY()).ToList();
+
+            Line _LInebound = Line.CreateBound(_XYZ, new XYZ(_XYZ.X + 100000, _XYZ.Y, 0));//求一个点的射线
+            foreach (Line _Line in _lines)
+            {
+                IntersectionResultArray results;
+                SetComparisonResult result = _LInebound.Intersect(_Line, out results);
+                if (result == SetComparisonResult.Overlap)//判断基准线是否与轴网相交
+                {
+                    if (results != null)
+                    {
+                        XYZ _LineendPoint_0 = _Line.GetEndPoint(0);
+                        XYZ _LineendPoint_1 = _Line.GetEndPoint(1);
+
+                        //下一步 判定假设 参看文章 https://blog.csdn.net/u283056051/article/details/53980925
+
+                        if ((_LineendPoint_0.Y < _XYZ.Y && _LineendPoint_1.Y >= _XYZ.Y) || (_LineendPoint_0.Y > _XYZ.Y && _LineendPoint_1.Y <= _XYZ.Y))
+                        {
+                            intersectCount += results.Size;
+                        }
+                    }
+                }
+            }
+            if (intersectCount % 2 != 0)//判断交点的数量是否为奇数或者偶数，奇数为内true，偶数为外false
+            {
+                inOrOn = true;
+            }
+            return inOrOn;
+        }
+        /// <summary>
+        /// 判断一个点是不是与Polygon边界重合。
+        /// </summary>
+        public static bool OnAnyLine(this XYZ _XYZ, IList<Line> _lines)
+        {
+            bool _isOnLine = false;
+            foreach (Line _Line in _lines)
+            {
+                if (_Line.Distance(_XYZ) < 0.003)//该处需要注意 Revit2020版本中 曲线长度的最小极限小值为 0.00256026455729167 Feet 0.7803686370625 MilliMeter
+                {
+                    _isOnLine = true;
+                    break;
+                }
+            }
+            return _isOnLine;
+        }
+        #endregion
+
+        #region Polygon_booleanWithClipper
+        public static List<CurveLoop> UnionAll(this List<CurveLoop> _loops)
+        {
+            var paths = _loops.Select(x => GetPathFromCurveLoop(x)).ToList();
+            Clipper clipper = new Clipper();
+            clipper.AddPaths(paths, PolyType.ptSubject, true);
+            PolyTree resultTree = new PolyTree();
+            clipper.Execute(ClipType.ctUnion, resultTree, PolyFillType.pftNonZero);
+            var caa = CurveArrArrayFromPolyTree(resultTree, true);
+
+            List<CurveLoop> result = new List<CurveLoop>();
+            foreach (CurveArray ca in caa)
+            {
+                var loop = new CurveLoop();
+                foreach (Curve c in ca)
+                {
+
+                    try { loop.Append(c); }
+                    catch (Autodesk.Revit.Exceptions.ArgumentException ex) { }
+                }
+                result.Add(loop);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Extension method for CurveLoop class. clip operation on two curve loops,
+        /// using clipper library. Input loops needs to be contiguous.
+        /// </summary>
+        public static List<CurveLoop> ClipBy(this CurveLoop _subLoop, CurveLoop _cutLoop, ClipType _clipType)
+        {
+            List<CurveLoop> result = new List<CurveLoop>();
+
+            var clipPath = GetPathFromCurveLoop(_cutLoop);
+            var subPath = GetPathFromCurveLoop(_subLoop);
+            if (!_subLoop.IsOpen())
+                subPath.Add(subPath.First());
+
+            Clipper clipper = new Clipper();
+            clipper.AddPath(subPath, PolyType.ptSubject, false); //sub path needs to be set as open to excute as curve, not polygon
+            clipper.AddPath(clipPath, PolyType.ptClip, true);
+
+            PolyTree resultTree = new PolyTree();
+            clipper.Execute(_clipType, resultTree, PolyFillType.pftEvenOdd);
+            var caa = CurveArrArrayFromPolyTree(resultTree, false);
+
+            //sort each curve array to be contiguous
+            foreach (CurveArray ca in caa)
+            {
+                var curves = ca.ToList();
+                bool isOpen;
+                var loop = curves.SortCurvesContiguousAsCurveLoop(out isOpen);
+                result.Add(loop);
+            }
+
+            return result;
+        }
+
+        public static List<CurveLoop> ClipBy(this IList<CurveLoop> _subLoops, CurveLoop _cutLoop, ClipType _clipType)
+        {
+            List<CurveLoop> result = new List<CurveLoop>();
+            foreach (CurveLoop cl in _subLoops)
+            {
+                result.AddRange(cl.ClipBy(_cutLoop, _clipType));
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Cut a set of open/closed curveloops by a another set of closed curveloops. 
+        /// Return a list of list of curveloops of the same structure of the input 
+        /// subject curveloops.
+        /// </summary>
+        public static List<List<CurveLoop>> ClipBy
+            (this IList<CurveLoop> _subLoops, IList<CurveLoop> _cutLoops, ClipType _clipType)
+        {
+            List<List<CurveLoop>> result = new List<List<CurveLoop>>();
+
+            var clipPaths = new List<List<IntPoint>>();
+            foreach (var cl in _cutLoops)
+            {
+                clipPaths.Add(GetPathFromCurveLoop(cl));
+            }
+            var subPaths = new List<List<IntPoint>>();
+            foreach (var cl in _subLoops)
+            {
+                subPaths.Add(GetPathFromCurveLoop(cl));
+                if (!cl.IsOpen()) //if subject loop is closed loop, add the starting point at the end 
+                    subPaths.Last().Add(subPaths.Last().First());
+            }
+
+            foreach (var subPath in subPaths)
+            {
+                Clipper clipper = new Clipper();
+                //bool subClosed = !_subLoops.First().IsOpen();
+                bool cutClosed = !_cutLoops.First().IsOpen();
+                clipper.AddPath(subPath, PolyType.ptSubject, false); //sub path needs to be set as open to excute as curve, not polygon
+                clipper.AddPaths(clipPaths, PolyType.ptClip, cutClosed);
+
+                PolyTree resultTree = new PolyTree();
+                clipper.Execute(_clipType, resultTree, PolyFillType.pftEvenOdd);
+
+                var caa = CurveArrArrayFromPolyTree(resultTree, false);
+                var loopList = caa.ToLoopList();
+                result.Add(loopList);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// clip a list of lists of curveloops with a list of curveloops
+        /// return a list of lists of curveloops that maintain the structure of first dimension
+        /// </summary>
+        public static List<List<CurveLoop>> ClipBy
+            (this IList<List<CurveLoop>> _subListsOfLoops,
+            IList<CurveLoop> _cutLoops,
+            ClipperLib.ClipType _clipType)
+        {
+            List<List<CurveLoop>> result = new List<List<CurveLoop>>();
+            foreach (var curveLoopList in _subListsOfLoops)
+            {
+                var clipResult = curveLoopList.ClipBy(_cutLoops, _clipType);
+                //flatten result to one-dimension list
+                var newCurveLoopList = new List<CurveLoop>();
+                foreach (var list in clipResult)
+                {
+                    foreach (var cl in list)
+                        newCurveLoopList.Add(cl);
+                }
+                //add this row's baselines to level
+                result.Add(newCurveLoopList);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Extension method for CurveLoop class.
+        /// </summary>
+        /// <param name="_loop"></param>
+        /// <returns></returns>
+        private static List<IntPoint> GetPathFromCurveLoop(this CurveLoop _loop)
+        {
+            List<IntPoint> list = new List<IntPoint>();
+            List<XYZ> vertices = GetVerticesFromCurveLoop(_loop);
+            foreach (XYZ p in vertices)
+            {
+                IntPoint ip = ClipperConverter.GetIntPoint(p);
+                list.Add(ip);
+            }
+            return list;
+        }
+
+        private static List<XYZ> GetVerticesFromCurveLoop(CurveLoop _loop)
+        {
+            List<XYZ> list = new List<XYZ>();
+            foreach (var curve in _loop)
+            {
+                list.Add(curve.GetEndPoint(0));
+            }
+            if (_loop.IsOpen())
+            {
+                list.Add(_loop.Last().GetEndPoint(1));
+            }
+            return list;
+        }
+
+        private static CurveArrArray CurveArrArrayFromPolyTree(PolyTree _tree, bool _closed)
+        {
+            CurveArrArray caa = new CurveArrArray();
+            PolyNode polynode = _tree.GetFirst();
+            while (null != polynode)
+            {
+                List<XYZ> list = new List<XYZ>();
+                foreach (var ip in polynode.Contour)
+                {
+                    XYZ p = ClipperConverter.GetXyzPoint(ip);
+                    list.Add(p);
+                }
+                list = cleanUpOverlaps(list);
+                CurveArray ca = CurveArrayFromListOfPoints(list, _closed);
+                if (ca.Size > 0)
+                    caa.Append(ca);
+                polynode = polynode.GetNext();
+            }
+            return caa;
+        }
+
+        private static CurveArray CurveArrayFromListOfPoints(List<XYZ> _points, bool _closed)
+        {
+            CurveArray ca = new CurveArray();
+            int n = _points.Count;
+            for (int i = 0; i < n - 1; i++)
+            {
+                XYZ p0 = _points[i];
+                XYZ p1 = _points[i + 1];
+                try
+                {
+                    Line line = Line.CreateBound(p0, p1);
+                    ca.Append(line);
+                }
+                catch (ArgumentsInconsistentException ex)
+                {
+                    continue;
+                }
+            }
+            if (_closed && _points.Last().IsAlmostEqualToByDifference(_points.First(), 0.0001) == false)
+            {
+                Line line = null;
+                try
+                {
+                    line = Line.CreateBound(_points.Last(), _points.First());
+                    ca.Append(line);
+                }
+                catch { }
+            }
+            return ca;
+        }
+
+        private static List<XYZ> cleanUpOverlaps(List<XYZ> _input)
+        {
+            List<XYZ> output = new List<XYZ>();
+            if (_input.Count == 0)
+                return output;
+            output.Add(_input[0]);
+            for (int i = 1; i < _input.Count - 1; i++)
+            {
+                var p0 = _input[i - 1];
+                var p1 = _input[i];
+                var p2 = _input[i + 1];
+                var dir0 = (p0 - p1).Normalize();
+                var dir1 = (p2 - p1).Normalize();
+                if (dir0.IsAlmostEqualToByDifference(dir1, 0.0001) == false)
+                    output.Add(p1);
+            }
+            output.Add(_input.Last());
+            return output;
+        }
+
+        public static class ClipperConverter
+        {
+            /// <summary>
+            /// Consider a Revit length zero 
+            /// if is smaller than this.
+            /// </summary>
+            public const double _eps = 1.0e-4;
+
+            /// <summary>
+            /// Conversion factor from feet to millimetres.
+            /// </summary>
+            public const double _feet_to_mm = 25.4 * 12 * 10; //multiplier should not be too big
+
+            /// <summary>
+            /// Conversion a given length value 
+            /// from feet to millimetres.
+            /// </summary>
+            public static long ConvertFeetToMillimetres(double d)
+            {
+                return (long)(_feet_to_mm * d);
+
+                if (0 < d)
+                {
+                    return _eps > d
+                      ? 0
+                      : (long)(_feet_to_mm * d + 0.5);
+
+                }
+                else
+                {
+                    return _eps > -d
+                      ? 0
+                      : (long)(_feet_to_mm * d - 0.5);
+
+                }
+
+            }
+
+            /// <summary>
+            /// Conversion a given length value 
+            /// from millimetres to feet.
+            /// </summary>
+            static double ConvertMillimetresToFeet(long d)
+            {
+                return d / _feet_to_mm;
+            }
+
+            /// <summary>
+            /// Return a clipper integer point 
+            /// from a Revit model space one.
+            /// Do so by dropping the Z coordinate
+            /// and converting from imperial feet 
+            /// to millimetres.
+            /// </summary>
+            public static IntPoint GetIntPoint(XYZ p)
+            {
+                return new IntPoint(
+                  ConvertFeetToMillimetres(p.X),
+                  ConvertFeetToMillimetres(p.Y));
+            }
+
+            /// <summary>
+            /// Return a Revit model space point 
+            /// from a clipper integer one.
+            /// Do so by adding a zero Z coordinate
+            /// and converting from millimetres to
+            /// imperial feet.
+            /// </summary>
+            public static XYZ GetXyzPoint(IntPoint p)
+            {
+                return new XYZ(
+                  ConvertMillimetresToFeet(p.X),
+                  ConvertMillimetresToFeet(p.Y),
+                  0.0);
+            }
         }
         #endregion
 
@@ -1756,16 +3344,40 @@ namespace goa.Common
                 trans.Commit();
             }
         }
-        public static void CreateDirectShape(Document _doc, List<GeometryObject> _geometry)
+        /// <summary>
+        /// need open transaction.
+        /// </summary>
+        public static void CreateDirectShape(Document _doc, List<GeometryObject> _geometry, ref DirectShape _ds)
+        {
+            _ds = DirectShape.CreateElement(_doc, new ElementId(BuiltInCategory.OST_GenericModel));
+            _ds.SetShape(_geometry);
+        }
+        /// <summary>
+        /// need open transaction.
+        /// </summary>
+        public static DirectShape CreateDirectShape(Document _doc, IEnumerable<GeometryObject> _geometry)
         {
             DirectShape ds = DirectShape.CreateElement(_doc, new ElementId(BuiltInCategory.OST_GenericModel));
-            ds.SetShape(_geometry);
+            ds.SetShape(_geometry.ToList());
+            return ds;
         }
+        /// <summary>
+        /// need open transaction.
+        /// </summary>
         public static void CreateDirectShape(Document _doc, List<GeometryObject> _geometry, XYZ _translation)
         {
             DirectShape ds = DirectShape.CreateElement(_doc, new ElementId(BuiltInCategory.OST_GenericModel));
             ds.SetShape(_geometry);
             ElementTransformUtils.MoveElement(ds.Document, ds.Id, _translation);
+        }
+        public static void CreateDirectShapeWithNewTransaction(Document _doc, List<GeometryObject> _geometry)
+        {
+            using (Transaction trans = new Transaction(_doc, "test"))
+            {
+                trans.Start();
+                CreateDirectShape(_doc, _geometry);
+                trans.Commit();
+            }
         }
         #endregion
 
@@ -1850,6 +3462,55 @@ namespace goa.Common
         }
         public static Transform GetTransform(Wall _wall)
         {
+            if (_wall.WallType.Kind == WallKind.Basic)
+            {
+                Line l = (_wall.Location as LocationCurve).Curve as Line;
+                if (l != null)
+                {
+                    var Y = _wall.Orientation;
+                    var Z = XYZ.BasisZ;
+                    var X = l.Direction;
+
+                    var t = Transform.Identity;
+                    t.BasisX = X;
+                    t.BasisY = Y;
+                    t.BasisZ = Z;
+                    t.Origin = l.Origin;
+                    return t;
+                }
+                else return null;
+            }
+            //叠层墙或curtain
+            else
+            {
+                var Y = _wall.Orientation;
+                if (_wall.WallType.Kind != WallKind.Basic && _wall.Flipped)
+                    Y *= -1;
+                var Z = XYZ.BasisZ;
+                var X = _wall.Orientation.CrossProduct(Z);
+
+                var t = Transform.Identity;
+                t.BasisX = X;
+                t.BasisY = Y;
+                t.BasisZ = Z;
+                if (_wall.WallType.Kind == WallKind.Curtain)
+                {
+                    t.Origin = ((LocationCurve)_wall.Location).Curve.GetEndPoint(0);
+                }
+                else
+                {
+                    Line l = (_wall.Location as LocationCurve).Curve as Line;
+                    if (l != null)
+                        t.Origin = l.Origin;
+                    else return null;
+                }
+                return t;
+            }
+
+        }
+        /*
+        public static Transform GetTransform(Wall _wall)
+        {
             var Y = _wall.Orientation;
             if (_wall.Flipped)
                 Y *= -1;
@@ -1863,6 +3524,7 @@ namespace goa.Common
             t.Origin = ((LocationCurve)_wall.Location).Curve.GetEndPoint(0);
             return t;
         }
+        */
         public static Transform GetTransform(FamilyInstance _refInstance, FamilyInstance _targetInstance)
         {
             var refT = GetTransform(_refInstance);
@@ -1907,6 +3569,70 @@ namespace goa.Common
             s += _transform.Scale.ToStringDigits(_digits);
             return s;
         }
+        /// <summary>
+        /// Split a transform into its non-reflection part and a reflection plane.
+        /// Assume a XY plane reflection.
+        /// </summary>
+        public static void SplitTransform(this Transform _source, out Transform _nonReflection, out Plane _reflectionPlane)
+        {
+            _nonReflection = new Transform(_source);
+            _reflectionPlane = null;
+
+            if (_source.HasReflection == false)
+            {
+                return;
+            }
+            else
+            {
+                //flip x axis
+                _nonReflection.BasisX *= -1.0;
+                //get plane from basisY and origin
+                _reflectionPlane = Plane.CreateByNormalAndOrigin(_source.BasisX, _source.Origin);
+            }
+        }
+        /// <summary>
+        /// Convert from global coordinates system to local coordinates
+        /// with given coordinate system.
+        /// </summary>
+        public static Transform ConvertToLocal(this Transform global, Transform cs)
+        {
+            return (cs.Inverse) * global;
+        }
+        /// <summary>
+        /// Convert from local coordinates system to global coordinates
+        /// with given coordinate system.
+        /// </summary>
+        public static Transform ConvertToGlobal(this Transform local, Transform cs)
+        {
+            return cs * local;
+        }
+        public static bool SameOrientation(this Transform _tf, Transform _other)
+        {
+            return _tf.BasisX.IsAlmostEqualToByDifference(_other.BasisX, 0.0001)
+                && _tf.BasisY.IsAlmostEqualToByDifference(_other.BasisY, 0.0001)
+                && _tf.BasisZ.IsAlmostEqualToByDifference(_other.BasisZ, 0.0001);
+        }
+        #endregion
+
+        #region Transaction
+        public static void TryStart(this Transaction trans)
+        {
+            if (trans.HasStarted() == false
+                && trans.HasEnded() == false)
+                trans.Start();
+        }
+        public static void TryCommit(this Transaction trans)
+        {
+            if (trans.HasStarted()
+                && trans.HasEnded() == false)
+                trans.Commit();
+        }
+        public static void TryRollback(this Transaction trans)
+        {
+            if (trans.HasStarted()
+                && trans.HasEnded() == false)
+                trans.RollBack();
+        }
         #endregion
 
         #region UnitConvertion
@@ -1918,10 +3644,42 @@ namespace goa.Common
         {
             return UnitUtils.ConvertFromInternalUnits(_feet, DisplayUnitType.DUT_MILLIMETERS);
         }
+        public static double MillimeterStringToFeet(this string s)
+        {
+            double dist;
+            bool b = double.TryParse(s, out dist);
+            if (!b)
+                throw new goa.Common.Exceptions.UserInputInvalidException();
+            return UnitUtils.ConvertToInternalUnits(dist, DisplayUnitType.DUT_MILLIMETERS);
+        }
+        public static string FeetToMillimeterString(this double ft, int digits)
+        {
+            double dist = UnitUtils.ConvertFromInternalUnits(ft, DisplayUnitType.DUT_MILLIMETERS);
+            return Math.Round(dist, digits).ToString();
+        }
         #endregion
 
-        #region UserMessage
-
+        #region User Interaction
+        public static void ShowElement(Element elem, UIDocument uidoc)
+        {
+            if (elem.Document.IsLinked)
+            {
+                UserMessages.ShowMessage("不支持链接模型里的图元。");
+                return;
+            }
+            var doc = elem.Document;
+            if (elem.OwnerViewId != ElementId.InvalidElementId)
+            {
+                var view = doc.GetElement(elem.OwnerViewId)
+                    as Autodesk.Revit.DB.View;
+                uidoc.ActiveView = view;
+            }
+            uidoc.Selection.SetElementIds(new List<ElementId>() { elem.Id });
+            if (elem is Autodesk.Revit.DB.View)
+                uidoc.ActiveView = (Autodesk.Revit.DB.View)elem;
+            else
+                uidoc.ShowElements(elem);
+        }
         #endregion
 
         #region View
@@ -2058,49 +3816,38 @@ namespace goa.Common
             }
             return loop;
         }
-        #endregion
-    }
+        public static void HideDetailGroup(this Autodesk.Revit.DB.View _owner)
+        {
 
-    public static class UserMessages
-    {
-        public static string DefaultMessageCaption = "消息";
-        public static string ErrorMessageTechnical(Exception ex)
-        {
-            string s = "--- Error Type ---\r\n" + ex.GetType().ToString()
-                        + "\r\n--- Error Message ---\r\n" + ex.Message
-                        + "\r\n--- Source ---\r\n" + ex.Source
-                        + "\r\n--- TargetSite ---\r\n" + ex.TargetSite
-                        + "\r\n--- StackTrace ---\r\n" + ex.StackTrace;
-            return s;
         }
-        public static void ShowErrorMessage(Exception ex, System.Windows.Forms.Form _parent)
+        /// <summary>
+        /// use a temporary transaction to make change to owner view,
+        /// force it to update graphics.
+        /// </summary>
+        public static void ForceRefreshView(this Autodesk.Revit.DB.View _view)
         {
-            var emt = ErrorMessageTechnical(ex);
-            var form = new Form_Error(emt);
-            form.TopMost = true;
-            if (_parent != null)
-                form.ShowDialog(_parent);
-            else
-                form.ShowDialog();
-        }
-        public static void ShowErrorMessage(string _errorMessage, string _mainInstruction, System.Windows.Forms.Form _parent)
-        {
-            var form = new Form_Error(_mainInstruction, _errorMessage);
-            form.TopMost = true;
-            form.ShowDialog(_parent);
-        }
-        public static DialogResult ShowYesNoDialog(string message)
-        {
-            using (var form = new System.Windows.Forms.Form())
+            var doc = _view.Document;
+            using (TransactionGroup tr = new TransactionGroup(doc))
             {
-                form.TopMost = true;
-                var result = MessageBox.Show(message, DefaultMessageCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                form.Dispose();
-                return result;
+                tr.Start();
+                using (Transaction trans = new Transaction(doc, "temp"))
+                {
+                    trans.Start();
+                    try
+                    {
+                        _view.DisplayStyle = DisplayStyle.Wireframe;
+                        trans.Commit();
+                    }
+                    catch
+                    {
+                        trans.RollBack();
+                    }
+                }
+                tr.RollBack();
             }
         }
+        #endregion
     }
-
 
     public enum CurveLoopType
     {
@@ -2120,6 +3867,29 @@ namespace goa.Common
         public InvalidCurveLoopException(string message, Exception inner)
         : base(message, inner)
         {
+        }
+    }
+    [TransactionAttribute(TransactionMode.Manual)]
+    [RegenerationAttribute(RegenerationOption.Manual)]
+    public class CMD_debug_showBoundingBox : IExternalCommand
+    {
+        public Result Execute(ExternalCommandData commandData,
+                      ref string message,
+                      ElementSet elements)
+        {
+            var uidoc = commandData.Application.ActiveUIDocument;
+            var doc = uidoc.Document;
+            var sel = uidoc.Selection;
+            var pickrefs = sel.PickObjects(ObjectType.Element);
+            var bb = pickrefs.Select(x => doc.GetElement(x)).GetBoundingBox(); ;
+            var lines = bb.GetBoundaryLines();
+            using (Transaction trans = new Transaction(doc, "debug"))
+            {
+                trans.Start();
+                Methods.CreateDirectShape(doc, lines.Cast<GeometryObject>().ToList());
+                trans.Commit();
+            }
+            return Result.Succeeded;
         }
     }
 }

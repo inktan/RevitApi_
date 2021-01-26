@@ -19,6 +19,17 @@ namespace goa.Common
             InitializeComponent();
             this.label1.Text = _instruction;
             this.textBox1.Text = _text;
+            this.textBox1.KeyUp += onTextBoxKeyUp;
+        }
+
+        private void onTextBoxKeyUp(object sender, KeyEventArgs e)
+        {
+            var key = e.KeyCode;
+            if (key == Keys.Enter)
+            {
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            }
         }
     }
 }

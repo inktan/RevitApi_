@@ -11,12 +11,45 @@ using System.Data;
 
 using System.Windows.Forms;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.InteropServices;
 
 namespace goa.Common
 {
     public static partial class Methods
     {
+        #region Array
+        public static T[] GetRow<T>(this T[,] array, int row)
+        {
+            if (!typeof(T).IsPrimitive)
+                throw new InvalidOperationException("Not supported for managed types.");
+
+            if (array == null)
+                throw new ArgumentNullException("array");
+
+            int cols = array.GetUpperBound(1) + 1;
+            T[] result = new T[cols];
+
+            int size;
+
+            if (typeof(T) == typeof(bool))
+                size = 1;
+            else if (typeof(T) == typeof(char))
+                size = 2;
+            else
+                size = Marshal.SizeOf<T>();
+
+            Buffer.BlockCopy(array, row * cols * size, result, 0, cols * size);
+
+            return result;
+        }
+        #endregion
+
         #region Dictionary
+        public static void AddRange<T>(this IList<T> list, IEnumerable<T> listToAdd)
+        {
+            foreach (var v in listToAdd)
+                list.Add(v);
+        }
         public static void TryAddValue<T1, T2>(this Dictionary<T1, List<T2>> dic, T1 key, T2 value)
         {
             if (dic.ContainsKey(key))
@@ -27,6 +60,13 @@ namespace goa.Common
             {
                 dic[key] = new List<T2>() { value };
             }
+        }
+        public static void RenameKey<TKey, TValue>(this IDictionary<TKey, TValue> dic,
+                                      TKey fromKey, TKey toKey)
+        {
+            TValue value = dic[fromKey];
+            dic.Remove(fromKey);
+            dic[toKey] = value;
         }
         #endregion
 
@@ -56,6 +96,16 @@ namespace goa.Common
             else
                 return true;
         }
+        public static bool IsAlmostEqualByDifference
+    (this float _thisFloat, float _float, float _epsilon)
+        {
+            double difference = Math.Abs(_thisFloat - _float);
+            if (difference > _epsilon)
+                return false;
+            else
+                return true;
+        }
+
         /// <summary>
         /// Compare two double values, using
         /// 0.0001 as difference threshold.
@@ -65,7 +115,11 @@ namespace goa.Common
         /// <returns></returns>
         public static bool IsAlmostEqualByDifference(this double _thisDouble, double _double)
         {
-            return IsAlmostEqualByDifference(_thisDouble, _double, 0.0001);
+            return _thisDouble.IsAlmostEqualByDifference(_double, 0.0001);
+        }
+        public static bool IsAlmostEqualByDifference(this float _thisFloat, float _float)
+        {
+            return _thisFloat.IsAlmostEqualByDifference(_float, 0.0001f);
         }
         /// <summary>
         /// Compare two double values, using
@@ -182,6 +236,120 @@ namespace goa.Common
         }
         #endregion
 
+        #region Enumerables
+        public static List<List<T>> DivideList<T>(this List<T> _input, int _targetNum)
+        {
+            int count = _input.Count;
+            int num;
+            if (count < _targetNum)
+                num = count;
+            else
+                num = _targetNum;
+            int size = (int)Math.Ceiling((double)count / num);
+            int index = 0;
+            List<List<T>> lists = new List<List<T>>();
+            while (index + size < count)
+            {
+                lists.Add(_input.GetRange(index, size));
+                index += size;
+            }
+            int numLeft = count - index;
+            lists.Add(_input.GetRange(index, numLeft));
+            return lists;
+        }
+        public static List<Dictionary<T1, T2>> DivideDictionay<T1, T2>(this Dictionary<T1, T2> _input, int _targetNum)
+        {
+            int count = _input.Count;
+            int num;
+            if (count < _targetNum)
+                num = count;
+            else
+                num = _targetNum;
+            int size = (int)Math.Ceiling((double)count / num);
+            int index = 0;
+            var pairList = _input.ToList();
+            var divided = new List<Dictionary<T1, T2>>();
+            while (index + size < count)
+            {
+                divided.Add(pairList.GetRange(index, size).ToDictionary(x => x.Key, x => x.Value));
+                index += size;
+            }
+            int numLeft = count - index;
+            divided.Add(pairList.GetRange(index, numLeft).ToDictionary(x => x.Key, x => x.Value));
+            return divided;
+        }
+
+        public static List<T> ShiftLeft<T>(this IEnumerable<T> list, int shifts, bool loopback = true)
+        {
+            return list.ToArray().ShiftLeft(shifts, loopback).ToList();
+        }
+
+        public static List<T> ShiftRight<T>(this IEnumerable<T> list, int shifts, bool loopback = true)
+        {
+            return list.ToArray().ShiftRight(shifts, loopback).ToList();
+        }
+
+        public static T[] ShiftLeft<T>(this T[] array, int shifts, bool loopback = true)
+        {
+            int count = array.Count();
+            var newArray = new T[count];
+            for (int i = shifts; i < count; i++)
+            {
+                newArray[i - shifts] = array[i];
+            }
+
+            for (int i = count - shifts; i < count; i++)
+            {
+                if (loopback)
+                {
+                    newArray[i] = array[shifts - (count - i)];
+                }
+                else
+                {
+                    newArray[i] = default(T);
+                }
+            }
+
+            return newArray;
+        }
+        public static T[] ShiftRight<T>(this T[] array, int shifts, bool loopback = true)
+        {
+            int count = array.Count();
+            T[] newArray = new T[count];
+            for (int i = count - shifts - 1; i >= 0; i--)
+            {
+                newArray[i + shifts] = array[i];
+            }
+
+            for (int i = 0; i < shifts; i++)
+            {
+                if (loopback)
+                {
+                    newArray[i] = array[count - shifts + i];
+                }
+                else
+                {
+                    newArray[i] = default(T);
+                }
+            }
+            return newArray;
+        }
+        public static HashSet<T> ToHashSet<T>(this IEnumerable<T> _enum)
+        {
+            return new HashSet<T>(_enum);
+        }
+
+        #endregion
+
+        #region Math
+        public static IEnumerable<IEnumerable<T>> Combinations<T>(this IEnumerable<T> elements, int k)
+        {
+            return k == 0 ? new[] { new T[0] } :
+              elements.SelectMany((e, i) =>
+                elements.Skip(i + 1).Combinations(k - 1).Select(c => (new[] { e }).Concat(c)));
+        }
+        #endregion
+
         #region String
         public static bool ToBoolean(this string _string)
         {
@@ -205,8 +373,41 @@ namespace goa.Common
         }
         public static string[] SplitBy(this string _s, string _spliter)
         {
-            var array = _s.Split(_spliter.ToArray(), StringSplitOptions.RemoveEmptyEntries);
+            var sep = new string[1] { _spliter };
+            var array = _s.Split(sep, StringSplitOptions.RemoveEmptyEntries);
             return array;
+        }
+        private static string puncs = ",./<>?;':\"[]{}\\|-_=+)(*&^%$#@!`~，。《》【】、‘“”’·！￥…（）";
+        public static string RemoveAllPunctuationMarks(this string _s)
+        {
+            return _s.RemoveAll(puncs);
+        }
+        public static string RemovePunctuationMarksAtStartAndEnd(this string _s)
+        {
+            List<int> indices = new List<int>();
+            for (int i = 0; i < _s.Length; i++)
+            {
+                var c = _s[i];
+                if (puncs.Contains(c))
+                    indices.Add(i);
+                else
+                    break;
+            }
+            for (int j = _s.Length - 1; j >= 0; j--)
+            {
+                var c = _s[j];
+                if (puncs.Contains(c))
+                    indices.Add(j);
+                else
+                    break;
+            }
+            indices = indices.OrderByDescending(x => x).ToList();
+            var newString = _s.ToList();
+            foreach (var index in indices)
+            {
+                newString.RemoveAt(index);
+            }
+            return new string(newString.ToArray());
         }
         #endregion
 

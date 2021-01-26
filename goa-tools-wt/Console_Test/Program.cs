@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using NetTopologySuite.Geometries;
-using g3;
 
 namespace Console_Test
 {
@@ -13,11 +11,30 @@ namespace Console_Test
     {
         static void Main(string[] args)
         {
+            A a1 = new B();
+            Console.WriteLine(a1.GetType().ToString());
 
-            Vector2d vector2d01 = new Vector2d(-1.00000000 - 0.00000032);
-            Vector2d vector2d2 = new Vector2d(0.00000000 ,0.00000000);
-
-            Console.WriteLine(vector2d01.Dot(vector2d2));
         }
     }
+    class A
+    {
+        public  void Print()
+        {
+            Console.WriteLine("A");
+        }
+    }
+    class B : A
+    {
+        public new void Print()
+        {
+            Console.WriteLine("B");
+        }
+    }
+    //class C : A
+    //{
+    //    public override void Print()
+    //    {
+    //        Console.WriteLine("C");
+    //    }
+    //}
 }

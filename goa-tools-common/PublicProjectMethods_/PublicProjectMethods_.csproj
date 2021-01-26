@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{391E1E0A-0D53-4518-A15A-7EA541053925}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>PublicProjectMethods_</RootNamespace>
+    <AssemblyName>PublicProjectMethods_</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="NetTopologySuite, Version=2.0.0.0, Culture=neutral, PublicKeyToken=f580a05016ebada1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\NetTopologySuite.2.1.0\lib\netstandard2.0\NetTopologySuite.dll</HintPath>
+    </Reference>
+    <Reference Include="RevitAPI, Version=21.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Revit_API\2020\RevitAPI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI, Version=21.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Revit_API\2020\RevitAPIUI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="Adided_CSharp\Dictionary_.cs" />
+    <Compile Include="Adided_CSharp\DistinctExtensions_.cs" />
+    <Compile Include="Adided_CSharp\Enum_.cs" />
+    <Compile Include="Adided_CSharp\Math_.cs" />
+    <Compile Include="Adided_CSharp\String_.cs" />
+    <Compile Include="Aided_clipper_\Clipper_.cs" />
+    <Compile Include="Aided_g3_\ConvexHull2_.cs" />
+    <Compile Include="Aided_g3_\Intersection_.cs" />
+    <Compile Include="Aided_g3_\Segment2d_.cs" />
+    <Compile Include="Aided_g3_\Ray2d.cs" />
+    <Compile Include="Aided_g3_\Vector2d_.cs" />
+    <Compile Include="Aided_g3_\Ray2d_.cs" />
+    <Compile Include="Aided_g3_\Polygon2d_.cs" />
+    <Compile Include="Aided_NetTopologySuite_\Geometries_.cs" />
+    <Compile Include="Aided_revit_\BoundingBox_.cs" />
+    <Compile Include="Aided_revit_\CurveArray_.cs" />
+    <Compile Include="Aided_revit_\CurveLoop_.cs" />
+    <Compile Include="Aided_revit_\DirectShape_.cs" />
+    <Compile Include="Aided_revit_\Dimension_.cs" />
+    <Compile Include="Aided_revit_\DataStorage_.cs" />
+    <Compile Include="Aided_revit_\Tag_.cs" />
+    <Compile Include="Aided_revit_\Group_.cs" />
+    <Compile Include="Aided_revit_\TaskDialog_.cs" />
+    <Compile Include="Aided_revit_\FamilyInstance_.cs" />
+    <Compile Include="Aided_revit_\Face_.cs" />
+    <Compile Include="Aided_revit_\OverrideGraphicSettings_.cs" />
+    <Compile Include="Aided_revit_\Entity_.cs" />
+    <Compile Include="Aided_revit_\FamilySymbol_.cs" />
+    <Compile Include="Aided_revit_\FilledRegion.cs" />
+    <Compile Include="Aided_revit_\Line_.cs" />
+    <Compile Include="Aided_revit_\LineStyle_.cs" />
+    <Compile Include="Aided_revit_\XYZ_.cs" />
+    <Compile Include="Aided_revit_\Element_.cs" />
+    <Compile Include="Aided_revit_\Schema_.cs" />
+    <Compile Include="Aided_revit_\UnitUtils_.cs" />
+    <Compile Include="Aided_revit_\Parameter_.cs" />
+    <Compile Include="Aided_revit_\SelPickFilter.cs" />
+    <Compile Include="Convert2_\ClipperTo_.cs" />
+    <Compile Include="Convert2_\NetTopologySuiteTo_.cs" />
+    <Compile Include="Convert2_\RevitTo_.cs" />
+    <Compile Include="Convert2_\_g3To.cs" />
+    <Compile Include="InputData\Precision_.cs" />
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\geometry3Sharp\geometry3Sharp.csproj">
+      <Project>{0c518dda-28fe-44ca-9ab0-f9773974f13a}</Project>
+      <Name>geometry3Sharp</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\goa.Common\goa.Common.csproj">
+      <Project>{3b63163d-ce10-43a5-86c5-d5fb43e65ee9}</Project>
+      <Name>goa.Common</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Aided_Winform\" />
+    <Folder Include="Aided_Wpf\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

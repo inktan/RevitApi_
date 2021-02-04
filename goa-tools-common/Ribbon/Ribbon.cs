@@ -8,9 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 
-using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Autodesk.Revit.Attributes;
 
 namespace Ribbon
 {
@@ -54,10 +52,15 @@ namespace Ribbon
         public Result OnStartup(UIControlledApplication application)
         {
             //tab
-            application.CreateRibbonTab("goa tools 模型");
-            application.CreateRibbonTab("goa tools 制图");
-            application.CreateRibbonTab("goa tools 模块");
+            application.CreateRibbonTab("_revitApi_ tools");
 
+            //application.CreateRibbonTab("goa tools 模型");
+            //application.CreateRibbonTab("goa tools 制图");
+            //application.CreateRibbonTab("goa tools 模块");
+
+
+
+            /*
             #region model tab
             //SITE PLANNING panel
             RibbonPanel rp_sitePlan = application.CreateRibbonPanel("goa tools 模型", "总图规划");
@@ -219,7 +222,7 @@ namespace Ribbon
                 pbd_facade_selectCompsFiltered,
                 pbd_facade_mirrorComps);
             #endregion model tab
-
+        
             #region drafting tab
             //GRID panel
             RibbonPanel rp_grid = application.CreateRibbonPanel("goa tools 制图", "轴网工具");
@@ -479,7 +482,7 @@ namespace Ribbon
                 (pbd_module_developer,
                 pbd_debug_showBoundingBox);
             #endregion module tab
-
+            */
             return Result.Succeeded;
         }
 

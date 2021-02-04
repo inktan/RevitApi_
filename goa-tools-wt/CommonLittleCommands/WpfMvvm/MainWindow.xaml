@@ -1,0 +1,33 @@
+﻿<Window x:Class="CommonLittleCommands.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:prop="clr-namespace:CommonLittleCommands.Properties"
+        xmlns:local="clr-namespace:CommonLittleCommands"
+        mc:Ignorable="d"
+        Title="测试工具集 v1.01" Height="500" Width="300" Topmost="True" >
+    <!--主窗体的内容-->
+    <Grid>
+        <TabControl x:Name="tabControl"  >
+            <TabItem Header="常用工具">
+                <WrapPanel Margin="5">
+                    <Button Content="框选DirectShapes" Click="Button01_Click" Margin="5"/>
+                    <Button Content="透明度设置为" Click="Button02_Click"  Margin="5"/>
+                    <TextBox x:Name="SetSurfaceTransparency" Text="100" VerticalAlignment="Center"></TextBox>
+                    <TextBlock Text="%" VerticalAlignment="Center" Margin="0,5"></TextBlock>
+                    <Button Content="注释元素ID" Margin="5" Click="Button03_Click"/>
+                    <Button Content="测试" Margin="5" Click="Button_Click"/>
+
+                </WrapPanel>
+
+            </TabItem>
+            <TabItem Header="后台监控">
+                <TextBox IsReadOnly="True" VerticalScrollBarVisibility="Auto"  Grid.Row="1" Text="{Binding strBackgroundMonitorDta,Source={x:Static local:InputParameter.Instance}}" Foreground="Gray"></TextBox>
+
+            </TabItem>
+        </TabControl>
+
+    </Grid>
+</Window>

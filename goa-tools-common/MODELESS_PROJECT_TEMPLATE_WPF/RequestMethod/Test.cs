@@ -40,6 +40,11 @@ namespace MODELESS_PROJECT_TEMPLATE_WPF
             transform.BasisY.ToString().TaskDialogErrorMessage();
             transform.BasisZ.ToString().TaskDialogErrorMessage();
 
+            InputParameter.Instance.strBackgroundMonitorDta += "\n"+ transform.Origin.ToString();
+            InputParameter.Instance.strBackgroundMonitorDta += "\n"+ transform.BasisX.ToString();
+            InputParameter.Instance.strBackgroundMonitorDta += "\n"+ transform.BasisY.ToString();
+            InputParameter.Instance.strBackgroundMonitorDta += "\n"+ transform.BasisZ.ToString();
+
         }
 
 

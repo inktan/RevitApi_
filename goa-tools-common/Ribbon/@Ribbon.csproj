@@ -17,7 +17,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\bin\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -43,12 +43,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="PresentationCore" />
-    <Reference Include="RevitAPI">
-      <HintPath>..\Revit_API\2020\RevitAPI.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="RevitAPIUI">
-      <HintPath>..\Revit_API\2020\RevitAPIUI.dll</HintPath>
+      <HintPath>..\packages\revitDll.2021\RevitAPIUI.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -66,12 +62,6 @@
   <ItemGroup>
     <Compile Include="Ribbon.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\goa-tools-common\goa.Common\goa.Common.csproj">
-      <Project>{3b63163d-ce10-43a5-86c5-d5fb43e65ee9}</Project>
-      <Name>goa.Common</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -1,0 +1,6 @@
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\SRP\bin\Debug\SRP.exe.config
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\SRP\bin\Debug\SRP.exe
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\SRP\bin\Debug\SRP.pdb
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\SRP\obj\Debug\SRP.csproj.CoreCompileInputs.cache
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\SRP\obj\Debug\SRP.exe
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\SRP\obj\Debug\SRP.pdb

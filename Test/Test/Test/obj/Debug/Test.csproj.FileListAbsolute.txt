@@ -1,7 +1,0 @@
-E:\upadate_work\OneDrive\03-Reivt Development\GitHub\RevitApi_\Test\Test\Test\bin\Debug\Test.exe.config
-E:\upadate_work\OneDrive\03-Reivt Development\GitHub\RevitApi_\Test\Test\Test\bin\Debug\Test.exe
-E:\upadate_work\OneDrive\03-Reivt Development\GitHub\RevitApi_\Test\Test\Test\bin\Debug\Test.pdb
-E:\upadate_work\OneDrive\03-Reivt Development\GitHub\RevitApi_\Test\Test\Test\obj\Debug\Test.csprojAssemblyReference.cache
-E:\upadate_work\OneDrive\03-Reivt Development\GitHub\RevitApi_\Test\Test\Test\obj\Debug\Test.csproj.CoreCompileInputs.cache
-E:\upadate_work\OneDrive\03-Reivt Development\GitHub\RevitApi_\Test\Test\Test\obj\Debug\Test.exe
-E:\upadate_work\OneDrive\03-Reivt Development\GitHub\RevitApi_\Test\Test\Test\obj\Debug\Test.pdb

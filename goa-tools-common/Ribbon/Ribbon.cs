@@ -51,8 +51,24 @@ namespace Ribbon
 
         public Result OnStartup(UIControlledApplication application)
         {
-            //tab
+            //创建功能区选项卡 如、文件、建筑
             application.CreateRibbonTab("_revitApi_ tools");
+
+            //创建功能区选项卡上的功能区
+            RibbonPanel rp_main = application.CreateRibbonPanel("_revitApi_ tools", "Test Tools");
+            //单个功能按钮，可设定图标
+         
+            PushButton pb_TemperSensor_new = rp_main.AddItem(new PushButtonData("TemperSensor_new", "SensorDataSynTest", projectAssemblyFullPath("MQTT_Revit\\MQTT_Revit_wpf.dll"), "MQTT_Revit_wpf.CMD")) as PushButton;
+            pb_TemperSensor_new.LargeImage = new BitmapImage(new Uri(iconFullPath("TemperatureSensor_96.png")));
+            //堆叠功能按钮，文字列表显示
+            //PushButtonData pbd_site_family_edit = new PushButtonData("SitePlanFamilyEditor", "体块编辑", projectAssemblyFullPath("SitePlanFamilyEditor.dll"), "SitePlanFamilyEditor.CMD");
+            //PushButtonData pbd_site_family_select = new PushButtonData("SitePlanBuildingBlockSelector", "体块选择", projectAssemblyFullPath("SitePlanBuildingBlockSelector.dll"), "SitePlanBuildingBlockSelector.CMD");
+            //PushButtonData pbd_color_pallete = new PushButtonData("FastColorPalette", "调色板增强", projectAssemblyFullPath("FastColorPalette.dll"), "FastColorPalette.CMD");
+            //rp_sitePlan.AddStackedItems(
+            //    pbd_site_family_edit,
+            //    pbd_site_family_select,
+            //    pbd_color_pallete);
+
 
             //application.CreateRibbonTab("goa tools 模型");
             //application.CreateRibbonTab("goa tools 制图");

@@ -1,0 +1,7 @@
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\CRP\bin\Debug\CRP.exe.config
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\CRP\bin\Debug\CRP.exe
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\CRP\bin\Debug\CRP.pdb
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\CRP\obj\Debug\CRP.csprojAssemblyReference.cache
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\CRP\obj\Debug\CRP.csproj.CoreCompileInputs.cache
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\CRP\obj\Debug\CRP.exe
+D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\CRP\obj\Debug\CRP.pdb

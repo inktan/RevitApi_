@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-16" standalone="no"?>
 <RevitAddIns>
   <AddIn Type="Application">
-    <Name>goa tools</Name>
+    <Name>—revitApi- tools</Name>
     <Assembly>.\_revitApi_ tools\Ribbon.dll</Assembly>
     <ClientId>840F46CD-4B1A-493C-9EA6-E9CDE417392A</ClientId>
     <FullClassName>Ribbon.Ribbon</FullClassName>
-    <VendorId>goa</VendorId>
-    <VendorDescription>goa, www.goa.com.cn</VendorDescription>
+    <VendorId>revitApi</VendorId>
+    <VendorDescription>revitApi, www.revitApi.com.cn</VendorDescription>
   </AddIn>
 
 </RevitAddIns>

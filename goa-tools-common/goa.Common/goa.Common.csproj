@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>goa.Common</RootNamespace>
     <AssemblyName>goa.Common</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
@@ -150,6 +150,7 @@
     <Compile Include="Revit Classes\DesignOption\DesignOptionSet.cs" />
     <Compile Include="Revit Classes\DesignOption\DesignOptionWrapper.cs" />
     <Compile Include="Revit Classes\ElementInfoForUI.cs" />
+    <Compile Include="Revit.DirectContext3D\AutodeskSample_RevitElementDrawServer.cs" />
     <Compile Include="SchemaTypes.cs" />
     <Compile Include="SelectionFilters_goaCustomFamilies.cs" />
     <Compile Include="SelectionFilters_RevitElements.cs" />

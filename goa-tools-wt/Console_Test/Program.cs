@@ -1,9 +1,11 @@
-﻿using System;
+﻿using Octree;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using NLog;
 
 namespace Console_Test
 {
@@ -11,30 +13,11 @@ namespace Console_Test
     {
         static void Main(string[] args)
         {
-            A a1 = new B();
-            Console.WriteLine(a1.GetType().ToString());
 
+            Console.WriteLine("开始测试");
+
+
+            Console.ReadKey();
         }
     }
-    class A
-    {
-        public  void Print()
-        {
-            Console.WriteLine("A");
-        }
-    }
-    class B : A
-    {
-        public new void Print()
-        {
-            Console.WriteLine("B");
-        }
-    }
-    //class C : A
-    //{
-    //    public override void Print()
-    //    {
-    //        Console.WriteLine("C");
-    //    }
-    //}
 }

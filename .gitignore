@@ -1,0 +1,8 @@
+# 忽略所有 .dll 文件
+*.dll
+*.vsidx
+
+# 忽略 bin、debug、obj 文件夹
+bin/
+debug/
+obj/

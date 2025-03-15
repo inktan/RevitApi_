@@ -1,0 +1,32 @@
+﻿<Window x:Class="MountSiteDesignAnaly.SelLayer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:System="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d"
+        Topmost="True"
+        WindowStartupLocation="CenterScreen"
+        Height="165"
+        Width="200" 
+        Title="地库强排方案命名" 
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        Background="LightBlue"
+    >
+    <Grid FocusManager.FocusedElement="{Binding ElementName=textBox01}">
+        <StackPanel Margin="5">
+            <TextBlock Text="请选择楼板类型" Margin="0,2" ></TextBlock>
+            <ComboBox x:Name="floorTypeNames" Margin="0,2"  ></ComboBox>
+            <TextBlock Text="请选择多段线图层" Margin="0,2" ></TextBlock>
+            <ComboBox x:Name="cadLayers" Margin="0,2"  ></ComboBox>
+            <TextBlock Text="请选择高程数据图层" Margin="0,2" ></TextBlock>
+            <ComboBox x:Name="textLayers" Margin="0,2"  ></ComboBox>
+            <StackPanel Orientation="Horizontal" Margin="0,2" HorizontalAlignment="Right" >
+                <Button Content="确认" Margin="5,0" Click="Button_Click_1"></Button>
+                <Button Content="取消" Margin="5,0" Click="Button_Click"></Button>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+
+</Window>

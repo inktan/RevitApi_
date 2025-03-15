@@ -1,6 +1,0 @@
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\ISP\bin\Debug\ISP.exe.config
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\ISP\bin\Debug\ISP.exe
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\ISP\bin\Debug\ISP.pdb
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\ISP\obj\Debug\ISP.csproj.CoreCompileInputs.cache
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\ISP\obj\Debug\ISP.exe
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\ISP\obj\Debug\ISP.pdb

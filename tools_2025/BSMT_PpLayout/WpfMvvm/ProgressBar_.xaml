@@ -1,0 +1,17 @@
+﻿<Window x:Class="BSMT_PpLayout.ProgressBar_"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BSMT_PpLayout"
+        mc:Ignorable="d"
+        Title="进度提示 v1.00" Height="140" Width="200" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" >
+    <Grid>
+        <StackPanel>
+            <Label x:Name="textContent" Content="文字位置" FontSize="10"  Margin="0,15,0,0" HorizontalAlignment="Center"/>
+            <ProgressBar x:Name="ProgressBar01" Height="20" Margin="5"  Value="{Binding Path=ProgreaaBarVlaue,Source={x:Static local:GlobalData.Instance}}"/>
+            <Button x:Name="TempBreak" Content="停止计算" HorizontalAlignment="Center" Margin="5" Click="TempBreak_Click"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

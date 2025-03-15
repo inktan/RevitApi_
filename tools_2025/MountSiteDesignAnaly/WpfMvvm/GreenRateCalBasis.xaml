@@ -1,0 +1,58 @@
+﻿<Window x:Class="MountSiteDesignAnaly.GreenRateCalBasis"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MountSiteDesignAnaly" 
+        d:DataContext="{d:DesignInstance Type=local:ViewModel}"
+        mc:Ignorable="d"
+        Title="覆土绿化系数" Height="300px" Width="400" Topmost="True">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="220px"/>
+            <RowDefinition Height="30px"/>
+        </Grid.RowDefinitions>
+        <ScrollViewer  Grid.Row="0" BorderBrush="Black" BorderThickness="3px">
+            <DataGrid
+                CanUserDeleteRows="True"
+                x:Name="dataGrid" 
+                AutoGenerateColumns="True" 
+                AutoGeneratingColumn="dataGrid_AutoGeneratingColumn"
+                ItemsSource="{Binding CoverThickGreenFactors}">
+                <!--<DataGrid x:Name="dataGrid" AutoGenerateColumns="True" ItemsSource="{Binding CoverThickGreenFactors}">-->
+                <DataGrid.Resources>
+                    <Style TargetType="{x:Type DataGridColumnHeader}">
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <!--<Setter Property="Background" Value="#f5f5f5"/>
+                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="BorderThickness" Value="1" />
+                            <Setter Property="BorderBrush" Value="Gray" />
+                            <Setter Property="Height" Value="30"/>
+                            <Setter Property="FontSize" Value="18"/>-->
+                    </Style>
+                </DataGrid.Resources>
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#FF8CCFEE"/>
+                                <Setter Property="Foreground" Value="Black"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="Background" Value="#FF62E6A4"/>
+                                <Setter Property="Foreground" Value="Black"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+                <DataGrid.Columns>
+                    <!--<DataGridTextColumn Header="ID" Binding="{Binding ID}"></DataGridTextColumn>
+                <DataGridTextColumn Header="绿地性质" Binding="{Binding GreenSpace}"></DataGridTextColumn>
+                <DataGridTextColumn Header="覆土厚度(m)" Binding="{Binding CoverThickness}"></DataGridTextColumn>
+                <DataGridTextColumn Header="有效系数" Binding="{Binding GreenFactor}"></DataGridTextColumn>-->
+                </DataGrid.Columns>
+            </DataGrid>
+        </ScrollViewer>
+        <Button Grid.Row="1" HorizontalAlignment="Right" Click="Button_Click" Content="确认" Width="50px" Margin="0,10,20,0"/>
+    </Grid>
+</Window>

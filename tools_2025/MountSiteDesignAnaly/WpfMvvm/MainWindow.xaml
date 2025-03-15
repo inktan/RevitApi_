@@ -1,0 +1,126 @@
+﻿<Window x:Class="MountSiteDesignAnaly.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MountSiteDesignAnaly"
+        d:DataContext="{d:DesignInstance Type=local:ViewModel}"
+        mc:Ignorable="d"
+        Title="象璟山地造型建模系统 v1.01" Height="320" Width="320" Topmost="True"  Closing="Window_Closing" >
+    <Grid>
+
+        <StackPanel Margin="5">
+            <StackPanel Orientation="Horizontal">
+                <Button Click="Button_Click_4"  HorizontalAlignment="Left" Margin="5" ToolTip="基于三维场地模型计算">土方（模型）</Button>
+                <!--<Button Click="Button_Click_2"  Margin="5" ToolTip="基于面积平面计算">土方（面积）</Button>-->
+                <Button Margin="5" Click="Button_Click_8">生成楼板</Button>
+                <TextBox VerticalAlignment="Center" TextAlignment="Right" Width="40" Text="{Binding RetainingWallDis}" />
+                <TextBlock VerticalAlignment="Center" TextAlignment="Left">mm</TextBlock>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"  Margin="5,0">
+                <CheckBox Content="内建常规模型" VerticalAlignment="Center" Margin="2"  IsChecked="{Binding CalGM}" />
+                <CheckBox Content="楼板" VerticalAlignment="Center" Margin="2"  IsChecked="{Binding CalFloor}" />
+                <CheckBox Content="建筑地坪" VerticalAlignment="Center" Margin="2"  IsChecked="{Binding CalPad}" />
+            </StackPanel>
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="0.7*"/>
+                    <ColumnDefinition Width="0.5*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="0.7*"/>
+                    <ColumnDefinition Width="0.5*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="采样精度:" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="SamplingAccuracyText" Text="{Binding SamplingAccuracy}" />
+                <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="mm"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0">底板厚度:</TextBlock>
+                <TextBox Grid.Row="1" Grid.Column="1" x:Name="BottomPlateThicknessText" Text="{Binding BottomPlateThickness}" ></TextBox>
+                <TextBlock Grid.Row="1" Grid.Column="2">mm</TextBlock>
+                <TextBlock Grid.Row="1" Grid.Column="3">垫层厚度:</TextBlock>
+                <TextBox Grid.Row="1" Grid.Column="4"  x:Name="CushionThicknessText"  Text="{Binding CushionThickness}"></TextBox>
+                <TextBlock Grid.Row="1" Grid.Column="5">mm</TextBlock>
+
+                <CheckBox Grid.Row="2" Grid.ColumnSpan="6" Margin="2" x:Name="ShowSamplingLine" IsChecked="{Binding ShowSamplingLine}" Content="显示采样线条" VerticalAlignment="Center"/>
+                <CheckBox Grid.Row="4" Grid.ColumnSpan="6" Margin="2" x:Name="ShowSamplingTris" IsChecked="{Binding ShowSamplingTris}" Content="可视化" VerticalAlignment="Center"/>
+
+            </Grid>
+
+            <StackPanel >
+                <StackPanel Orientation="Horizontal">
+                    <Button Click="Button_Click" Margin="5">覆土测算</Button>
+                    <Button Click="Button_Click_9"  Margin="5">净高检测</Button>
+                    <Button Click="Button_Click_5"  Margin="5" Content="绿地楼板分类"/>
+                </StackPanel>
+                <Grid Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="0.7*"/>
+                        <ColumnDefinition Width="0.5*"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="0.7*"/>
+                        <ColumnDefinition Width="0.5*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="净高要求:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" x:Name="MinimumClearHeightText" Text="{Binding MinimumClearHeight}" />
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="mm"/>
+
+                    <TextBlock Grid.Column="3" Text="顶板厚度:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="4"  x:Name="topPlateThickness" Text="{Binding TopPlateThickness}" />
+                    <TextBlock Grid.Column="5" VerticalAlignment="Center" Text="mm"/>
+
+                </Grid>
+            </StackPanel>
+            <!--<CheckBox Grid.Row="3" Grid.ColumnSpan="6" Margin="2" x:Name="CreatFloor" IsChecked="{Binding Path=CreatFloor,Source={x:Static local:GlobalData.Instance}}" Content="创建楼板" VerticalAlignment="Center"/>-->
+
+            <ScrollViewer x:Name="scrollViewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"  Margin="5">
+                <Grid x:Name="OverlayLegendGrid" local:GridOptions.ShowBorder="True">
+                    <!--该网格用于显示覆土信息-->
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                </Grid>
+            </ScrollViewer>
+
+            <StackPanel Orientation="Horizontal">
+                <Button Click="Button_Click_1"  HorizontalAlignment="Left" Margin="5">测试</Button>
+                <Button Content="挡土墙_外部" Margin="5" Click="Button_Click_10"/>
+                <Button Click="Button_Click_2"  HorizontalAlignment="Left" Margin="5">挡土墙_内部</Button>
+                <Button Click="Button_Click_11"  HorizontalAlignment="Left" Margin="5">挡土墙_场地</Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button Margin="5" Click="Button_Click_3">清除分析</Button>
+            </StackPanel>
+            <!--<StackPanel>
+                <Button></Button>
+                <CheckBox>考虑地质</CheckBox>
+            </StackPanel>-->
+
+            <!--<StackPanel Orientation="Horizontal">
+                <TextBlock Margin="5" VerticalAlignment="Center">底板面积图元</TextBlock>
+                <Button Margin="5" Click="Button_Click_6">显示</Button>
+                <Button Margin="5" Click="Button_Click_7">隐藏</Button>
+            </StackPanel>-->
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,6 +1,0 @@
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LoD\bin\Debug\LoD.exe.config
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LoD\bin\Debug\LoD.exe
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LoD\bin\Debug\LoD.pdb
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LoD\obj\Debug\LoD.csproj.CoreCompileInputs.cache
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LoD\obj\Debug\LoD.exe
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LoD\obj\Debug\LoD.pdb

@@ -1,6 +1,0 @@
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\OCP\bin\Debug\OCP.exe.config
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\OCP\bin\Debug\OCP.exe
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\OCP\bin\Debug\OCP.pdb
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\OCP\obj\Debug\OCP.csproj.CoreCompileInputs.cache
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\OCP\obj\Debug\OCP.exe
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\OCP\obj\Debug\OCP.pdb

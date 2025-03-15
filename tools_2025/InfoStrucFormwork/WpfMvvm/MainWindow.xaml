@@ -1,0 +1,116 @@
+﻿<Window x:Class="InfoStrucFormwork.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:InfoStrucFormwork"
+        d:DataContext="{d:DesignInstance Type=local:ViewModel}"
+        mc:Ignorable="d"
+        Title="结 v1.0278" Height="470" Width="250" Topmost="True" ResizeMode="CanResize"  Closing="Window_Closing">
+    <Window.Resources>
+        <!--将资源都存储到外部资源字典文件中-->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="./Dictionary1.xaml"></ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid>
+        <StackPanel Margin="2">
+            <GroupBox Header="CAD-混凝土" Grid.Column="0" VerticalAlignment="Top" Margin="2">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="2" Command="{Binding ConcWall}">墙</Button>
+                        <Button Margin="2" Command="{Binding ConcCol}">柱</Button>
+                        <Button Margin="2" Command="{Binding ConcBeamUi}">梁-水平面</Button>
+                        <Button Margin="2" Command="{Binding SlopeRoofBeam}">梁-折线</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="2" Command="{Binding ConcBeamFollowFaceUi}">梁-非水平面</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="5" Command="{Binding StoreyFloor}">楼板</Button>
+                        <TextBlock VerticalAlignment="Center" Width="60">楼板类型</TextBlock>
+                        <ComboBox x:Name="FloorTypeSel" VerticalAlignment="Center" Width="80" ItemsSource="{Binding FloorTypeNames}"></ComboBox>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="手动" Grid.Column="0" VerticalAlignment="Top" Margin="2">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="2" Command="{Binding ConcSingleBeamFollowFaceUi}">梁吸附到面</Button>
+                        <Button Margin="2" Command="{Binding ConcColFollowFaceUi}">柱吸附到面</Button>
+                        <!--<Button Margin="2" Command="{Binding FloorDivision}">划分楼板</Button>-->
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="2" Command="{Binding AlignToBoardTop}">顶对齐顶</Button>
+                        <Button Margin="2" Command="{Binding AlignToBoardBottom}">底对齐底</Button>
+                        <Button Margin="2" Command="{Binding BbCoverFb}">梁底兜板底？</Button>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="保存文件前必点" Grid.Column="0" VerticalAlignment="Top" Margin="2">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="2" Command="{Binding ClearStruAna}">清除结构分析</Button>
+                        <Button Margin="2" Command="{Binding CalRelativeH}">计算梁底相对高度</Button>
+                    </StackPanel>
+                    <StackPanel Margin="2" Orientation="Horizontal">
+                        <Button Margin="1" Command="{Binding EleSeparate}">文件分离</Button>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="圈梁" Grid.Column="0" Grid.Row="4"  VerticalAlignment="Top" Margin="2">
+                <StackPanel >
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="2" Command="{Binding BandingWhole}">圈梁族</Button>
+                        <Button Margin="2" Command="{Binding BandingCombination}">组成圈梁</Button>
+                        <Button Margin="2" Command="{Binding BandingSel}">点选加梁</Button>
+                    </StackPanel>
+                    <StackPanel Margin="2" Orientation="Horizontal">
+                        <TextBlock Margin="2">梁宽</TextBlock>
+                        <TextBox Width="33" Margin="2" Text="{Binding BeamWidth}"></TextBox>
+                        <TextBlock Margin="2">mm</TextBlock>
+                        <TextBlock Margin="2">梁高</TextBlock>
+                        <TextBox Width="33" Margin="2" Text="{Binding BeamHeight}"></TextBox>
+                        <TextBlock Margin="2">mm</TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="CAD双线" Grid.Row="2" VerticalAlignment="Top" Margin="2">
+                <StackPanel Orientation="Horizontal">
+                    <Button Margin="2" Command="{Binding StoreySteelBeamDoubleLine}">楼层钢梁</Button>
+                    <Button Margin="2" Command="{Binding RoofSteelBeamDoubleLine}">屋顶钢梁</Button>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="CAD单线" Grid.Row="3" VerticalAlignment="Top" Margin="2">
+                <StackPanel Orientation="Horizontal">
+                    <Button Margin="2" Command="{Binding StoreySteelBeamSingleLine}">楼层钢梁</Button>
+                    <Button Margin="2" Command="{Binding RoofStelBeamSingleLine}">屋顶钢梁</Button>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="测试" Grid.Row="3" VerticalAlignment="Top" Margin="2">
+                <StackPanel Orientation="Horizontal">
+                    <Button Margin="2" Command="{Binding TestCmd01}" HorizontalAlignment="Left">测试</Button>
+                    <Button Margin="2" Command="{Binding TestCmd02}" HorizontalAlignment="Left">存出梁尺寸</Button>
+                    <Button Margin="2" Command="{Binding TestCmd03}" HorizontalAlignment="Left">读进梁尺寸</Button>
+                </StackPanel>
+            </GroupBox>
+
+            <!--<GroupBox  Margin="2" Grid.Column="1" Grid.Row="1" >
+            <StackPanel VerticalAlignment="Top" Orientation="Horizontal">
+            </StackPanel>
+        </GroupBox>
+        <GroupBox Header="图层" FontSize="10" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Margin="2" Width="150">
+            <StackPanel>
+                    <TextBlock Margin="2" FontSize="10" >混凝土尺寸</TextBlock>
+                    <TextBox x:Name="ConBeamLayerNames" FontSize="10" Margin="2" Text="{Binding ConcLayernames}"></TextBox>
+                    <TextBlock Margin="2" FontSize="10">其他</TextBlock>
+                    <TextBox x:Name="OtherLayerNames" FontSize="10" Margin="2" Text="{Binding OtherLayernames}"></TextBox>
+            </StackPanel>
+        </GroupBox>-->
+        </StackPanel>
+    </Grid>
+</Window>

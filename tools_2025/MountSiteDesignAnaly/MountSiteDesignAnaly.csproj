@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <!--<TargetFrameworks>net472;net48</TargetFrameworks>-->
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyVersion>1.0.0.2</AssemblyVersion>
+    <FileVersion>1.0.0.2</FileVersion>
+	  
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\bin\Debug\</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="GalaSoft.MvvmLight">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\GalaSoft.MvvmLight.dll</HintPath>
+    </Reference>
+    <Reference Include="gemetry3sharp_msgPack">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\gemetry3sharp_msgPack.dll</HintPath>
+    </Reference>
+    <Reference Include="goa.Common">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\goa.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="NetOctreeNew">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\NetOctreeNew.dll</HintPath>
+    </Reference>
+    <Reference Include="NetTopologySuite">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\NetTopologySuite.dll</HintPath>
+    </Reference>
+    <Reference Include="PubFuncWt">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\PubFuncWt.dll</HintPath>
+    </Reference>
+    <Reference Include="QuadTrees">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\QuadTrees.dll</HintPath>
+    </Reference>
+    <Reference Include="RevitAPI">
+      <HintPath>C:\Program Files\Autodesk\Revit 2021\RevitAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>C:\Program Files\Autodesk\Revit 2021\RevitAPIUI.dll</HintPath>
+    </Reference>
+    <Reference Include="TD_Mgd">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\Teigha_Net64\TD_Mgd.dll</HintPath>
+    </Reference>
+    <Reference Include="TeighaNet">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\TeighaNet.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

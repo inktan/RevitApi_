@@ -1,0 +1,95 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\ProgramData\\GitHub\\RevitApi_\\tools_2025\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{FD3F4D36-E920-42E6-8C9E-3AE13927FA5D}|InfoStrucFormwork\\InfoStrucFormwork.csproj|d:\\programdata\\github\\revitapi_\\tools_2025\\infostrucformwork\\requesthandler\\cmd.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FD3F4D36-E920-42E6-8C9E-3AE13927FA5D}|InfoStrucFormwork\\InfoStrucFormwork.csproj|solutionrelative:infostrucformwork\\requesthandler\\cmd.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FD3F4D36-E920-42E6-8C9E-3AE13927FA5D}|InfoStrucFormwork\\InfoStrucFormwork.csproj|d:\\programdata\\github\\revitapi_\\tools_2025\\infostrucformwork\\reqtmethod\\methods\\beamcolumnwall\\aligntoboardbottom.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FD3F4D36-E920-42E6-8C9E-3AE13927FA5D}|InfoStrucFormwork\\InfoStrucFormwork.csproj|solutionrelative:infostrucformwork\\reqtmethod\\methods\\beamcolumnwall\\aligntoboardbottom.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FD3F4D36-E920-42E6-8C9E-3AE13927FA5D}|InfoStrucFormwork\\InfoStrucFormwork.csproj|d:\\programdata\\github\\revitapi_\\tools_2025\\infostrucformwork\\wpfmvvm\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{FD3F4D36-E920-42E6-8C9E-3AE13927FA5D}|InfoStrucFormwork\\InfoStrucFormwork.csproj|solutionrelative:infostrucformwork\\wpfmvvm\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{e506b91c-c606-466a-90a9-123d1d1e12b3}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "CMD.cs",
+              "DocumentMoniker": "D:\\ProgramData\\GitHub\\RevitApi_\\tools_2025\\InfoStrucFormwork\\RequestHandler\\CMD.cs",
+              "RelativeDocumentMoniker": "InfoStrucFormwork\\RequestHandler\\CMD.cs",
+              "ToolTip": "D:\\ProgramData\\GitHub\\RevitApi_\\tools_2025\\InfoStrucFormwork\\RequestHandler\\CMD.cs*",
+              "RelativeToolTip": "InfoStrucFormwork\\RequestHandler\\CMD.cs*",
+              "ViewState": "AgIAACAAAAAAAAAAAAAQwDYAAACIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-03-14T09:23:26.778Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AlignToBoardBottom.cs",
+              "DocumentMoniker": "D:\\ProgramData\\GitHub\\RevitApi_\\tools_2025\\InfoStrucFormwork\\ReqtMethod\\Methods\\BeamColumnWall\\AlignToBoardBottom.cs",
+              "RelativeDocumentMoniker": "InfoStrucFormwork\\ReqtMethod\\Methods\\BeamColumnWall\\AlignToBoardBottom.cs",
+              "ToolTip": "D:\\ProgramData\\GitHub\\RevitApi_\\tools_2025\\InfoStrucFormwork\\ReqtMethod\\Methods\\BeamColumnWall\\AlignToBoardBottom.cs",
+              "RelativeToolTip": "InfoStrucFormwork\\ReqtMethod\\Methods\\BeamColumnWall\\AlignToBoardBottom.cs",
+              "ViewState": "AgIAAIsAAAAAAAAAAAAYwJwAAABaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-03-14T04:11:15.227Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "FloatingWindowState": {
+        "Id": "a3076fb4-9f37-45bc-a25b-e7fcc47815b3",
+        "Display": 1,
+        "X": 33,
+        "Y": 69,
+        "Width": 1507,
+        "Height": 790,
+        "WindowState": 0
+      },
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "D:\\ProgramData\\GitHub\\RevitApi_\\tools_2025\\InfoStrucFormwork\\WpfMvvm\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "InfoStrucFormwork\\WpfMvvm\\MainWindow.xaml",
+              "ToolTip": "D:\\ProgramData\\GitHub\\RevitApi_\\tools_2025\\InfoStrucFormwork\\WpfMvvm\\MainWindow.xaml",
+              "RelativeToolTip": "InfoStrucFormwork\\WpfMvvm\\MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2025-03-14T09:23:19.135Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,0 @@
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LSP\bin\Debug\LSP.exe.config
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LSP\bin\Debug\LSP.exe
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LSP\bin\Debug\LSP.pdb
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LSP\obj\Debug\LSP.csproj.CoreCompileInputs.cache
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LSP\obj\Debug\LSP.exe
-D:\upadate_work\OneDrive\03-Reivt二次开发\GitHub\RevitApi_\designPatterns\ConsoleApp1\LSP\obj\Debug\LSP.pdb

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{4AED5BBF-5F71-4526-A8A4-3FC6FE26C5B5}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>PubFuncWt</RootNamespace>
+    <AssemblyName>PubFuncWt</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="gemetry3sharp_msgPack">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\gemetry3sharp_msgPack.dll</HintPath>
+    </Reference>
+    <Reference Include="goa.Common">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\goa.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="NetOctreeNew">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\NetOctreeNew.dll</HintPath>
+    </Reference>
+    <Reference Include="QuadTrees">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\QuadTrees.dll</HintPath>
+    </Reference>
+    <Reference Include="RevitAPI">
+      <HintPath>C:\Program Files\Autodesk\Revit 2021\RevitAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>C:\Program Files\Autodesk\Revit 2021\RevitAPIUI.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="TD_Mgd">
+      <HintPath>Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\Teigha_Net64\TD_Mgd.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Adided_CSharp\Color_.cs" />
+    <Compile Include="Adided_CSharp\DataStructuresAndAlgorithms.cs" />
+    <Compile Include="Adided_CSharp\DataTable_.cs" />
+    <Compile Include="Adided_CSharp\Dictionary_.cs" />
+    <Compile Include="Adided_CSharp\DistinctExtensions_.cs" />
+    <Compile Include="Adided_CSharp\Enum_.cs" />
+    <Compile Include="Adided_CSharp\FileUtils.cs" />
+    <Compile Include="Adided_CSharp\Math_.cs" />
+    <Compile Include="Adided_CSharp\Random_.cs" />
+    <Compile Include="Adided_CSharp\RegularExFileUtils.cs" />
+    <Compile Include="Adided_CSharp\String_.cs" />
+    <Compile Include="Adided_Octree\OctreeTo_.cs" />
+    <Compile Include="Adided_Octree\Octree_.cs" />
+    <Compile Include="Aided_clipper_\ClipperTo_.cs" />
+    <Compile Include="Aided_clipper_\Clipper_.cs" />
+    <Compile Include="Aided_g3_\AxisAlignedBox2d_.cs" />
+    <Compile Include="Aided_g3_\Box2d_.cs" />
+    <Compile Include="Aided_g3_\Box3d_.cs" />
+    <Compile Include="Aided_g3_\ConvexHull2_.cs" />
+    <Compile Include="Aided_g3_\Frame3d_.cs" />
+    <Compile Include="Aided_g3_\Frame3f_.cs" />
+    <Compile Include="Aided_g3_\Intersection_.cs" />
+    <Compile Include="Aided_g3_\Math3d_.cs" />
+    <Compile Include="Aided_g3_\Polygon2d_.cs" />
+    <Compile Include="Aided_g3_\Ray2d.cs" />
+    <Compile Include="Aided_g3_\Ray2d_.cs" />
+    <Compile Include="Aided_g3_\Segment2d_.cs" />
+    <Compile Include="Aided_g3_\SimpleMesh_.cs" />
+    <Compile Include="Aided_g3_\Triangle2d_.cs" />
+    <Compile Include="Aided_g3_\Triangle3d_.cs" />
+    <Compile Include="Aided_g3_\Vector2d_.cs" />
+    <Compile Include="Aided_g3_\Vector3d_.cs" />
+    <Compile Include="Aided_g3_\Vector3f_.cs" />
+    <Compile Include="Aided_g3_\_g3To.cs" />
+    <Compile Include="Aided_NetTopologySuite_\Geometries_.cs" />
+    <Compile Include="Aided_NetTopologySuite_\NetTopologySuiteTo_.cs" />
+    <Compile Include="Aided_Nlog\NLogger.cs" />
+    <Compile Include="Aided_revit_\BoundingBox_.cs" />
+    <Compile Include="Aided_revit_\Category_.cs" />
+    <Compile Include="Aided_revit_\CurtainGridLineCtrl_.cs" />
+    <Compile Include="Aided_revit_\CurtainGrid_.cs" />
+    <Compile Include="Aided_revit_\CurtainWallCtrl_.cs" />
+    <Compile Include="Aided_revit_\CurveArray_.cs" />
+    <Compile Include="Aided_revit_\CurveLoop_.cs" />
+    <Compile Include="Aided_revit_\Curve_.cs" />
+    <Compile Include="Aided_revit_\DataStorage_.cs" />
+    <Compile Include="Aided_revit_\DetailCurve.cs" />
+    <Compile Include="Aided_revit_\Dimension_.cs" />
+    <Compile Include="Aided_revit_\DirectShape_.cs" />
+    <Compile Include="Aided_revit_\Document_.cs" />
+    <Compile Include="Aided_revit_\EdgeArray_.cs" />
+    <Compile Include="Aided_revit_\Element_.cs" />
+    <Compile Include="Aided_revit_\Entity_.cs" />
+    <Compile Include="Aided_revit_\Face_.cs" />
+    <Compile Include="Aided_revit_\FamilyInstance_.cs" />
+    <Compile Include="Aided_revit_\FamilySymbol_.cs" />
+    <Compile Include="Aided_revit_\FilledRegion_.cs" />
+    <Compile Include="Aided_revit_\Floor_.cs" />
+    <Compile Include="Aided_revit_\Grid_.cs" />
+    <Compile Include="Aided_revit_\GroupType_.cs" />
+    <Compile Include="Aided_revit_\Group_.cs" />
+    <Compile Include="Aided_revit_\LineStyle_.cs" />
+    <Compile Include="Aided_revit_\Line_.cs" />
+    <Compile Include="Aided_revit_\Outline_.cs" />
+    <Compile Include="Aided_revit_\OverrideGraphicSettings_.cs" />
+    <Compile Include="Aided_revit_\Parameter_.cs" />
+    <Compile Include="Aided_revit_\PickedBox_.cs" />
+    <Compile Include="Aided_revit_\PolyLine_.cs" />
+    <Compile Include="Aided_revit_\RevitTo_.cs" />
+    <Compile Include="Aided_revit_\Schema_.cs" />
+    <Compile Include="Aided_revit_\Selection_.cs" />
+    <Compile Include="Aided_revit_\SelPickFilter.cs" />
+    <Compile Include="Aided_revit_\Solid_.cs" />
+    <Compile Include="Aided_revit_\Tag_.cs" />
+    <Compile Include="Aided_revit_\TaskDialog_.cs" />
+    <Compile Include="Aided_revit_\TextNoteType_.cs" />
+    <Compile Include="Aided_revit_\TopographySurface_.cs" />
+    <Compile Include="Aided_revit_\Transaction_.cs" />
+    <Compile Include="Aided_revit_\Transform_.cs" />
+    <Compile Include="Aided_revit_\UIDocument_.cs" />
+    <Compile Include="Aided_revit_\UnitUtils_.cs" />
+    <Compile Include="Aided_revit_\View_.cs" />
+    <Compile Include="Aided_revit_\Wall_.cs" />
+    <Compile Include="Aided_revit_\WorksharingUtils_.cs" />
+    <Compile Include="Aided_revit_\XYZ_.cs" />
+    <Compile Include="CMD.cs" />
+    <Compile Include="InputData\Constant_.cs" />
+    <Compile Include="InputData\Precision_.cs" />
+    <Compile Include="InputData\Variable_.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Teigha\Teigha.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <None Include="Fakes\geometry3Sharp.fakes" />
+    <None Include="NLog.config" />
+    <None Include="NLog.xsd">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

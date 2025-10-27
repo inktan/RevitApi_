@@ -105,20 +105,19 @@ namespace InfoStrucFormwork
                     if (p.Polygon2d.VertexCount < 33)
                     {
                         strucGenlProfileInfo.FamilySymbol = this.fsCol;
-                    }
-                    if (!strucGenlProfileInfo.FamilySymbol.IsActive)
-                    {
-                        strucGenlProfileInfo.FamilySymbol.Activate();
-                    }
-                    strucGenlProfileInfo.FamilyInstance = CMD.Doc.Create.NewFamilyInstance(p.PolyLine.GetOutline().MinimumPoint, strucGenlProfileInfo.FamilySymbol, CMD.Doc.ActiveView.GenLevel, StructuralType.NonStructural);
-                    this.ElementIds.Add(strucGenlProfileInfo.FamilyInstance.Id);
-                    strucGenlProfileInfos.Add(strucGenlProfileInfo);
+                        if (!strucGenlProfileInfo.FamilySymbol.IsActive)
+                        {
+                            strucGenlProfileInfo.FamilySymbol.Activate();
+                        }
+                        strucGenlProfileInfo.FamilyInstance = CMD.Doc.Create.NewFamilyInstance(p.PolyLine.GetOutline().MinimumPoint, strucGenlProfileInfo.FamilySymbol, CMD.Doc.ActiveView.GenLevel, StructuralType.NonStructural);
+                        this.ElementIds.Add(strucGenlProfileInfo.FamilyInstance.Id);
+                        strucGenlProfileInfos.Add(strucGenlProfileInfo);
 
-                    // 结构分析
-                    Parameter parameter = strucGenlProfileInfo.FamilyInstance.get_Parameter(BuiltInParameter.STRUCTURAL_ANALYTICAL_MODEL);
-                    if (parameter != null && !parameter.IsReadOnly)
-                        parameter.Set(0);
-
+                        // 结构分析
+                        Parameter parameter = strucGenlProfileInfo.FamilyInstance.get_Parameter(BuiltInParameter.STRUCTURAL_ANALYTICAL_MODEL);
+                        if (parameter != null && !parameter.IsReadOnly)
+                            parameter.Set(0);
+                    }
                 });
 
                 trans.Commit();

@@ -51,11 +51,13 @@ namespace InfoStrucFormwork
                 string directoryPath = Path.GetDirectoryName(dllPath);
 
                 #region 调出操作窗口
-                string assemblyPaht = directoryPath + @"\Teigha_Net64\TD_Mgd.dll";//引用位置
-                //assemblyPaht = @"Z:\G2024-0010\00-Workshop\BIM\STRU\goa tools 精简版\Content\goa_tools_arch_min\Teigha_Net64\TD_Mgd.dll";
-
+                string assemblyPath = directoryPath + @"\Teigha_Net64\TD_Mgd.dll";//引用位置
+#if DEBUG
+                 assemblyPath = @"Z:\G2023-0068\00-Workshop\BIM\STRU\goa tools 精简版\Content\goa_tools_arch_min\TD_Mgd.dll";
+#else
+#endif
                 //MessageBox.Show(assemblyPaht);
-                Assembly a = Assembly.UnsafeLoadFrom(assemblyPaht);
+                Assembly a = Assembly.UnsafeLoadFrom(assemblyPath);
 
                 //assemblyPaht = @"W:\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\goa.Lib2021.dll";
                 //a = Assembly.UnsafeLoadFrom(assemblyPaht);

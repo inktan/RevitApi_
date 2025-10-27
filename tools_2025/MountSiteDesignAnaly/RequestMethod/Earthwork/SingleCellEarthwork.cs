@@ -102,7 +102,7 @@ namespace MountSiteDesignAnaly
 
                             this.triangleInfos.Add(triangleInfo);
                         });
-                        break;
+                        //break;
                     }
                     else
                     {
@@ -132,7 +132,22 @@ namespace MountSiteDesignAnaly
                                 
                                 this.triangleInfos.Add(triangleInfo);
                             });
-                            break;
+                            //break;
+                        }
+                        else
+                        {
+                            // 补充空白区域
+                            item.triangle3ds.ForEach(p =>
+                            {
+                                TriangleInfo triangleInfo = new TriangleInfo(p);
+                                triangleInfo.r = 255;
+                                triangleInfo.EarthworkVolume = 0.12345;
+                                triangleInfo.Retain_Wall_Elecation_Difference = 0.0;
+                                triangleInfo.Segment3d = new Segment3d();
+                                triangleInfo.Triangle3d_terrain = tri3d.Triangle3d;
+
+                                this.triangleInfos.Add(triangleInfo);
+                            });
                         }
                     }
                 }

@@ -1,0 +1,97 @@
+﻿<Window x:Class="DimensioningTools.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DimensioningTools"
+        d:DataContext="{d:DesignInstance Type=local:ViewModel}"
+        mc:Ignorable="d"
+        Title="- v0.01" Height="450" Width="260" Topmost="True" ResizeMode="NoResize" Closing="Window_Closing">
+    <Window.Resources>
+        <!--将资源都存储到外部资源字典文件中-->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="./Dictionary1.xaml"></ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid>
+        <StackPanel>
+            <GroupBox Margin="1" Header="尺寸标注-">
+                <StackPanel>
+                    <StackPanel Margin="1">
+                        <GroupBox Header="-goa标注替换-" Grid.Column="0" VerticalAlignment="Top" Margin="2">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Margin="2" Width="100" Command="{Binding ConvertCurrentView}">替换当前视图</Button>
+                                    <Button Margin="2" Width="100" Command="{Binding ConvertMultiViews}">替换多个视图</Button>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Margin="2" Width="100" Command="{Binding ConvertSelected}">替换选择的标注</Button>
+                                    <Button Margin="2" Width="100" Command="{Binding FrameSelectFakeDims}">框选假标注族</Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                    <StackPanel Margin="1">
+                        <Button Margin="2" Width="100" Command="{Binding DimClosestPointInView}">标注最近角点</Button>
+                        <Button Margin="2" Width="100" Command="{Binding DimAvoid}">真尺寸文字避让</Button>
+                        <Button Margin="2" Width="100" Command="{Binding FakeDimAvoid}">假尺寸文字避让</Button>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Margin="1" Header="-">
+                <StackPanel>
+                    <StackPanel>
+                        <GroupBox Header="自动填写标高">
+                            <StackPanel Orientation="Horizontal">
+                                <StackPanel HorizontalAlignment="Right">
+                                    <StackPanel Margin="1" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                        <TextBlock  >层数</TextBlock>
+                                        <TextBox  Text="{Binding TextBox_levelHeight}" Width="60"></TextBox>
+                                    </StackPanel>
+                                    <StackPanel Margin="1" VerticalAlignment="Center" Orientation="Horizontal">
+                                        <TextBlock >起始高度</TextBlock>
+                                        <TextBox  Text="{Binding TextBox_numLevel}" Width="60"></TextBox>
+                                    </StackPanel>
+                                    <StackPanel Margin="1" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                        <TextBlock >层高</TextBlock>
+                                        <TextBox  Text="{Binding TextBox_startElevation}" Width="60"></TextBox>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Margin="2">
+                                    <Button Margin="2" Width="100" Command="{Binding PickElevationFamily}">选择标高族</Button>
+                                    <Button Margin="2" Width="100" Command="{Binding AutoFillUp}">自动填写标高</Button>
+                                </StackPanel>
+                            </StackPanel>
+
+                        </GroupBox>
+                    </StackPanel>
+                    <StackPanel Margin="1">
+                        <GroupBox Header="标高标注" Grid.Column="0" VerticalAlignment="Top" Margin="2">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Margin="2" Width="100" Command="{Binding WindowSpotElevDim}">窗口标注</Button>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <GroupBox Header="计算假标高">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Margin="2" Width="80" Command="{Binding FakeElev_Refresh_activeview}">当前视图</Button>
+                                            <Button Margin="2" Width="80" Command="{Binding FakeElev_Refresh_allviews}">所有视图</Button>
+                                        </StackPanel>
+                                    </GroupBox>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Margin="2" Width="100" Command="{Binding DimOnFloors}">批量楼板标高</Button>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Margin="2" Width="100" Command="{Binding AbsElev}">绝对标高计算</Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
+    </Grid>
+</Window>

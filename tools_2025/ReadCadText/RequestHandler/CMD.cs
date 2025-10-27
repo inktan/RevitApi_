@@ -51,12 +51,13 @@ namespace ReadCadText
                 string directoryPath = Path.GetDirectoryName(dllPath);
 
                 #region 调出操作窗口
-                //string assemblyPaht = directoryPath + @"\Teigha_Net64\TD_Mgd.dll";//引用位置
+                string assemblyPaht = directoryPath + @"\Teigha_Net64\TD_Mgd.dll";//引用位置
                 //assemblyPaht = @"W:\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\Teigha_Net64\TD_Mgd.dll";
                 //assemblyPaht = @"Z:\G2024-0010\00-Workshop\BIM\STRU\goa tools 精简版\Content\goa_tools_arch_min\Teigha_Net64\TD_Mgd.dll";
+                assemblyPaht = @"Y:\GOA-BIM\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\Teigha_Net64\TD_Mgd.dll";
 
                 //MessageBox.Show(assemblyPaht);
-                //Assembly a = Assembly.UnsafeLoadFrom(assemblyPaht);
+                Assembly a = Assembly.UnsafeLoadFrom(assemblyPaht);
 
                 //assemblyPaht = @"W:\BIM_ARCH\03.插件\goa tools 精简版\Content\goa_tools_arch_min\goa.Lib2021.dll";
                 //a = Assembly.UnsafeLoadFrom(assemblyPaht);

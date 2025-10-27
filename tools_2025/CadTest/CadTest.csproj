@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<UseWPF>true</UseWPF>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<PlatformTarget>x64</PlatformTarget>
+		<OutputPath>..\bin\Debug\</OutputPath>
+		<WarningLevel>5</WarningLevel>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Reference Include="RevitAPI">
+	    <HintPath>C:\Program Files\Autodesk\Revit 2021\RevitAPI.dll</HintPath>
+	  </Reference>
+	  <Reference Include="RevitAPIUI">
+	    <HintPath>C:\Program Files\Autodesk\Revit 2021\RevitAPIUI.dll</HintPath>
+	  </Reference>
+	  <Reference Include="TD_Mgd">
+	    <HintPath>C:\Autodesk\Teigha_Net_3_09_10(x64)\TD_Mgd.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+	
+</Project>

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:MountSiteDesignAnaly"
         d:DataContext="{d:DesignInstance Type=local:ViewModel}"
         mc:Ignorable="d"
-        Title="象璟山地造型建模系统 v1.01" Height="320" Width="320" Topmost="True"  Closing="Window_Closing" >
+        Title="象璟山地造型建模系统 v1.02" Height="320" Width="320" Topmost="True"  Closing="Window_Closing" >
     <Grid>
 
         <StackPanel Margin="5">

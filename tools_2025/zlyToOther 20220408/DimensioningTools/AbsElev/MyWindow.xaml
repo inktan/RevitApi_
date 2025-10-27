@@ -1,0 +1,26 @@
+﻿<Window x:Class="ANNO_ELEV_ABSL.MyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ANNO_ELEV_ABSL"
+        mc:Ignorable="d"
+        Title="MyWindow" Height="200" Width="300">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150" />
+            <ColumnDefinition Width="150" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="25" />
+            <RowDefinition Height="25" />
+            <RowDefinition Height="200" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
+        <Label Content="±0.000绝对标高(米)" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Height="25" />
+        <TextBox  x:Name="sealeveltextbox" Grid.Column="1" Grid.Row="0" HorizontalAlignment="Left" Height="25" Text="0.0" VerticalAlignment="Top" Width="150" />
+        <Label Content="选择高程点" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Top" Height="25" Width="300" Grid.ColumnSpan="2" />
+        <ListBox  x:Name="spotdimensionlistbox" Grid.Column="0" Grid.Row="2" HorizontalAlignment="Left" Height="200" VerticalAlignment="Top" Width="300" Grid.ColumnSpan="2" SelectionMode="Extended" />
+        <Button Content="确认" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="300" Height="50" Click="Button_Click" />
+    </Grid>
+</Window>

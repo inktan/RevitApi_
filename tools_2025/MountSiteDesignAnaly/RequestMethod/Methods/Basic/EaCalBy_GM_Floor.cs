@@ -16,6 +16,7 @@ using goa.Common;
 using goa.Revit.DirectContext3D;
 using goa.Common.g3InterOp;
 using TOPO_ANLS;
+using System.Collections;
 
 namespace MountSiteDesignAnaly
 {
@@ -258,7 +259,7 @@ namespace MountSiteDesignAnaly
             filePath = filePath.Substring(0, length - 4) + "土方平衡计算" + @".csv";
             filePath.TaskDialogErrorMessage();
         }
-        void ShowTris(List<TriangleInfo> triangleInfos)
+        void ShowTris(List<TriangleInfo> triangleInfos, double displayHeight)
         {
             GeometryDrawServerInputs geometryDrawServerInputs = new GeometryDrawServerInputs();
 
@@ -282,11 +283,11 @@ namespace MountSiteDesignAnaly
 
                 Triangle3d triangle3d = triangleInfosDigs[i].Triangle3d;
 
-                triangle3d.V0 =new Vector3d(triangle3d.V0.x, triangle3d.V0.y,300.0);
-                triangle3d.V1 =new Vector3d(triangle3d.V1.x, triangle3d.V1.y,300.0);
-                triangle3d.V2 =new Vector3d(triangle3d.V2.x, triangle3d.V2.y,300.0);
+                triangle3d.V0 = new Vector3d(triangle3d.V0.x, triangle3d.V0.y, 300.0);
+                triangle3d.V1 = new Vector3d(triangle3d.V1.x, triangle3d.V1.y, 300.0);
+                triangle3d.V2 = new Vector3d(triangle3d.V2.x, triangle3d.V2.y, 300.0);
 
-                geometryDrawServerInputs.AddTriangleToBuffer(triangle3d, new XYZ(0, 0, 10), new ColorWithTransparency((uint)colors[index].R, (uint)colors[index].G, (uint)colors[index].B, 0), new XYZ(0, 0, 50), false);
+                geometryDrawServerInputs.AddTriangleToBuffer(triangle3d, new XYZ(0, 0, 10), new ColorWithTransparency((uint)colors[index].R, (uint)colors[index].G, (uint)colors[index].B, 0), new XYZ(0, 0, displayHeight), false);
             }
 
             //填方
@@ -313,7 +314,7 @@ namespace MountSiteDesignAnaly
                 triangle3d.V1 = new Vector3d(triangle3d.V1.x, triangle3d.V1.y, 300.0);
                 triangle3d.V2 = new Vector3d(triangle3d.V2.x, triangle3d.V2.y, 300.0);
 
-                geometryDrawServerInputs.AddTriangleToBuffer(triangle3d, new XYZ(0, 0, 10), new ColorWithTransparency((uint)colors[index].R, (uint)colors[index].G, (uint)colors[index].B, 0), new XYZ(0, 0, 50), false);
+                geometryDrawServerInputs.AddTriangleToBuffer(triangle3d, new XYZ(0, 0, 10), new ColorWithTransparency((uint)colors[index].R, (uint)colors[index].G, (uint)colors[index].B, 0), new XYZ(0, 0, displayHeight), false);
             }
 
             //foreach (var item in triangleInfos)
@@ -328,9 +329,76 @@ namespace MountSiteDesignAnaly
             //}
             GeometryDrawServersMgr.ShowGraphics(geometryDrawServerInputs, Guid.NewGuid().ToString());
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="startP"></param>
+        /// <param name="height"></param>
+        /// <param name="width"></param>
+        /// <param name="count">组成矩形的三角形总个数</param>
+        /// <returns></returns>
+        internal void DrawRectColorByTri3d(Vector3d startP, double height, double width, double rate, double displayHeight)
+        {
+            List<Triangle3d> results = new List<Triangle3d>();
+
+            double heightInterval = height / 200;
+
+            for (int i = 0; i < 200; i++)
+            {
+                Vector3d nowStartP = startP + new Vector3d(0, (-1) * heightInterval * (i), 0);
+                Triangle3d triangle3d01 = new Triangle3d(nowStartP, nowStartP + new Vector3d(0, (-1) * heightInterval, 0), nowStartP + new Vector3d(width, 0, 0));
+                Triangle3d triangle3d02 = new Triangle3d(nowStartP + new Vector3d(0, (-1) * heightInterval, 0), nowStartP + new Vector3d(width, (-1) * heightInterval, 0), nowStartP + new Vector3d(width, 0, 0));
+
+                results.Add(triangle3d01);
+                results.Add(triangle3d02);
+            }
+
+            List<ElevationTriangle> eTs = results.Select(p => new ElevationTriangle(p)).ToList();
+
+
+            System.Drawing.Color[] tmpColors01 = { System.Drawing.Color.Yellow, System.Drawing.Color.Red };
+            List<System.Drawing.Color> colors01 = Color_.GetColorListRedToMagenta(tmpColors01, (int)(eTs.Count * (rate)), false);
+
+            System.Drawing.Color[] tmpColors02 = { System.Drawing.Color.Blue, System.Drawing.Color.Cyan };
+            List<System.Drawing.Color> colors02 = Color_.GetColorListRedToMagenta(tmpColors02, (int)(eTs.Count * (1 - rate)), false);
+
+            for (int i = 0; i < eTs.Count; i++)
+            {
+                try
+                {
+                    if (i < eTs.Count * (rate))
+                    {
+                        eTs[i].ColorWithTransparency = new ColorWithTransparency((uint)colors01[i].R, (uint)colors01[i].G, (uint)colors01[i].B, 0);
+                    }
+                    else
+                    {
+
+                        eTs[i].ColorWithTransparency = new ColorWithTransparency((uint)colors02[(int)(i - eTs.Count * (rate))].R, (uint)colors02[(int)(i - eTs.Count * (rate))].G, (uint)colors02[(int)(i - eTs.Count * (rate))].B, 0);
+                    }
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            GeometryDrawServerInputs geometryDrawServerInputs = new GeometryDrawServerInputs();
+            foreach (var item in eTs)
+            {
+                geometryDrawServerInputs.AddTriangleToBuffer(item.Triangle3d, new XYZ(0, 0, 1), item.ColorWithTransparency, new XYZ(0, 0, displayHeight), false);
+            }
+
+            GeometryDrawServersMgr.ShowGraphics(geometryDrawServerInputs, Guid.NewGuid().ToString());
+        }
+
         void AddText(List<EaTextIfo> textIfos)
         {
-            TextNoteType textNoteType = this.doc.FindTxType("宋体 12mm", 12);
+            //TextNoteType textNoteType = this.doc.FindTxType("宋体 12mm", 12);
+
+            FilteredElementCollector collector = new FilteredElementCollector(doc);
+            TextNoteType textNoteType = collector.OfClass(typeof(TextNoteType))
+                                                              .Cast<TextNoteType>()
+                                                              .First();
 
             // 文字
             using (Transaction trans = new Transaction(doc, "creatText"))
@@ -457,12 +525,16 @@ namespace MountSiteDesignAnaly
 
             if (ViewModel.Instance.ShowSamplingTris)
             {
+                FillZeroEarthworkVolumesWithPreviousNonZero(triangleInfos);
                 triangleInfos = triangleInfos.OrderBy(p => p.EarthworkVolume).ToList();
-                // 显示颜色
-                ShowTris(triangleInfos);
-                // 添加图例
-                DrawText("土方（m³）", triangleInfos.Last().EarthworkVolume.CUBIC_FEETtoCUBIC_METERS(), triangleInfos.First().EarthworkVolume.CUBIC_FEETtoCUBIC_METERS());
 
+                double displayHeight = -20.0;
+
+                // 显示颜色
+                ShowTris(triangleInfos, displayHeight);
+                // 添加图例
+                displayHeight = 250.0;
+                DrawText("土方（m³）", triangleInfos.Last().EarthworkVolume.CUBIC_FEETtoCUBIC_METERS(), triangleInfos.First().EarthworkVolume.CUBIC_FEETtoCUBIC_METERS(), displayHeight);
             }
 
             if (ViewModel.Instance.ShowSamplingLine)
@@ -470,9 +542,35 @@ namespace MountSiteDesignAnaly
                 this.doc.CreateDirectShapeWithNewTransaction(showLines.Where(p => p.Length > 0.01).Select(p => p.ToLine()));
             }
         }
-        internal void DrawText(string title, double max, double min)
+        void FillZeroEarthworkVolumesWithPreviousNonZero(List<TriangleInfo> triangleInfos)
         {
-            TextNoteType textNoteType = this.doc.FindTxType("宋体 12mm", 12);
+            double lastNonZeroValue = 0.0; // 初始值，如果没有前面的非零值，则保持 0.0
+
+            for (int i = 0; i < triangleInfos.Count; i++)
+            {
+                if (triangleInfos[i].EarthworkVolume != 0.12345)
+                {
+                    lastNonZeroValue = triangleInfos[i].EarthworkVolume; // 更新最近的非零值
+                }
+                else
+                {
+                    if (lastNonZeroValue != 0.12345) // 如果前面有非零值，则替换
+                    {
+                        triangleInfos[i].EarthworkVolume = lastNonZeroValue;
+                    }
+                    // 否则保持 0.0
+                }
+            }
+        }
+        internal void DrawText(string title, double max, double min, double displayHeight)
+
+        {
+            //TextNoteType textNoteType = this.doc.FindTxType("宋体 12mm", 12);
+
+            FilteredElementCollector collector = new FilteredElementCollector(doc);
+            TextNoteType textNoteType = collector.OfClass(typeof(TextNoteType))
+                                                              .Cast<TextNoteType>()
+                                                              .First();
 
             // 图例左上角定位点
             XYZ location = this.sel.PickPoint("选择图例定位点");
@@ -527,68 +625,7 @@ namespace MountSiteDesignAnaly
             }
             double rate = max / (max - min);
             // 绘制颜色梯度样式
-            this.DrawRectColorByTri3d(PubFuncWt.RevitTo_.ToVector3d((location + new XYZ(0, -buffer, 0))), height, width, rate);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="startP"></param>
-        /// <param name="height"></param>
-        /// <param name="width"></param>
-        /// <param name="count">组成矩形的三角形总个数</param>
-        /// <returns></returns>
-        internal void DrawRectColorByTri3d(Vector3d startP, double height, double width, double rate)
-        {
-            List<Triangle3d> results = new List<Triangle3d>();
-
-            double heightInterval = height / 200;
-
-            for (int i = 0; i < 200; i++)
-            {
-                Vector3d nowStartP = startP + new Vector3d(0, (-1) * heightInterval * (i), 0);
-                Triangle3d triangle3d01 = new Triangle3d(nowStartP, nowStartP + new Vector3d(0, (-1) * heightInterval, 0), nowStartP + new Vector3d(width, 0, 0));
-                Triangle3d triangle3d02 = new Triangle3d(nowStartP + new Vector3d(0, (-1) * heightInterval, 0), nowStartP + new Vector3d(width, (-1) * heightInterval, 0), nowStartP + new Vector3d(width, 0, 0));
-
-                results.Add(triangle3d01);
-                results.Add(triangle3d02);
-            }
-
-            List<ElevationTriangle> eTs = results.Select(p => new ElevationTriangle(p)).ToList();
-
-
-            System.Drawing.Color[] tmpColors01 = { System.Drawing.Color.Yellow, System.Drawing.Color.Red };
-            List<System.Drawing.Color> colors01 = Color_.GetColorListRedToMagenta(tmpColors01, (int)(eTs.Count * (rate)), false);
-
-            System.Drawing.Color[] tmpColors02 = { System.Drawing.Color.Blue, System.Drawing.Color.Cyan };
-            List<System.Drawing.Color> colors02 = Color_.GetColorListRedToMagenta(tmpColors02, (int)(eTs.Count * (1 - rate)), false);
-
-            for (int i = 0; i < eTs.Count; i++)
-            {
-                try
-                {
-                    if (i < eTs.Count * (rate))
-                    {
-                        eTs[i].ColorWithTransparency = new ColorWithTransparency((uint)colors01[i].R, (uint)colors01[i].G, (uint)colors01[i].B, 0);
-                    }
-                    else
-                    {
-
-                        eTs[i].ColorWithTransparency = new ColorWithTransparency((uint)colors02[(int)(i - eTs.Count * (rate))].R, (uint)colors02[(int)(i - eTs.Count * (rate))].G, (uint)colors02[(int)(i - eTs.Count * (rate))].B, 0);
-                    }
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            GeometryDrawServerInputs geometryDrawServerInputs = new GeometryDrawServerInputs();
-            foreach (var item in eTs)
-            {
-                geometryDrawServerInputs.AddTriangleToBuffer(item.Triangle3d, new XYZ(0, 0, 1), item.ColorWithTransparency, new XYZ(0, 0, 1), false);
-            }
-
-            GeometryDrawServersMgr.ShowGraphics(geometryDrawServerInputs, Guid.NewGuid().ToString());
+            this.DrawRectColorByTri3d(PubFuncWt.RevitTo_.ToVector3d((location + new XYZ(0, -buffer, 0))), height, width, rate, displayHeight);
         }
 
     }

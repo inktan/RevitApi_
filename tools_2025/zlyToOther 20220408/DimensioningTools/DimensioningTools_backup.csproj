@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <!--<TargetFrameworks>net472;net48</TargetFrameworks>-->
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+  
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\bin\Debug\</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TeighaNet\TeighaNet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="goa.Common">
+      <HintPath>..\..\goa-tools-common\goa.Common\bin\Debug\goa.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="System.DirectoryServices" />
+  </ItemGroup>
+
+</Project> 

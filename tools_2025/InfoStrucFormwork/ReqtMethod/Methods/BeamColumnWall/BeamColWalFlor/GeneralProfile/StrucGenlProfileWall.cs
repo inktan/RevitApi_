@@ -106,6 +106,10 @@ namespace InfoStrucFormwork
                     {
                         strucGenlProfileInfo.FamilySymbol = this.fsCol;
                     }
+                    else
+                    {
+                        strucGenlProfileInfo.FamilySymbol = this.fsColOutline;
+                    }
                     if (!strucGenlProfileInfo.FamilySymbol.IsActive)
                     {
                         strucGenlProfileInfo.FamilySymbol.Activate();
@@ -167,10 +171,12 @@ namespace InfoStrucFormwork
         }
 
         FamilySymbol fsCol { get; set; }
+        FamilySymbol fsColOutline { get; set; }
 
         internal override void GetFamilySymbols()
         {
             this.fsCol = CMD.Doc.FamilySymbolByName("结构墙", "结构墙");
+            this.fsColOutline = CMD.Doc.FamilySymbolByName("结构墙_轮廓", "结构墙_轮廓");
         }
     }
 }

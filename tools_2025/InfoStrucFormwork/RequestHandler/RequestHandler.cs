@@ -77,9 +77,16 @@ namespace InfoStrucFormwork
                             GC.Collect();
                             break;
                         }
-                    case RequestId.ConcBeamUi:
+                    case RequestId.ConcBeamUiSingle:
                         {
-                            requestMethod = new ConcBeamUi(uiapp);
+                            requestMethod = new ConcBeamUiSingle(uiapp);
+                            requestMethod.Execute();
+                            GC.Collect();
+                            break;
+                        }
+                    case RequestId.ConcBeamUiMultiline:
+                        {
+                            requestMethod = new ConcBeamUiMultiline(uiapp);
                             requestMethod.Execute();
                             GC.Collect();
                             break;
@@ -99,6 +106,26 @@ namespace InfoStrucFormwork
                             TransactionGroup transactionGroup = new TransactionGroup(uiapp.ActiveUIDocument.Document);
                             transactionGroup.Start("梁吸附到面");
                             requestMethod = new ConcSingleBeamFollowFaceUi(uiapp);
+                            requestMethod.Execute();
+                            transactionGroup.Assimilate();
+                            GC.Collect();
+                            break;
+                        }
+                    case RequestId.ConSingleBeamFollowEdge:
+                        {
+                            TransactionGroup transactionGroup = new TransactionGroup(uiapp.ActiveUIDocument.Document);
+                            transactionGroup.Start("-");
+                            requestMethod = new ConSingleBeamFollowEdge(uiapp);
+                            requestMethod.Execute();
+                            transactionGroup.Assimilate();
+                            GC.Collect();
+                            break;
+                        }
+                    case RequestId.ConSingleColFollowEdge:
+                        {
+                            TransactionGroup transactionGroup = new TransactionGroup(uiapp.ActiveUIDocument.Document);
+                            transactionGroup.Start("-");
+                            requestMethod = new ConSingleColFollowEdge(uiapp);
                             requestMethod.Execute();
                             transactionGroup.Assimilate();
                             GC.Collect();
@@ -186,6 +213,61 @@ namespace InfoStrucFormwork
                             transactionGroup.Start("梁柱板墙分离");
 
                             requestMethod = new EleSeparate(uiapp);
+                            requestMethod.Execute();
+                            transactionGroup.Assimilate();
+                            GC.Collect();
+                            break;
+                        }
+                    case RequestId.AllowJoin:
+                        {
+                            TransactionGroup transactionGroup = new TransactionGroup(uiapp.ActiveUIDocument.Document);
+                            transactionGroup.Start("-");
+
+                            requestMethod = new AllowJoin(uiapp);
+                            requestMethod.Execute();
+                            transactionGroup.Assimilate();
+                            GC.Collect();
+                            break;
+                        }
+                    case RequestId.DisallowJoin:
+                        {
+                            TransactionGroup transactionGroup = new TransactionGroup(uiapp.ActiveUIDocument.Document);
+                            transactionGroup.Start("-");
+
+                            requestMethod = new DisallowJoin(uiapp);
+                            requestMethod.Execute();
+                            transactionGroup.Assimilate();
+                            GC.Collect();
+                            break;
+                        }
+                    case RequestId.DelDupCols:
+                        {
+                            TransactionGroup transactionGroup = new TransactionGroup(uiapp.ActiveUIDocument.Document);
+                            transactionGroup.Start("-");
+
+                            requestMethod = new DelDupCols(uiapp);
+                            requestMethod.Execute();
+                            transactionGroup.Assimilate();
+                            GC.Collect();
+                            break;
+                        }
+                    case RequestId.DelDupBeams:
+                        {
+                            TransactionGroup transactionGroup = new TransactionGroup(uiapp.ActiveUIDocument.Document);
+                            transactionGroup.Start("-");
+
+                            requestMethod = new DelDupBeams(uiapp);
+                            requestMethod.Execute();
+                            transactionGroup.Assimilate();
+                            GC.Collect();
+                            break;
+                        }
+                    case RequestId.BrokenNumRepair:
+                        {
+                            TransactionGroup transactionGroup = new TransactionGroup(uiapp.ActiveUIDocument.Document);
+                            transactionGroup.Start("-");
+
+                            requestMethod = new BrokenNumRepair(uiapp);
                             requestMethod.Execute();
                             transactionGroup.Assimilate();
                             GC.Collect();

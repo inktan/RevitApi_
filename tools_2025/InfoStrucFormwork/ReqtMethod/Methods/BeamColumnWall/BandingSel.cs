@@ -85,7 +85,6 @@ namespace InfoStrucFormwork
                         Curve temp = curveLoop.ToList().OrderBy(p => p.Distance(reference.GlobalPoint)).First();
 
                         familyInstance = OpenTrans(temp);
-                        SetLevelHW(familyInstance);
                     }
                 }
                 catch (Exception)
@@ -109,6 +108,7 @@ namespace InfoStrucFormwork
                     trans.Commit();
                 }
             }
+            SetLevelHW(familyInstance);
             //throw new NotImplementedException();
         }
 
@@ -137,11 +137,11 @@ namespace InfoStrucFormwork
                 trans.DeleteErrOrWaringTaskDialog();
                 trans.Start();
 
-                if (ViewModel.Instance.BeamWidth > 1)
+                if (ViewModel.Instance.BeamWidth > 10)
                 {
                     familyInstance.LookupParameter("宽度").Set(ViewModel.Instance.BeamWidth.MilliMeterToFeet());
                 }
-                if (ViewModel.Instance.BeamHeight > 1)
+                if (ViewModel.Instance.BeamHeight > 10)
                 {
                     familyInstance.LookupParameter("高度").Set(ViewModel.Instance.BeamHeight.MilliMeterToFeet());
                 }

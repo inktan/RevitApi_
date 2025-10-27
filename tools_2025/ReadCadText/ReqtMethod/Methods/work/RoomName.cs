@@ -26,6 +26,7 @@ namespace ReadCadText
     {
         internal RoomName(UIApplication _uiApp) : base(_uiApp)
         {
+
         }
 
         public string PathName { get; set; }

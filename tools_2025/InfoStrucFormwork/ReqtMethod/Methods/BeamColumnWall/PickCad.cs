@@ -49,7 +49,7 @@ namespace InfoStrucFormwork
 
             List<Level> levels =
                 (new FilteredElementCollector(CMD.Doc))
-                .OfCategory(BuiltInCategory.OST_Levels)
+                //.OfCategory(BuiltInCategory.OST_Levels)
                 .OfClass(typeof(Level))
                 .Cast<Level>()
                 .ToList();

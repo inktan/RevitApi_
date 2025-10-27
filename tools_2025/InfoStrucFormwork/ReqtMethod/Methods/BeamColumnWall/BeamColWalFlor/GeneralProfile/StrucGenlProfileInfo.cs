@@ -110,9 +110,9 @@ namespace InfoStrucFormwork
             string filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
             //string filePath = CMD.Doc.PathName;
-            //filePath = filePath.Replace(CMD.Doc.PathName.Split('\\').Last(), @"\结构柱_轮廓");
+            //filePath = filePath.Replace(CMD.Doc.PathName.Split('\\').Last(), @"\结构墙_轮廓");
 
-            //if (!Directory.Exists(filePath))
+            //if (!Directory.Exists(filePath))   
             //{
             //    Directory.CreateDirectory(filePath);
             //}
@@ -122,11 +122,11 @@ namespace InfoStrucFormwork
             // 数量用于计数，重命名
             //FileInfo[] files = dir.GetFiles();
 
-            // 1 打开 结构柱_轮廓 族文档
+            // 1 打开 结构墙_轮廓 族文档
 
-            Document strucFaDoc = CMD.Doc.EditFamily(CMD.Doc.FamilyByName("结构柱_轮廓"));
+            Document strucFaDoc = CMD.Doc.EditFamily(CMD.Doc.FamilyByName("结构墙_轮廓"));
             // 找到 _轮廓 族
-            Family profileFa = (new FilteredElementCollector(strucFaDoc)).OfClass(typeof(Family)).FirstOrDefault(p => p.Name == "_轮廓") as Family;
+            Family profileFa = (new FilteredElementCollector(strucFaDoc)).OfClass(typeof(Family)).FirstOrDefault(p => p.Name == "轮廓_") as Family;
             // 2 打开 最底层 轮廓 族文档
             Document proFileFaDoc = strucFaDoc.EditFamily(profileFa);
             // 清除现有轮廓线
@@ -157,14 +157,18 @@ namespace InfoStrucFormwork
             saveAsOptions.MaximumBackups = 1;
             saveAsOptions.OverwriteExistingFile = true;
 
-
-            proFileFaDoc.SaveAs(filePath + @"\" + proFileFaDoc.PathName.Split('\\').Last(), saveAsOptions);
+            string proFileFaDocPath = filePath + @"\轮廓_.rfa";
+            if (!proFileFaDoc.PathName.IsNullOrEmpty())
+            {
+                proFileFaDocPath = filePath + @"\" + proFileFaDoc.PathName.Split('\\').Last();
+            }
+            proFileFaDoc.SaveAs(proFileFaDocPath , saveAsOptions);
             // 3 载入族轮廓
             strucFaDoc.ReLoadFamily(filePath + @"\" + proFileFaDoc.PathName.Split('\\').Last());
             proFileFaDoc.Close();
 
             // 保存 新的结构柱 族文件
-            string newPfoName = @"结构柱_轮廓" + (Guid.NewGuid()).ToString();
+            string newPfoName = @"结构墙_轮廓" + (Guid.NewGuid()).ToString();
 
             strucFaDoc.SaveAs(filePath + @"\" + newPfoName + @".rfa", saveAsOptions);
             strucFaDoc.Close();

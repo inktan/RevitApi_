@@ -42,10 +42,10 @@ namespace InfoStrucFormwork
 
         // ==> MVVM
 
-        private double beamWidth = 0.0;
+        private double beamWidth = 300.0;
         public double BeamWidth { get { return beamWidth; } set { beamWidth = value; RaisePropertyChanged("BeamWidth"); } }
 
-        private double beamHeight = 0.0;
+        private double beamHeight = 600.0;
         public double BeamHeight { get { return beamHeight; } set { beamHeight = value; RaisePropertyChanged("BeamHeight"); } }
 
         // 额外添加的混凝土尺寸图层
@@ -115,9 +115,13 @@ namespace InfoStrucFormwork
         {
             makeRequest(RequestId.ConcCol);
         });
-        public RelayCommand ConcBeamUi => new RelayCommand(() =>
+        public RelayCommand ConcBeamUiSingle => new RelayCommand(() =>
         {
-            makeRequest(RequestId.ConcBeamUi);
+            makeRequest(RequestId.ConcBeamUiSingle);
+        });
+        public RelayCommand ConcBeamUiMultiline => new RelayCommand(() =>
+        {
+            makeRequest(RequestId.ConcBeamUiMultiline);
         });
         public RelayCommand ConcBeamFollowFaceUi => new RelayCommand(() =>
         {
@@ -126,6 +130,18 @@ namespace InfoStrucFormwork
         public RelayCommand ConcSingleBeamFollowFaceUi => new RelayCommand(() =>
         {
             makeRequest(RequestId.ConcSingleBeamFollowFaceUi);
+        });
+        public RelayCommand ConcSingleColFollowFaceUi => new RelayCommand(() =>
+        {
+            makeRequest(RequestId.ConcSingleColFollowFaceUi);
+        });
+        public RelayCommand ConSingleBeamFollowEdge => new RelayCommand(() =>
+        {
+            makeRequest(RequestId.ConSingleBeamFollowEdge);
+        });
+        public RelayCommand ConSingleColFollowEdge => new RelayCommand(() =>
+        {
+            makeRequest(RequestId.ConSingleColFollowEdge);
         });
         public RelayCommand ConcColFollowFaceUi => new RelayCommand(() =>
         {
@@ -162,6 +178,26 @@ namespace InfoStrucFormwork
         public RelayCommand EleSeparate => new RelayCommand(() =>
         {
             makeRequest(RequestId.EleSeparate);
+        });
+        public RelayCommand AllowJoin => new RelayCommand(() =>
+        {
+            makeRequest(RequestId.AllowJoin);
+        });
+        public RelayCommand DisallowJoin => new RelayCommand(() =>
+        {
+            makeRequest(RequestId.DisallowJoin);
+        });
+        public RelayCommand DelDupCols => new RelayCommand(() =>
+        {
+            makeRequest(RequestId.DelDupCols);
+        });
+        public RelayCommand DelDupBeams => new RelayCommand(() =>
+        {
+            makeRequest(RequestId.DelDupBeams);
+        });
+        public RelayCommand BrokenNumRepair => new RelayCommand(() =>
+        {
+            makeRequest(RequestId.BrokenNumRepair);
         });
         public RelayCommand TestCmd01 => new RelayCommand(() => { makeRequest(RequestId.Test01); }, CanExcute);
         public RelayCommand TestCmd02 => new RelayCommand(() => { makeRequest(RequestId.Test02); }, CanExcute);

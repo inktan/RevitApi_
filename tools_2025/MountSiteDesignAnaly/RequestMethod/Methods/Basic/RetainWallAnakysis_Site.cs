@@ -430,7 +430,12 @@ namespace MountSiteDesignAnaly
         }
         void AddText(List<EaTextIfo> textIfos)
         {
-            TextNoteType textNoteType = this.doc.FindTxType("宋体 12mm", 12);
+            //TextNoteType textNoteType = this.doc.FindTxType("宋体 12mm", 12);
+
+            FilteredElementCollector collector = new FilteredElementCollector(doc);
+            TextNoteType textNoteType = collector.OfClass(typeof(TextNoteType))
+                                                              .Cast<TextNoteType>()
+                                                              .First();
 
             // 文字
             using (Transaction trans = new Transaction(doc, "creatText"))
@@ -636,7 +641,12 @@ namespace MountSiteDesignAnaly
         }
         internal void DrawText(string title, double max, double min)
         {
-            TextNoteType textNoteType = this.doc.FindTxType("宋体 12mm", 12);
+            //TextNoteType textNoteType = this.doc.FindTxType("宋体 12mm", 12);
+
+            FilteredElementCollector collector = new FilteredElementCollector(doc);
+            TextNoteType textNoteType = collector.OfClass(typeof(TextNoteType))
+                                                              .Cast<TextNoteType>()
+                                                              .First();
 
             // 图例左上角定位点
             XYZ location = this.sel.PickPoint("选择图例定位点");

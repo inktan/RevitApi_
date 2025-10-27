@@ -7,9 +7,11 @@ namespace InfoStrucFormwork
         None,
         ConcWall,
         ConcCol,
-        ConcBeamUi,
+        ConcBeamUiSingle,
+        ConcBeamUiMultiline,
         ConcBeamFollowFaceUi,
         ConcSingleBeamFollowFaceUi,
+        ConcSingleColFollowFaceUi,
         ConcColFollowFaceUi,
         FloorDivision,
         AlignToBoardTop,
@@ -18,6 +20,16 @@ namespace InfoStrucFormwork
         CalRelativeH,
         ClearStruAna,
         EleSeparate,
+
+        BrokenNumRepair,
+
+        ConSingleBeamFollowEdge,
+        ConSingleColFollowEdge,
+
+        AllowJoin,
+        DisallowJoin,
+        DelDupCols,
+        DelDupBeams,
 
         StoreySteelBeamDoubleLine,
         RoofSteelBeamDoubleLine,

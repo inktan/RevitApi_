@@ -17,6 +17,7 @@ using Autodesk.Revit.DB.Structure;
 using goa.Common;
 using g3;
 using System.Text.RegularExpressions;
+using System.Runtime.CompilerServices;
 
 namespace InfoStrucFormwork
 
@@ -432,7 +433,14 @@ namespace InfoStrucFormwork
                         parameter = familyInstance.get_Parameter(BuiltInParameter.STRUCT_FRAM_JOIN_STATUS);
                         if (parameter != null && !parameter.IsReadOnly)
                             parameter.Set(1);
-
+                        try
+                        {
+                            StructuralFramingUtils.DisallowJoinAtEnd(familyInstance, 0);
+                            StructuralFramingUtils.DisallowJoinAtEnd(familyInstance, 1);
+                        }
+                        catch (Exception)
+                        {
+                        }
                         trans.Commit();
                     }
                 }
@@ -442,16 +450,18 @@ namespace InfoStrucFormwork
                     //throw;
                 }
             }
-
         }
         static internal Curve ProjectToRoof(Curve curve, List<Face> roofFaces)
         {
-            Line line = curve as Line;
+            // 将line Z 轴归零
+            XYZ p0 = curve.GetEndPoint(0);
+            XYZ p1 = curve.GetEndPoint(1);
+            Line line = Line.CreateBound(new XYZ(p0.X, p0.Y, 0), new XYZ(p1.X, p1.Y, 0));
+
             if (roofFaces == null || roofFaces.Count < 1 || line == null)
             {
                 return null;
             }
-
 
             List<Level> levels =
                 (new FilteredElementCollector(CMD.Doc))
@@ -476,8 +486,6 @@ namespace InfoStrucFormwork
                     trans.DeleteErrOrWaringTaskDialog();
                     trans.Start();
 
-
-
                     // 需要将创建墙的基准线进行处理
                     wall = Wall.Create(CMD.Doc, line, wallType.Id, tmpLevel.Id, 1600, 0.0, false, false);
                     wall.get_Parameter(BuiltInParameter.WALL_BASE_OFFSET).Set(-800);
@@ -501,9 +509,11 @@ namespace InfoStrucFormwork
                 foreach (var item in faces)
                 {
                     Autodesk.Revit.DB.IntersectionResult intersection = item.Project(center);
+                    //这里判断距离梁中线最近的墙侧面
                     if (intersection != null && intersection.Distance.EqualZreo())
                     {
                         item.Intersect(roofFaces.First(), out Curve tmp);
+
                         if (tmp == null) continue;
 
                         if (tmp is HermiteSpline)

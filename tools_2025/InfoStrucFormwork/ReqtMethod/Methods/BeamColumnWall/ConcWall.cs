@@ -36,7 +36,7 @@ namespace InfoStrucFormwork
             // 剪力墙 
             eleInfo = new StrucGenlProfileWall();
             eleInfo.DwgParser = pickCad.DwgParser;
-            eleInfo.Execute();// 将不可识别的竖向构件图形，处理为通用 结构柱_轮廓 轮廓族
+            eleInfo.Execute();// 将不可识别的竖向构件图形，处理为通用 结构墙_轮廓 轮廓族
             if (eleInfo.ElementIds != null)
             {
                 elementIds.AddRange(eleInfo.ElementIds);

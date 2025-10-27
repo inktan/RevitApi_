@@ -54,7 +54,7 @@ namespace InfoStrucFormwork
         internal override void ExGeoInfo()
         {
             // 1 获取最外层楼板板边线
-            List<string> patternFloor = new List<string>() { @"a\d*-slab-otln", @"a\d*-flor-otln" };
+            List<string> patternFloor = new List<string>() { @"a\d*-slab-otln", @"a\d*-flor-otln" , @"s\d*-slab-otln", @"s\d*-flor-otln" };
             // 2 获取洞口
             //string patternHole = @"s\d*-hole";
             // 3 获取降板以及高度数据

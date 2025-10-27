@@ -412,7 +412,15 @@ namespace TeighaNet
         void Parse(Mline mlineEntity)
         {
             MlineInfo mlineInfo = new MlineInfo(mlineEntity);
-            mlineInfo.Parse();
+            try
+            {
+                mlineInfo.Parse();
+            }
+            catch (Exception)
+            {
+                return;
+                //throw;
+            }
 
             if (!this.MlineLayerInfos.ContainsKey(mlineInfo.Layer))
             {

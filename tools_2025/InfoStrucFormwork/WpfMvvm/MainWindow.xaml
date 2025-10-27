@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:InfoStrucFormwork"
         d:DataContext="{d:DesignInstance Type=local:ViewModel}"
         mc:Ignorable="d"
-        Title="结 v1.0278" Height="470" Width="250" Topmost="True" ResizeMode="CanResize"  Closing="Window_Closing">
+        Title="StruInfo v0.04" Height="444" Width="250" Topmost="True" ResizeMode="NoResize"  Closing="Window_Closing">
     <Window.Resources>
         <!--将资源都存储到外部资源字典文件中-->
         <ResourceDictionary>
@@ -17,15 +17,16 @@
     </Window.Resources>
     <Grid>
         <StackPanel Margin="2">
-            <GroupBox Header="CAD-混凝土" Grid.Column="0" VerticalAlignment="Top" Margin="2">
+            <GroupBox Header="CAD-混凝土"  VerticalAlignment="Top" Margin="2">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <Button Margin="2" Command="{Binding ConcWall}">墙</Button>
                         <Button Margin="2" Command="{Binding ConcCol}">柱</Button>
-                        <Button Margin="2" Command="{Binding ConcBeamUi}">梁-水平面</Button>
-                        <Button Margin="2" Command="{Binding SlopeRoofBeam}">梁-折线</Button>
+                        <Button Margin="2" Command="{Binding ConcBeamUiSingle}">梁-单线</Button>
+                        <Button Margin="2" Command="{Binding ConcBeamUiMultiline}">梁-双线-水平面</Button>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
+                        <Button Margin="2" Command="{Binding SlopeRoofBeam}">梁-折线</Button>
                         <Button Margin="2" Command="{Binding ConcBeamFollowFaceUi}">梁-非水平面</Button>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
@@ -35,17 +36,35 @@
                     </StackPanel>
                 </StackPanel>
             </GroupBox>
+            <GroupBox Header="CAD-钢"  VerticalAlignment="Top" Margin="2">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="2" Command="{Binding StoreySteelBeamSingleLine}">梁-单线</Button>
+                        <!--<Button Margin="2" Command="{Binding StoreySteelBeamDoubleLine}">梁-双线-水平面</Button>-->
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
             <GroupBox Header="手动" Grid.Column="0" VerticalAlignment="Top" Margin="2">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <Button Margin="2" Command="{Binding ConcSingleBeamFollowFaceUi}">梁吸附到面</Button>
-                        <Button Margin="2" Command="{Binding ConcColFollowFaceUi}">柱吸附到面</Button>
+                        <Button Margin="2" Command="{Binding ConSingleBeamFollowEdge}">梁对齐到线-剖面</Button>
+                        <Button Margin="2" Command="{Binding ConSingleColFollowEdge}">柱对齐到线-剖面</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <!--<Button Margin="2" Command="{Binding ConcSingleBeamFollowFaceUi}">梁吸附到面</Button>
+                        <Button Margin="2" Command="{Binding ConcColFollowFaceUi}">柱吸附到面</Button>-->
                         <!--<Button Margin="2" Command="{Binding FloorDivision}">划分楼板</Button>-->
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <Button Margin="2" Command="{Binding AlignToBoardTop}">顶对齐顶</Button>
                         <Button Margin="2" Command="{Binding AlignToBoardBottom}">底对齐底</Button>
                         <Button Margin="2" Command="{Binding BbCoverFb}">梁底兜板底？</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="2" Command="{Binding AllowJoin}">梁-连接</Button>
+                        <Button Margin="2" Command="{Binding DisallowJoin}">不连接</Button>
+                        <Button Margin="2" Command="{Binding DelDupBeams}">重复梁</Button>
+                        <Button Margin="2" Command="{Binding DelDupCols}">重复柱</Button>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>

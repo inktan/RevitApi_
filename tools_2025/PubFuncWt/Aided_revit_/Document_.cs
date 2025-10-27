@@ -10,6 +10,15 @@ namespace PubFuncWt
 {
     public static class Document_
     {
+        public static TextNoteType FindTxType(this Document doc, string fontName, double size)
+        {
+            // Get all text note types in the document
+            FilteredElementCollector collector = new FilteredElementCollector(doc);
+            ICollection<TextNoteType> textNoteTypes = collector.OfClass(typeof(TextNoteType))
+                                                              .Cast<TextNoteType>()
+                                                              .ToList();
+            return textNoteTypes.First();
+        }
         public static void SaveCsv(this Document doc, List<object[]> objects, string csvname)
         {
             // 将数据写出到csv

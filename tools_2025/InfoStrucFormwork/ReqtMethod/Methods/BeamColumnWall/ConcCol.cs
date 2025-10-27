@@ -35,7 +35,8 @@ namespace InfoStrucFormwork
             // 柱子 (使用线圈)
             eleInfo = new StrucGenlProfileCol();
             eleInfo.DwgParser = pickCad.DwgParser;
-            eleInfo.Execute();// 将不可识别的竖向构件图形，处理为通用 结构柱_轮廓 轮廓族
+            eleInfo.Execute();// 将不可识别的竖向构件图形，处理为通用 结构柱_
+                              // 轮廓族
             if (eleInfo.ElementIds != null)
             {
                 elementIds.AddRange(eleInfo.ElementIds);

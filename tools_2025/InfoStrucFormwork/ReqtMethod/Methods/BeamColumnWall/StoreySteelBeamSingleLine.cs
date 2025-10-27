@@ -41,12 +41,12 @@ namespace InfoStrucFormwork
 
             if (elementIds.Count > 0)
             {
-                using (Transaction trans = new Transaction(this.doc, "创建组"))
-                {
-                    trans.Start();
-                    Group group = this.doc.Create.NewGroup(elementIds);
-                    trans.Commit();
-                }
+                //using (Transaction trans = new Transaction(this.doc, "创建组"))
+                //{
+                //    trans.Start();
+                //    Group group = this.doc.Create.NewGroup(elementIds);
+                //    trans.Commit();
+                //}
             }
             else
             {
